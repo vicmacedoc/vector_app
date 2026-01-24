@@ -1,0 +1,24 @@
+# Vector - Project Constitution
+
+## Context & Tone
+- Project: Vector (Life Tracking App)
+- Owner: Victor Macedo
+- Tone: Playful yet precise. Engineering aesthetic. No bloat.
+- Primary Colors: Navy Blue, Electric Blue, and Pure White.
+
+## Multi-Module Strategy
+- :app -> Handheld UI, Navigation, and Drive Sync.
+- :wear -> WearOS Workout tracking (Form-entry focused).
+- :core -> SHARED BRAIN.
+
+## Implementation Rules
+1. UI THEME: NEVER create local Color.kt or Theme.kt in :app or :wear.
+   - ALWAYS use `VectorTheme` from `com.vm.core.ui.theme`.
+2. DATA MODELS: All shared JSON/Room models MUST live in the :core module.
+3. ARCHITECTURE: Follow MVVM + Clean Architecture. Use Repository pattern for Drive sync.
+4. DATA: Use Room with TypeConverters for nested JSON. Reference `.cursor/rules/data-schemas.md`.
+
+## Coding Standards
+- Kotlin Coroutines/Flow for async operations.
+- Jetpack Compose (Material 3) for all UI.
+- kotlinx.serialization for JSON.
