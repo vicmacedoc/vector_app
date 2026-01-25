@@ -1,21 +1,34 @@
-# Vector
-**The life-tracking app made by and to Victor.**
+<p align="left">
+  <img src="assets/dark_logo.png" alt="Vector Logo" width="280"/>
+</p>
 
-Vector is a personal engineering project designed to optimize the "Victor System." A highly personalized tool to monitor and optimize every aspect of my life.
+
+# Vector
+A life-tracking app made by Victor to Victor. 
+
+Designed to provide life with directions for changes of large magnitude! It strictly follows preset rules for the Victor' Space, which comprises my Diet, Exercises, Routine and Diary.
+
+Vector is a personal project designed to optimize the "Victor System." A highly personalized tool to monitor, store and optimize every aspect of my life.
 
 ## Features
-- **Lists:** Tackle the "shopping-list-to-fridge" pipeline with LLM-generated JSON precision.
-- **Calendar:** The daily command center. Log the grind—workouts, meals, deep work—and see the data reality.
-- **Analysis:** Because what gets measured, gets optimized. Built for deep dives into training load and life-efficiency.
-- **Sync:** Local-first speed with Google Drive storage—keeping it private, portable, and free.
+- **Lists:** Tackle the "shopping-list-to-fridge" or "daily tasks" pipeline with LLM-generated JSON files for simplicity.
+- **Calendar:** The daily input center. Seemingless log my workouts, meals, routine and feelings each day, check past reports or edit future goals.
+- **Analysis:** Adaptative real time dashboards for my most relevant metrics such as study time, training load, caloric intake or sentiment heatmaps.
+- **Sync:** Personally managed with Google Drive storage—keeping it private, portable, and free.
 
 ## Specs
 - **Engine:** Kotlin + Jetpack Compose (Material 3).
 - **Brain:** Room SQLite for historical data; DataStore for the "under-the-hood" settings.
-- **Connectivity:** Future-proofed for WearOS (for those mid-set adjustments).
-- **Data Flow:** Speaks fluent JSON for easy external processing via Python scripts.
+- **Connectivity:** Workout feature connected with WearOS (for a seemingless training tracking).
+- **Data Flow:** Lots of JSON files with the SQLite database for easy backup and storage, with computer-based Python scripts for more advanced analysis.
 
 ## Project Structure
 - `:app`: The mobile command center.
 - `:wear`: The companion watch app (coming soon!).
 - `:core`: The shared brain containing our data models and nested JSON logic.
+- `:python`: The place for python scripts to access the generated data and provide in-depth analysis.
+
+## License
+Vector is licensed under the [MIT License](LICENSE).  
+
+> **Personal project, open ideas.**

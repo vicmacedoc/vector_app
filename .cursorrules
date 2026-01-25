@@ -14,6 +14,7 @@
 ## Implementation Rules
 1. UI THEME: NEVER create local Color.kt or Theme.kt in :app or :wear.
    - ALWAYS use `VectorTheme` from `com.vm.core.ui.theme`.
+   - **Screen theme:** White background (`PureWhite`), black text (`PureBlack`). Use `NavyDeep` for primary buttons (background) with `PureWhite` icon/text. Apply to Scaffold, surfaces, and actionable controls.
 2. DATA MODELS: All shared JSON/Room models MUST live in the :core module.
 3. ARCHITECTURE: Follow MVVM + Clean Architecture. Use Repository pattern for Drive sync.
 4. DATA: Use Room with TypeConverters for nested JSON. Reference `.cursor/rules/data-schemas.md`.
