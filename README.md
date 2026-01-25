@@ -1,5 +1,5 @@
 <p align="left">
-  <img src="assets/dark_logo.png" alt="Vector Logo" width="280"/>
+  <img src="assets/logo.png" alt="Vector Logo" width="280"/>
 </p>
 
 
