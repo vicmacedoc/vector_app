@@ -9,16 +9,15 @@ import androidx.compose.ui.graphics.Color
 
 // Phone: Light Color Scheme (Navy/Blue/White)
 private val VectorLightColorScheme = lightColorScheme(
-    primary = NavyDeep,
-    onPrimary = PureWhite,
-    primaryContainer = NavyLight,
-    onPrimaryContainer = PureWhite,
-    secondary = ElectricBlue,
-    onSecondary = PureWhite,
-    background = PureWhite,
-    surface = OffWhite,
-    onBackground = NavyDeep,
-    onSurface = NavyDeep
+    primary = NavyDeep,       // Navy for buttons
+    onPrimary = PureWhite,    // White text on buttons
+    background = PureWhite,   // White screen background
+    surface = PureWhite,      // White cards/menus
+    onBackground = Color.Black, // Mostly black text
+    onSurface = Color.Black,
+    // Navy blue for the bottom menu (using inverse roles)
+    inverseSurface = NavyDeep, 
+    inverseOnSurface = PureWhite
 )
 
 // Phone: Dark Color Scheme (Optional, for System Dark Mode)
@@ -40,7 +39,7 @@ fun VectorTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        // Typography = Typography, // Ensure you have a Typography.kt defined or use default
+        typography = Typography,
         content = content
     )
 }

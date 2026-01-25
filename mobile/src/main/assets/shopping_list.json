@@ -1,0 +1,126 @@
+{
+    "id": "shop_002",
+    "name": "Weekly Groceries",
+    "items": [
+        {
+            "id": "i1",
+            "title": "Bananas",
+            "isChecked": false,
+            "quantity": 8.0,
+            "unit": "un",
+            "remaining": 0
+        },
+        {
+            "id": "i2",
+            "title": "Chicken Breast (Family Pack)",
+            "isChecked": false,
+            "quantity": 5.0,
+            "unit": "lbs",
+            "remaining": 0
+        },
+        {
+            "id": "i3",
+            "title": "Large Eggs",
+            "isChecked": false,
+            "quantity": 2.0,
+            "unit": "dozen",
+            "remaining": 0
+        },
+        {
+            "id": "i4",
+            "title": "Frozen Mixed Vegetables",
+            "isChecked": false,
+            "quantity": 2.0,
+            "unit": "bags (32oz)",
+            "remaining": 0
+        },
+        {
+            "id": "i5",
+            "title": "Bread (Whole Wheat/White)",
+            "isChecked": false,
+            "quantity": 1.0,
+            "unit": "loaf",
+            "remaining": 0
+        },
+        {
+            "id": "i6",
+            "title": "Jasmine Rice",
+            "isChecked": false,
+            "quantity": 5.0,
+            "unit": "lbs",
+            "remaining": 0
+        },
+        {
+            "id": "i7",
+            "title": "Rolled Oats",
+            "isChecked": false,
+            "quantity": 1.0,
+            "unit": "canister (42oz)",
+            "remaining": 0
+        },
+        {
+            "id": "i8",
+            "title": "Peanut Butter",
+            "isChecked": false,
+            "quantity": 1.0,
+            "unit": "jar (16oz)",
+            "remaining": 0
+        },
+        {
+            "id": "i9",
+            "title": "Soy Sauce",
+            "isChecked": false,
+            "quantity": 1.0,
+            "unit": "bottle",
+            "remaining": 0
+        },
+        {
+            "id": "i10",
+            "title": "Minced Garlic (Water/Oil)",
+            "isChecked": false,
+            "quantity": 1.0,
+            "unit": "jar (8oz)",
+            "remaining": 0
+        },
+        {
+            "id": "i11",
+            "title": "Arm & Hammer Detergent",
+            "isChecked": false,
+            "quantity": 1.0,
+            "unit": "bottle (77 loads)",
+            "remaining": 0
+        },
+        {
+            "id": "i12",
+            "title": "Gain Dryer Sheets",
+            "isChecked": false,
+            "quantity": 1.0,
+            "unit": "box (240 ct)",
+            "remaining": 0
+        },
+        {
+            "id": "i13",
+            "title": "Scotch-Brite Non-Scratch Sponges (Blue)",
+            "isChecked": false,
+            "quantity": 1.0,
+            "unit": "pack (3 ct)",
+            "remaining": 0
+        },
+        {
+            "id": "i14",
+            "title": "Dawn Dish Soap",
+            "isChecked": false,
+            "quantity": 1.0,
+            "unit": "bottle",
+            "remaining": 0
+        },
+        {
+            "id": "i15",
+            "title": "Microfiber Kitchen Towels",
+            "isChecked": false,
+            "quantity": 1.0,
+            "unit": "pack",
+            "remaining": 0
+        }
+    ]
+}
