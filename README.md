@@ -8,7 +8,7 @@ A life-tracking app made by Victor to Victor.
 
 Designed to provide life with directions for changes of large magnitude! It strictly follows preset rules for the Victor' Space, which comprises my Diet, Exercises, Routine and Diary.
 
-Vector is a personal project designed to optimize the "Victor System." A highly personalized tool to monitor, store and optimize every aspect of my life.
+Vector is a personal project designed to optimize the "Victor System". A highly personalized tool to monitor, store and optimize every aspect of my life.
 
 ## Features
 - **Lists:** Tackle the "shopping-list-to-fridge" or "daily tasks" pipeline with LLM-generated JSON files for simplicity.
