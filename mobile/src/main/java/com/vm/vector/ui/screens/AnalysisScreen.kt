@@ -19,7 +19,7 @@ fun AnalysisScreen() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Hello Vector: Analysis",
+            text = "Analysis (in progress)",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )

@@ -1,0 +1,27 @@
+{
+    "id": "victor_routine_2026_v2",
+    "weekly_plan": {
+      "monday": [
+        { "id": "m1", "category": "PhD", "title": "Deep Work", "type": "NUMERICAL", "goalValue": 4.0, "partialThreshold": 2.0, "minValue": 0.0, "maxValue": 8.0, "unit": "h", "directionBetter": 1 },
+        { "id": "m2", "category": "Mindset", "title": "Meditation", "type": "CATEGORICAL" }
+      ],
+      "tuesday": [
+        { "id": "t1", "category": "Lifestyle", "title": "Social Media", "type": "NUMERICAL", "goalValue": 0.5, "partialThreshold": 1.0, "minValue": 0.0, "maxValue": 3.0, "unit": "h", "directionBetter": -1 }
+      ],
+      "wednesday": [
+        { "id": "w1", "category": "Health", "title": "Stretching", "type": "CATEGORICAL" }
+      ],
+      "thursday": [
+        { "id": "th1", "category": "PhD", "title": "Paper Review", "type": "NUMERICAL", "goalValue": 2.0, "partialThreshold": 1.0, "minValue": 0.0, "maxValue": 5.0, "unit": "papers", "directionBetter": 1 }
+      ],
+      "friday": [
+        { "id": "f1", "category": "Lifestyle", "title": "Coffee", "type": "NUMERICAL", "goalValue": 2.0, "partialThreshold": 3.0, "minValue": 0.0, "maxValue": 6.0, "unit": "cups", "directionBetter": -1 }
+      ],
+      "saturday": [
+        { "id": "s1", "category": "Exercise", "title": "MSU Trail Run", "type": "NUMERICAL", "goalValue": 10.0, "partialThreshold": 5.0, "minValue": 0.0, "maxValue": 20.0, "unit": "km", "directionBetter": 1 }
+      ],
+      "sunday": [
+        { "id": "su1", "category": "Mindset", "title": "Planning", "type": "CATEGORICAL" }
+      ]
+    }
+  }

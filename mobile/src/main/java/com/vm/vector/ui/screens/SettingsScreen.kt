@@ -163,9 +163,6 @@ fun SettingsScreen(
                     Text(if (uiState.isValidating) "Validating…" else "Validate Connection", color = PureWhite)
                 }
 
-                // Divider or spacing before reset button
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Button(
                     onClick = viewModel::showPasswordDialog,
                     enabled = !uiState.isLoading && !uiState.isValidating && !uiState.isResetting,
@@ -271,7 +268,7 @@ fun SettingsScreen(
                     TextButton(
                         onClick = viewModel::resetDatabase,
                         colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
+                            contentColor = DeleteRed
                         )
                     ) {
                         Text("Reset")
