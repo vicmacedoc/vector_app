@@ -1,0 +1,29 @@
+{
+    "id": "victor_diet_7day_macros",
+    "name": "Full Week Macro Test",
+    "weekly_plan": {
+      "monday": [
+        { "id": "m1_1", "plannedTime": "08:00", "name": "Oats", "kcal": 150, "protein": 5, "carbs": 27, "fats": 3, "plannedAmount": 40.0, "unit": "g" },
+        { "id": "m1_2", "plannedTime": "08:00", "name": "Whole Milk", "kcal": 120, "protein": 8, "carbs": 12, "fats": 8, "plannedAmount": 200.0, "unit": "ml" }
+      ],
+      "tuesday": [
+        { "id": "t1_1", "plannedTime": "07:30", "name": "Banana", "kcal": 105, "protein": 1, "carbs": 27, "fats": 0, "plannedAmount": 1.0, "unit": "un" },
+        { "id": "t2_1", "plannedTime": "12:30", "name": "Greek Yogurt", "kcal": 150, "protein": 15, "carbs": 6, "fats": 4, "plannedAmount": 170.0, "unit": "g" }
+      ],
+      "wednesday": [
+        { "id": "w1_1", "plannedTime": "08:00", "name": "Scrambled Eggs", "kcal": 210, "protein": 18, "carbs": 2, "fats": 15, "plannedAmount": 3.0, "unit": "un" }
+      ],
+      "thursday": [
+        { "id": "th1_1", "plannedTime": "08:00", "name": "Oats", "kcal": 150, "protein": 5, "carbs": 27, "fats": 3, "plannedAmount": 40.0, "unit": "g" }
+      ],
+      "friday": [
+        { "id": "f1_1", "plannedTime": "09:00", "name": "Protein Pancake", "kcal": 400, "protein": 30, "carbs": 40, "fats": 10, "plannedAmount": 2.0, "unit": "un" }
+      ],
+      "saturday": [
+        { "id": "s1_1", "plannedTime": "10:00", "name": "Brunch: Eggs & Avocado", "kcal": 500, "protein": 20, "carbs": 15, "fats": 35, "plannedAmount": 1.0, "unit": "plate" }
+      ],
+      "sunday": [
+        { "id": "su1_1", "plannedTime": "08:30", "name": "Pre-Long Run Smoothie", "kcal": 300, "protein": 10, "carbs": 60, "fats": 5, "plannedAmount": 500.0, "unit": "ml" }
+      ]
+    }
+  }

@@ -38,7 +38,7 @@ fun MainScreen() {
         containerColor = PureWhite,
         bottomBar = {
             Box(
-                modifier = Modifier.height(60.dp)
+                modifier = Modifier.height(64.dp)
             ) {
                 NavigationBar(
                     containerColor = NavyDeep

@@ -6,4 +6,5 @@ object DriveConfig {
     const val PRESETS_SUBFOLDER_NAME = "presets"
     const val LIST_FILE_EXTENSION = "json"
     const val ROUTINE_WEEKLY_FILENAME = "routine_weekly.json"
+    const val DIET_WEEKLY_FILENAME = "diet_weekly.json"
 }

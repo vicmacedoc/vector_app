@@ -2,6 +2,7 @@ package com.vm.vector.data
 
 import com.vm.core.models.VectorList
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -9,6 +10,7 @@ import kotlinx.serialization.json.Json
  * Fetches list data from [DriveService]. Root ID in DataStore points to the 'Data' folder.
  * Uses discovered 'lists' folder ID to fetch all JSON files. No automatic folder creation.
  */
+@OptIn(ExperimentalSerializationApi::class)
 class ListRepository(
     private val preferenceManager: PreferenceManager,
     private val driveService: DriveService,

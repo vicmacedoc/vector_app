@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     kotlin("plugin.serialization") version "2.0.21"
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -70,6 +71,10 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     
+    // Compose Testing (use BOM version)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.2")
     
@@ -91,9 +96,13 @@ dependencies {
     // JSON parsing for VectorList
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     
+    // Room
+    implementation("androidx.room:room-runtime:2.7.0")
+    implementation("androidx.room:room-ktx:2.7.0")
+    ksp("androidx.room:room-compiler:2.7.0")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

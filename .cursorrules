@@ -15,11 +15,21 @@
 1. UI THEME: NEVER create local Color.kt or Theme.kt in :app or :wear.
    - ALWAYS use `VectorTheme` from `com.vm.core.ui.theme`.
    - **Screen theme:** White background (`PureWhite`), black text (`PureBlack`). Use `NavyDeep` for primary buttons (background) with `PureWhite` icon/text. Apply to Scaffold, surfaces, and actionable controls.
-2. DATA MODELS: All shared JSON/Room models MUST live in the :core module.
+   - The Status Bar must always use dark icons (isAppearanceLightStatusBars = true) to remain visible against the PureWhite background.
+2. DATA MODELS: 
+   - All shared JSON/Room models MUST live in the :core module.
+   - FILE NAMING: Always name model files exactly as the primary @Entity or @Serializable class (e.g., DietEntry.kt).
 3. ARCHITECTURE: Follow MVVM + Clean Architecture. Use Repository pattern for Drive sync.
-4. DATA: Use Room with TypeConverters for nested JSON. Reference `.cursor/rules/data-schemas.md`.
+4. DATA: 
+   - Use Room with TypeConverters for nested JSON. Reference `.cursor/rules/data-schemas.md`.
+   - All Calendar logs must calculate an AuditStatus. PLANNED if preset matches exactly; ADJUSTED if quantity slider != 1.0; UNPLANNED for manual entries.
+   - Calendar Diet entries must be grouped by plannedTime. UI should render a sticky header or divider for each unique time slot.
 
 ## Coding Standards
 - Kotlin Coroutines/Flow for async operations.
 - Jetpack Compose (Material 3) for all UI.
 - kotlinx.serialization for JSON.
+- **SLIDER DESIGN**: All sliders MUST use the Lists screen design pattern:
+  - Custom track: `SliderDefaults.Track` with `height(4.dp)`, `activeTrackColor = NavyDeep`, `inactiveTrackColor = OffWhite`
+  - Custom thumb: `Box` with `size(20.dp)`, `background(NavyDeep, CircleShape)`, `border(2.dp, PureBlack, CircleShape)`
+  - Colors: `thumbColor = NavyDeep`, `activeTrackColor = NavyDeep`, `inactiveTrackColor = OffWhite`

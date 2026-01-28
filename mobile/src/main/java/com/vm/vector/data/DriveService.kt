@@ -100,6 +100,97 @@ class DriveService(
     }
 
     /**
+     * Public method to discover a subfolder by name under root folder.
+     */
+    suspend fun discoverSubfolder(rootFolderId: String, folderName: String): String? = withContext(Dispatchers.IO) {
+        val account = authManager.getLastSignedInAccount()
+        if (account == null) {
+            Log.w(TAG, "discoverSubfolder: No signed-in account")
+            return@withContext null
+        }
+        try {
+            val drive = buildDrive(account)
+            if (!validateRoot(drive, rootFolderId)) {
+                Log.w(TAG, "discoverSubfolder: Invalid root id=$rootFolderId")
+                return@withContext null
+            }
+            return@withContext discoverSubfolder(drive, rootFolderId, folderName)
+        } catch (e: Exception) {
+            Log.e(TAG, "discoverSubfolder", e)
+            null
+        }
+    }
+
+    /**
+     * Creates a folder if it doesn't exist, or returns existing folder ID.
+     */
+    suspend fun discoverOrCreateFolder(rootFolderId: String, folderName: String): DriveResult<String> = withContext(Dispatchers.IO) {
+        val account = authManager.getLastSignedInAccount()
+        if (account == null) {
+            Log.w(TAG, "discoverOrCreateFolder: No signed-in account")
+            return@withContext DriveResult.Unauthorized
+        }
+        try {
+            val drive = buildDrive(account)
+            if (!validateRoot(drive, rootFolderId)) {
+                Log.w(TAG, "discoverOrCreateFolder: Invalid root id=$rootFolderId")
+                return@withContext DriveResult.ConfigurationError
+            }
+            // Try to discover existing folder
+            val existingId = discoverSubfolder(drive, rootFolderId, folderName)
+            if (existingId != null) {
+                return@withContext DriveResult.Success(existingId)
+            }
+            // Create folder if it doesn't exist
+            val folderMetadata = File().apply {
+                setName(folderName)
+                setMimeType("application/vnd.google-apps.folder")
+                setParents(Collections.singletonList(rootFolderId))
+            }
+            val folder = drive.files().create(folderMetadata).setFields("id, name").execute()
+            Log.i(TAG, "Created folder: ${folder.name} (id: ${folder.id})")
+            return@withContext DriveResult.Success(folder.id)
+        } catch (e: Exception) {
+            val recoverable = e as? UserRecoverableAuthIOException ?: e.cause as? UserRecoverableAuthIOException
+            if (recoverable != null) {
+                Log.w(TAG, "discoverOrCreateFolder: NeedRemoteConsent", e)
+                return@withContext DriveResult.NeedsRemoteConsent(recoverable.intent)
+            }
+            mapDriveException("discoverOrCreateFolder", e)
+        }
+    }
+
+    /**
+     * Uploads a JSON file to a specific folder (by folder ID).
+     */
+    suspend fun uploadJsonFileToFolder(folderId: String, fileName: String, jsonContent: String): DriveResult<DriveFileInfo> =
+        withContext(Dispatchers.IO) {
+            val account = authManager.getLastSignedInAccount()
+            if (account == null) {
+                Log.w(TAG, "uploadJsonFileToFolder: No signed-in account")
+                return@withContext DriveResult.Unauthorized
+            }
+            try {
+                val drive = buildDrive(account)
+                val name = if (fileName.endsWith(".json")) fileName else "$fileName.json"
+                val metadata = File().apply {
+                    setName(name)
+                    setParents(Collections.singletonList(folderId))
+                }
+                val content = ByteArrayContent("application/json", jsonContent.toByteArray(StandardCharsets.UTF_8))
+                val file = drive.files().create(metadata, content).setFields("id, name").execute()
+                return@withContext DriveResult.Success(DriveFileInfo(file.id, file.name))
+            } catch (e: Exception) {
+                val recoverable = e as? UserRecoverableAuthIOException ?: e.cause as? UserRecoverableAuthIOException
+                if (recoverable != null) {
+                    Log.w(TAG, "uploadJsonFileToFolder: NeedRemoteConsent", e)
+                    return@withContext DriveResult.NeedsRemoteConsent(recoverable.intent)
+                }
+                mapDriveException("uploadJsonFileToFolder", e)
+            }
+        }
+
+    /**
      * Validates root, discovers 'lists', fetches all .json files from the discovered lists folder.
      */
     suspend fun listJsonFiles(rootFolderId: String): DriveResult<List<DriveFileInfo>> = withContext(Dispatchers.IO) {
@@ -247,6 +338,50 @@ class DriveService(
     }
 
     /**
+     * Fetches [DriveConfig.DIET_WEEKLY_FILENAME] from the discovered 'presets' folder.
+     */
+    suspend fun getDietWeekly(rootFolderId: String): DriveResult<String> = withContext(Dispatchers.IO) {
+        val account = authManager.getLastSignedInAccount()
+        if (account == null) {
+            Log.w(TAG, "getDietWeekly: No signed-in account")
+            return@withContext DriveResult.Unauthorized
+        }
+        try {
+            val drive = buildDrive(account)
+            if (!validateRoot(drive, rootFolderId)) {
+                Log.w(TAG, "getDietWeekly: Invalid root id=$rootFolderId")
+                return@withContext DriveResult.ConfigurationError
+            }
+            val presetsId = discoverSubfolder(drive, rootFolderId, DriveConfig.PRESETS_SUBFOLDER_NAME)
+                ?: run {
+                    Log.w(TAG, "getDietWeekly: presets not found under root=$rootFolderId")
+                    return@withContext DriveResult.ListsFolderNotFound
+                }
+            val q = "'$presetsId' in parents and name = '${DriveConfig.DIET_WEEKLY_FILENAME}' and trashed=false"
+            val result = drive.files().list()
+                .setQ(q)
+                .setSpaces("drive")
+                .setFields("files(id, name)")
+                .execute()
+            val file = (result.files ?: emptyList()).firstOrNull()
+                ?: run {
+                    Log.w(TAG, "getDietWeekly: ${DriveConfig.DIET_WEEKLY_FILENAME} not found in presets")
+                    return@withContext DriveResult.ListsFolderNotFound
+                }
+            val inputStream = drive.files().get(file.id).setAlt("media").executeMediaAsInputStream()
+            val raw = InputStreamReader(inputStream).use { it.readText() }
+            return@withContext DriveResult.Success(raw)
+        } catch (e: Exception) {
+            val recoverable = e as? UserRecoverableAuthIOException ?: e.cause as? UserRecoverableAuthIOException
+            if (recoverable != null) {
+                Log.w(TAG, "getDietWeekly: NeedRemoteConsent", e)
+                return@withContext DriveResult.NeedsRemoteConsent(recoverable.intent)
+            }
+            mapDriveException("getDietWeekly", e)
+        }
+    }
+
+    /**
      * Fetches [DriveConfig.ROUTINE_WEEKLY_FILENAME] from the discovered 'presets' folder.
      */
     suspend fun getRoutineWeekly(rootFolderId: String): DriveResult<String> = withContext(Dispatchers.IO) {
@@ -287,6 +422,68 @@ class DriveService(
                 return@withContext DriveResult.NeedsRemoteConsent(recoverable.intent)
             }
             mapDriveException("getRoutineWeekly", e)
+        }
+    }
+
+    /**
+     * Finds a file by name in a folder and returns its ID.
+     */
+    suspend fun findFileInFolder(folderId: String, fileName: String): DriveResult<DriveFileInfo> = withContext(Dispatchers.IO) {
+        val account = authManager.getLastSignedInAccount()
+        if (account == null) {
+            Log.w(TAG, "findFileInFolder: No signed-in account")
+            return@withContext DriveResult.Unauthorized
+        }
+        try {
+            val drive = buildDrive(account)
+            val q = "'$folderId' in parents and name = '$fileName' and trashed=false"
+            val result = drive.files().list()
+                .setQ(q)
+                .setSpaces("drive")
+                .setFields("files(id, name)")
+                .execute()
+            val file = (result.files ?: emptyList()).firstOrNull()
+                ?: return@withContext DriveResult.ConfigurationError
+            return@withContext DriveResult.Success(DriveFileInfo(file.id, file.name))
+        } catch (e: Exception) {
+            val recoverable = e as? UserRecoverableAuthIOException ?: e.cause as? UserRecoverableAuthIOException
+            if (recoverable != null) {
+                Log.w(TAG, "findFileInFolder: NeedRemoteConsent", e)
+                return@withContext DriveResult.NeedsRemoteConsent(recoverable.intent)
+            }
+            mapDriveException("findFileInFolder", e)
+        }
+    }
+
+    /**
+     * Gets file content as string from a file in a folder by name.
+     */
+    suspend fun getFileContentFromFolder(folderId: String, fileName: String): DriveResult<String> = withContext(Dispatchers.IO) {
+        val account = authManager.getLastSignedInAccount()
+        if (account == null) {
+            Log.w(TAG, "getFileContentFromFolder: No signed-in account")
+            return@withContext DriveResult.Unauthorized
+        }
+        try {
+            val drive = buildDrive(account)
+            val q = "'$folderId' in parents and name = '$fileName' and trashed=false"
+            val result = drive.files().list()
+                .setQ(q)
+                .setSpaces("drive")
+                .setFields("files(id, name)")
+                .execute()
+            val file = (result.files ?: emptyList()).firstOrNull()
+                ?: return@withContext DriveResult.ConfigurationError
+            val inputStream = drive.files().get(file.id).setAlt("media").executeMediaAsInputStream()
+            val raw = InputStreamReader(inputStream).use { it.readText() }
+            return@withContext DriveResult.Success(raw)
+        } catch (e: Exception) {
+            val recoverable = e as? UserRecoverableAuthIOException ?: e.cause as? UserRecoverableAuthIOException
+            if (recoverable != null) {
+                Log.w(TAG, "getFileContentFromFolder: NeedRemoteConsent", e)
+                return@withContext DriveResult.NeedsRemoteConsent(recoverable.intent)
+            }
+            mapDriveException("getFileContentFromFolder", e)
         }
     }
 

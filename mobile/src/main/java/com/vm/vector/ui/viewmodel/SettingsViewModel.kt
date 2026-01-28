@@ -2,6 +2,7 @@ package com.vm.vector.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vm.vector.data.DietRepository
 import com.vm.vector.data.DriveConsentHandler
 import com.vm.vector.data.DriveService
 import com.vm.vector.data.PreferenceManager
@@ -21,12 +22,16 @@ data class SettingsUiState(
     val isValidating: Boolean = false,
     val permissionRequired: Boolean = false,
     val showSnackbar: Boolean = false,
-    val snackbarMessage: String = ""
+    val snackbarMessage: String = "",
+    val showPasswordDialog: Boolean = false,
+    val showResetConfirmation: Boolean = false,
+    val isResetting: Boolean = false
 )
 
 class SettingsViewModel(
     private val preferenceManager: PreferenceManager,
     private val driveService: DriveService,
+    private val dietRepository: DietRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -146,5 +151,55 @@ class SettingsViewModel(
 
     fun dismissSnackbar() {
         _uiState.value = _uiState.value.copy(showSnackbar = false)
+    }
+
+    companion object {
+        private const val RESET_PASSWORD = "brutus"
+    }
+
+    fun showPasswordDialog() {
+        _uiState.value = _uiState.value.copy(showPasswordDialog = true)
+    }
+
+    fun dismissPasswordDialog() {
+        _uiState.value = _uiState.value.copy(showPasswordDialog = false)
+    }
+
+    fun verifyPasswordAndShowConfirmation(password: String) {
+        if (password == RESET_PASSWORD) {
+            _uiState.value = _uiState.value.copy(
+                showPasswordDialog = false,
+                showResetConfirmation = true
+            )
+        } else {
+            _uiState.value = _uiState.value.copy(
+                showPasswordDialog = false,
+                showSnackbar = true,
+                snackbarMessage = "Incorrect password"
+            )
+        }
+    }
+
+    fun dismissResetConfirmation() {
+        _uiState.value = _uiState.value.copy(showResetConfirmation = false)
+    }
+
+    fun resetDatabase() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isResetting = true, showResetConfirmation = false)
+            val result = dietRepository.resetDatabase()
+            _uiState.value = _uiState.value.copy(isResetting = false)
+            if (result.isSuccess) {
+                _uiState.value = _uiState.value.copy(
+                    showSnackbar = true,
+                    snackbarMessage = "Database reset successfully. All daily diet entries have been deleted."
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    showSnackbar = true,
+                    snackbarMessage = "Failed to reset database: ${result.exceptionOrNull()?.message ?: "Unknown error"}"
+                )
+            }
+        }
     }
 }

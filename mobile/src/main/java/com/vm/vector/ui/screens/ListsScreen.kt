@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,6 +27,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
@@ -58,12 +63,14 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import kotlin.math.atan2
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vm.core.models.VectorItem
 import com.vm.core.ui.theme.DeleteRed
 import com.vm.core.ui.theme.ElectricBlue
 import com.vm.core.ui.theme.IconGray
 import com.vm.core.ui.theme.NavyDeep
+import com.vm.core.ui.theme.OffWhite
 import com.vm.core.ui.theme.PriorityHigh
 import com.vm.core.ui.theme.PriorityHold
 import com.vm.core.ui.theme.PriorityLow
@@ -119,7 +126,9 @@ fun ListsScreen(
     }
 
     LaunchedEffect(Unit) {
-        if (isSignedIn) viewModel.refresh()
+        if (isSignedIn && uiState.files.isEmpty()) {
+            viewModel.refresh()
+        }
     }
 
     VectorTheme {
@@ -255,9 +264,17 @@ fun ListsScreen(
                                         enabled = !uiState.isSaving,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(16.dp),
+                                            .padding(horizontal = 16.dp, vertical = 4.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite),
                                     ) {
+                                        if (uiState.isSaving) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                color = PureWhite,
+                                                strokeWidth = 2.dp
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        }
                                         Text(
                                             if (uiState.isSaving) "Saving…" else "Save Changes",
                                             color = PureWhite,
@@ -309,6 +326,7 @@ private fun priorityColor(p: String) = when (p) {
     else -> PriorityNone
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ListItemRow(
     item: VectorItem,
@@ -359,13 +377,13 @@ private fun ListItemRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 48.dp, end = 8.dp, top = 4.dp),
+                    .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "%.1f".format(currentVal),
+                    text = "Left: %.1f".format(currentVal),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = PureBlack,
+                    color = NavyDeep,
                     modifier = Modifier.padding(end = 12.dp),
                 )
                 Slider(
@@ -376,8 +394,26 @@ private fun ListItemRow(
                     colors = SliderDefaults.colors(
                         thumbColor = NavyDeep,
                         activeTrackColor = NavyDeep,
-                        inactiveTrackColor = PureWhite,
+                        inactiveTrackColor = OffWhite,
                     ),
+                    track = { sliderState ->
+                        SliderDefaults.Track(
+                            sliderState = sliderState,
+                            colors = SliderDefaults.colors(
+                                activeTrackColor = NavyDeep,
+                                inactiveTrackColor = OffWhite,
+                            ),
+                            modifier = Modifier.height(4.dp),
+                        )
+                    },
+                    thumb = {
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .background(NavyDeep, CircleShape)
+                                .border(2.dp, PureBlack, CircleShape)
+                        )
+                    },
                 )
             }
         }
@@ -507,10 +543,14 @@ private fun ListsDropdownRow(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier
                     .menuAnchor()
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(8.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodySmall,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = NavyDeep,
-                    unfocusedBorderColor = PureBlack.copy(alpha = 0.5f),
+                    unfocusedBorderColor = NavyDeep,
                     focusedTextColor = PureBlack,
                     unfocusedTextColor = PureBlack,
                 ),
@@ -535,7 +575,7 @@ private fun ListsDropdownRow(
             onClick = onAddClick,
             modifier = Modifier
                 .background(PureWhite)
-                .border(1.dp, NavyDeep, RoundedCornerShape(8.dp))
+                .border(1.5.dp, NavyDeep, RoundedCornerShape(8.dp))
                 .size(48.dp),
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add file", tint = NavyDeep)
@@ -545,7 +585,7 @@ private fun ListsDropdownRow(
             enabled = canTrash,
             modifier = Modifier
                 .background(PureWhite)
-                .border(1.dp, NavyDeep, RoundedCornerShape(8.dp))
+                .border(1.5.dp, NavyDeep, RoundedCornerShape(8.dp))
                 .size(48.dp),
         ) {
             Icon(

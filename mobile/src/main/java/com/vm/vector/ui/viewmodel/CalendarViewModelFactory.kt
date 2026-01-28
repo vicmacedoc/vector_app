@@ -8,19 +8,19 @@ import com.vm.vector.data.DriveService
 import com.vm.vector.data.GoogleDriveAuthManager
 import com.vm.vector.data.PreferenceManager
 
-class SettingsViewModelFactory(
+class CalendarViewModelFactory(
     private val context: Context,
 ) : ViewModelProvider.Factory {
 
     private val preferenceManager = PreferenceManager(context)
     private val authManager = GoogleDriveAuthManager(context)
     private val driveService = DriveService(context, authManager)
-    private val dietRepository = DietRepository(context, preferenceManager, driveService)
+    private val repository = DietRepository(context, preferenceManager, driveService)
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
-            return SettingsViewModel(preferenceManager, driveService, dietRepository) as T
+        if (modelClass.isAssignableFrom(CalendarViewModel::class.java)) {
+            return CalendarViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
