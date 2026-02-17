@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class WeeklyRoutinePlan(
-    val id: String,
+    val id: String = "",
     val weekly_plan: WeeklyRoutinePlanDays
 )
 
@@ -21,7 +21,7 @@ data class WeeklyRoutinePlanDays(
 
 @Serializable
 data class RoutinePlanEntry(
-    val id: String,
+    val id: String = "",
     val category: String,
     val title: String,
     val type: RoutineType,

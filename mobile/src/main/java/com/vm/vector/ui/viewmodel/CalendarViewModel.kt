@@ -4,12 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vm.core.models.AuditStatus
 import com.vm.core.models.DietEntry
+import com.vm.core.models.DiaryCollection
+import com.vm.core.models.DiaryCollectionImage
 import com.vm.core.models.RoutineEntry
 import com.vm.core.models.RoutineStatus
 import com.vm.core.models.RoutineType
+import com.vm.core.models.WorkoutSet
 import java.util.UUID
 import com.vm.vector.data.DietRepository
+import com.vm.vector.data.DiaryRepository
 import com.vm.vector.data.RoutineRepository
+import com.vm.vector.data.WorkoutRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,18 +31,27 @@ import java.util.*
 data class CalendarUiState(
     val entries: List<DietEntry> = emptyList(),
     val routineEntries: List<RoutineEntry> = emptyList(),
+    val workoutSets: List<WorkoutSet> = emptyList(),
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
+    val isWorkoutSaving: Boolean = false,
     val showSnackbar: Boolean = false,
     val snackbarMessage: String = "",
     val currentDate: String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()),
     val datesWithCheckedMeals: Set<String> = emptySet(),
     val isEditingEnabled: Boolean = true,
+    // Diary
+    val diaryMood: Int? = null,
+    val diaryJournalText: String = "",
+    val diaryCollectionsWithImages: List<Pair<DiaryCollection, List<DiaryCollectionImage>>> = emptyList(),
+    val isDiarySaving: Boolean = false,
 )
 
 class CalendarViewModel(
     private val dietRepository: DietRepository,
     private val routineRepository: RoutineRepository,
+    private val workoutRepository: WorkoutRepository,
+    private val diaryRepository: DiaryRepository,
 ) : ViewModel() {
 
     private val _currentDate = MutableStateFlow(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()))
@@ -47,45 +61,72 @@ class CalendarViewModel(
     private val _snackbarMessage = MutableStateFlow("")
     private val _entries = MutableStateFlow<List<DietEntry>>(emptyList())
     private val _routineEntries = MutableStateFlow<List<RoutineEntry>>(emptyList())
+    private val _workoutSets = MutableStateFlow<List<WorkoutSet>>(emptyList())
     private val _datesWithCheckedMeals = MutableStateFlow<Set<String>>(emptySet())
     private val _isEditingEnabled = MutableStateFlow(true)
+    private val _isWorkoutSaving = MutableStateFlow(false)
     private val _editingEntry = MutableStateFlow<DietEntry?>(null)
+    private val _diaryMood = MutableStateFlow<Int?>(null)
+    private val _diaryJournalText = MutableStateFlow("")
+    private val _diaryCollectionsWithImages = MutableStateFlow<List<Pair<DiaryCollection, List<DiaryCollectionImage>>>>(emptyList())
+    private val _isDiarySaving = MutableStateFlow(false)
     private var collectionJob: Job? = null
     private var routineCollectionJob: Job? = null
-    
+    private var workoutCollectionJob: Job? = null
+
     val uiState: StateFlow<CalendarUiState> = combine(
         _currentDate,
         _entries,
         _routineEntries,
+        _workoutSets,
         _isLoading,
         _isSaving,
+        _isWorkoutSaving,
         _showSnackbar,
         _snackbarMessage,
         _datesWithCheckedMeals,
-        _isEditingEnabled
-    ) { values: Array<Any> ->
+        _isEditingEnabled,
+        _diaryMood,
+        _diaryJournalText,
+        _diaryCollectionsWithImages,
+        _isDiarySaving
+    ) { values: Array<Any?> ->
         val date = values[0] as String
         @Suppress("UNCHECKED_CAST")
-        val entriesList = values[1] as List<DietEntry>
+        val entriesList = (values[1] as? List<DietEntry>) ?: emptyList()
         @Suppress("UNCHECKED_CAST")
-        val routineEntriesList = values[2] as List<RoutineEntry>
-        val loading = values[3] as Boolean
-        val saving = values[4] as Boolean
-        val snackbar = values[5] as Boolean
-        val message = values[6] as String
+        val routineEntriesList = (values[2] as? List<RoutineEntry>) ?: emptyList()
         @Suppress("UNCHECKED_CAST")
-        val checkedDates = values[7] as Set<String>
-        val editingEnabled = values[8] as Boolean
+        val workoutSetsList = (values[3] as? List<WorkoutSet>) ?: emptyList()
+        val loading = values[4] as? Boolean ?: false
+        val saving = values[5] as? Boolean ?: false
+        val workoutSaving = values[6] as? Boolean ?: false
+        val snackbar = values[7] as? Boolean ?: false
+        val message = values[8] as? String ?: ""
+        @Suppress("UNCHECKED_CAST")
+        val checkedDates = (values[9] as? Set<String>) ?: emptySet()
+        val editingEnabled = values[10] as? Boolean ?: true
+        val diaryMood = values[11] as? Int?
+        val diaryJournalText = values[12] as? String ?: ""
+        @Suppress("UNCHECKED_CAST")
+        val diaryCollectionsWithImages = (values[13] as? List<Pair<DiaryCollection, List<DiaryCollectionImage>>>) ?: emptyList()
+        val isDiarySaving = values[14] as? Boolean ?: false
         CalendarUiState(
             entries = entriesList,
             routineEntries = routineEntriesList,
+            workoutSets = workoutSetsList,
             isLoading = loading,
             isSaving = saving,
+            isWorkoutSaving = workoutSaving,
             showSnackbar = snackbar,
             snackbarMessage = message,
             currentDate = date,
             datesWithCheckedMeals = checkedDates,
-            isEditingEnabled = editingEnabled
+            isEditingEnabled = editingEnabled,
+            diaryMood = diaryMood,
+            diaryJournalText = diaryJournalText,
+            diaryCollectionsWithImages = diaryCollectionsWithImages,
+            isDiarySaving = isDiarySaving
         )
     }.stateIn(
         scope = viewModelScope,
@@ -96,13 +137,16 @@ class CalendarViewModel(
     init {
         loadEntriesForDate(_currentDate.value)
         loadRoutineEntriesForDate(_currentDate.value)
+        loadWorkoutForDate(_currentDate.value)
         loadDatesWithCheckedMeals()
+        loadDiaryForDate(_currentDate.value)
         updateEditingState()
     }
-    
+
     fun refresh() {
         loadEntriesForDate(_currentDate.value)
         loadRoutineEntriesForDate(_currentDate.value)
+        loadWorkoutForDate(_currentDate.value)
         loadDatesWithCheckedMeals()
     }
     
@@ -129,8 +173,94 @@ class CalendarViewModel(
     fun selectDate(date: String) {
         loadEntriesForDate(date)
         loadRoutineEntriesForDate(date)
+        loadWorkoutForDate(date)
+        loadDiaryForDate(date)
         updateEditingState()
     }
+
+    private fun loadDiaryForDate(date: String) {
+        viewModelScope.launch {
+            try {
+                val entry = diaryRepository.getDiaryEntryByDateSync(date)
+                _diaryMood.value = entry?.mood
+                _diaryJournalText.value = entry?.journalText.orEmpty()
+                _diaryCollectionsWithImages.value = diaryRepository.getCollectionsWithImagesSync(date)
+            } catch (e: Exception) {
+                _diaryCollectionsWithImages.value = emptyList()
+            }
+        }
+    }
+
+    fun setDiaryMood(mood: Int?) {
+        _diaryMood.value = mood
+    }
+
+    fun setDiaryJournalText(text: String) {
+        _diaryJournalText.value = text
+    }
+
+    fun saveDiary() {
+        viewModelScope.launch {
+            _isDiarySaving.value = true
+            try {
+                val entry = com.vm.core.models.DiaryEntry(
+                    date = _currentDate.value,
+                    mood = _diaryMood.value?.coerceIn(1, 5),
+                    journalText = _diaryJournalText.value.ifBlank { null }
+                )
+                diaryRepository.saveDiaryEntry(entry)
+                _isDiarySaving.value = false
+                showSuccess("Diary saved")
+            } catch (e: Exception) {
+                _isDiarySaving.value = false
+                showError("Failed to save diary: ${e.message}")
+            }
+        }
+    }
+
+    suspend fun createCollection(name: String): Result<DiaryCollection> {
+        val result = diaryRepository.createCollection(_currentDate.value, name)
+        if (result.isSuccess) {
+            loadDiaryForDate(_currentDate.value)
+        }
+        return result
+    }
+
+    suspend fun addImageToCollection(
+        collectionId: String,
+        fileName: String,
+        mimeType: String,
+        bytes: ByteArray,
+        takenAtMillis: Long = System.currentTimeMillis()
+    ): Result<DiaryCollectionImage> {
+        val result = diaryRepository.addImageToCollection(collectionId, fileName, mimeType, bytes, takenAtMillis)
+        if (result.isSuccess) {
+            loadDiaryForDate(_currentDate.value)
+        }
+        return result
+    }
+
+    fun deleteDiaryImage(image: DiaryCollectionImage) {
+        viewModelScope.launch {
+            diaryRepository.deleteImage(image)
+            loadDiaryForDate(_currentDate.value)
+            showSuccess("Image removed")
+        }
+    }
+
+    fun deleteDiaryCollection(collection: DiaryCollection) {
+        viewModelScope.launch {
+            val result = diaryRepository.deleteCollection(collection)
+            if (result.isSuccess) {
+                loadDiaryForDate(_currentDate.value)
+                showSuccess("Collection deleted")
+            } else {
+                showError("Failed to delete: ${result.exceptionOrNull()?.message}")
+            }
+        }
+    }
+
+    suspend fun getImageBytes(driveFileId: String): ByteArray? = diaryRepository.getImageBytes(driveFileId)
 
     private fun loadEntriesForDate(date: String) {
         collectionJob?.cancel()
@@ -275,6 +405,92 @@ class CalendarViewModel(
                 showError("Failed to load routine entries: ${e.message}")
             }
         }
+    }
+
+    private fun loadWorkoutForDate(date: String) {
+        workoutCollectionJob?.cancel()
+        workoutCollectionJob = viewModelScope.launch {
+            try {
+                val result = workoutRepository.loadBlueprintForDate(date)
+                if (result.isFailure) {
+                    val msg = result.exceptionOrNull()?.message ?: "Failed to load workout plan"
+                    if (!msg.contains("workout_weekly.json", ignoreCase = true)) {
+                        showError(msg)
+                    }
+                }
+                workoutRepository.getSetsByDate(date).cancellable().collect { sets ->
+                    _workoutSets.value = sets
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // expected when switching dates
+            } catch (e: Exception) {
+                showError("Failed to load workout: ${e.message}")
+            }
+        }
+    }
+
+    /** Update a single set's actuals in memory; persisted when user taps Save Workout. */
+    fun updateWorkoutSetInMemory(
+        setId: String,
+        actualLoad: Double? = null,
+        actualReps: Int? = null,
+        actualVelocity: Double? = null,
+        actualRpe: Double? = null,
+        actualRir: Int? = null,
+        actualDuration: Int? = null,
+        actualDistance: Double? = null,
+        actualRest: Int? = null
+    ) {
+        _workoutSets.value = _workoutSets.value.map { entry ->
+            if (entry.id != setId) entry
+            else entry.copy(
+                actualLoad = actualLoad ?: entry.actualLoad,
+                actualReps = actualReps ?: entry.actualReps,
+                actualVelocity = actualVelocity ?: entry.actualVelocity,
+                actualRpe = actualRpe ?: entry.actualRpe,
+                actualRir = actualRir ?: entry.actualRir,
+                actualDuration = actualDuration ?: entry.actualDuration,
+                actualDistance = actualDistance ?: entry.actualDistance,
+                actualRest = actualRest ?: entry.actualRest
+            )
+        }
+    }
+
+    /** Update workout status (Done/Partial/Exceed) for all sets in an exercise. */
+    fun updateWorkoutExerciseStatus(exerciseId: String, status: String?) {
+        _workoutSets.value = _workoutSets.value.map { entry ->
+            if (entry.exerciseId != exerciseId) entry
+            else entry.copy(workoutStatus = status)
+        }
+    }
+
+    fun saveWorkout() {
+        viewModelScope.launch {
+            _isWorkoutSaving.value = true
+            val result = workoutRepository.saveWorkoutForDate(_currentDate.value, _workoutSets.value)
+            _isWorkoutSaving.value = false
+            if (result.isSuccess) {
+                showSuccess("Workout saved")
+            } else {
+                showError("Failed to save workout: ${result.exceptionOrNull()?.message ?: "Unknown error"}")
+            }
+        }
+    }
+
+    /** Validate pasted workout JSON format (for dialog). */
+    fun validateWorkoutJson(jsonString: String): Result<Unit> =
+        workoutRepository.parseAndConvertToWorkoutSets(_currentDate.value, jsonString).map { }
+
+    /** Add workout sets from pasted JSON (clipboard). Appends to current day; persist with Save Workout. */
+    fun addWorkoutFromClipboard(jsonString: String): Result<Unit> {
+        val result = workoutRepository.parseAndConvertToWorkoutSets(_currentDate.value, jsonString)
+        return result.fold(
+            onSuccess = { newSets ->
+                _workoutSets.value = _workoutSets.value + newSets
+                Result.success(Unit)
+            },
+            onFailure = { Result.failure(it) }
+        )
     }
 
     fun updateEntryMultiplier(entryId: String, multiplier: Double) {
@@ -461,6 +677,7 @@ class CalendarViewModel(
             }
         }
     }
+
 
     fun dismissSnackbar() {
         _showSnackbar.value = false

@@ -7,11 +7,12 @@ import com.vm.vector.data.DietRepository
 import com.vm.vector.data.DiaryRepository
 import com.vm.vector.data.DriveService
 import com.vm.vector.data.GoogleDriveAuthManager
+import com.vm.vector.data.HomeRepository
 import com.vm.vector.data.PreferenceManager
 import com.vm.vector.data.RoutineRepository
 import com.vm.vector.data.WorkoutRepository
 
-class CalendarViewModelFactory(
+class HomeViewModelFactory(
     private val context: Context,
 ) : ViewModelProvider.Factory {
 
@@ -22,11 +23,18 @@ class CalendarViewModelFactory(
     private val routineRepository = RoutineRepository(context, preferenceManager, driveService)
     private val workoutRepository = WorkoutRepository(context, preferenceManager, driveService)
     private val diaryRepository = DiaryRepository(context, preferenceManager, driveService)
+    private val homeRepository = HomeRepository(
+        context,
+        dietRepository,
+        routineRepository,
+        workoutRepository,
+        diaryRepository
+    )
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(CalendarViewModel::class.java)) {
-            return CalendarViewModel(dietRepository, routineRepository, workoutRepository, diaryRepository) as T
+        if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
+            return HomeViewModel(homeRepository, preferenceManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

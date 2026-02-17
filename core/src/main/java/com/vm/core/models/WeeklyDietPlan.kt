@@ -1,10 +1,11 @@
 package com.vm.core.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class WeeklyDietPlan(
-    val id: String,
+    val id: String = "",
     val name: String,
     val weekly_plan: WeeklyPlan
 )
@@ -22,13 +23,13 @@ data class WeeklyPlan(
 
 @Serializable
 data class DietPlanEntry(
-    val id: String,
-    val plannedTime: String,
+    val id: String = "",
+    @SerialName("time") val plannedTime: String,
     val name: String,
     val kcal: Double,
     val protein: Double = 0.0,
     val carbs: Double = 0.0,
     val fats: Double = 0.0,
-    val plannedAmount: Double,
+    @SerialName("amount") val plannedAmount: Double,
     val unit: String
 )

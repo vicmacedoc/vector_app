@@ -4,14 +4,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class VectorList(
-    val id: String,
+    val id: String = "",
     val name: String,
     val items: List<VectorItem>
 )
 
 @Serializable
 data class VectorItem(
-    val id: String,
+    val id: String = "",
     val title: String,
     val isChecked: Boolean = false,
     val quantity: Double? = null,

@@ -101,10 +101,12 @@ class RoutineRepository(
                 else -> emptyList()
             }
             
-            // Convert to RoutineEntry with default values (NONE status, null currentValue)
-            val entries = planEntries.map { planEntry ->
+            // Convert to RoutineEntry with default values (NONE status, null currentValue). Generate id at assignment if not in preset.
+            val baseTime = System.currentTimeMillis()
+            val entries = planEntries.mapIndexed { index, planEntry ->
+                val planId = planEntry.id.ifBlank { "gen_${baseTime}_$index" }
                 RoutineEntry(
-                    id = "${planEntry.id}_${date}",
+                    id = "${planId}_${date}",
                     date = date,
                     category = planEntry.category,
                     title = planEntry.title,

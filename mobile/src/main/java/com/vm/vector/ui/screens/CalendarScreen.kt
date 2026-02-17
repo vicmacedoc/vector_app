@@ -10,6 +10,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
@@ -19,6 +22,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
@@ -34,6 +39,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,14 +53,39 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.app.Activity
+import android.app.KeyguardManager
+import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.core.content.FileProvider
+import androidx.compose.ui.graphics.asImageBitmap
+import java.io.File
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.Image
 import com.vm.core.models.AuditStatus
+import com.vm.core.models.DiaryCollection
+import com.vm.core.models.DiaryCollectionImage
 import com.vm.core.models.DietEntry
 import com.vm.core.models.RoutineEntry
 import com.vm.core.models.RoutineStatus
 import com.vm.core.models.RoutineType
+import com.vm.core.models.WorkoutSet
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import com.vm.core.ui.theme.DeleteRed
@@ -62,9 +94,12 @@ import com.vm.core.ui.theme.NavyDeep
 import com.vm.core.ui.theme.OffWhite
 import com.vm.core.ui.theme.PureBlack
 import com.vm.core.ui.theme.PureWhite
+import com.vm.core.ui.theme.SlateGray
 import com.vm.core.ui.theme.VectorTheme
+import com.vm.vector.ui.viewmodel.CalendarUiState
 import com.vm.vector.ui.viewmodel.CalendarViewModel
 import com.vm.vector.ui.viewmodel.CalendarViewModelFactory
+import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -79,6 +114,8 @@ enum class CalendarCategory(val displayName: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
+    initialDate: String? = null,
+    initialCategory: String? = null,
     viewModel: CalendarViewModel = viewModel(
         factory = CalendarViewModelFactory(LocalContext.current.applicationContext),
     ),
@@ -86,6 +123,21 @@ fun CalendarScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+
+    val initialCat = when (initialCategory) {
+        "Routine" -> CalendarCategory.Routine
+        "Workout" -> CalendarCategory.Workout
+        "Diet" -> CalendarCategory.Diet
+        "Diary" -> CalendarCategory.Diary
+        else -> CalendarCategory.Routine
+    }
+    var selectedCategory by remember(initialCategory) { mutableStateOf(initialCat) }
+
+    LaunchedEffect(initialDate) {
+        if (!initialDate.isNullOrBlank()) {
+            viewModel.selectDate(initialDate)
+        }
+    }
 
     // Set status bar appearance
     SideEffect {
@@ -115,9 +167,9 @@ fun CalendarScreen(
                         bottom = paddingValues.calculateBottomPadding()
                     )
             ) {
-                var selectedCategory by remember { mutableStateOf(CalendarCategory.Diet) }
                 var showAddMealDialog by remember { mutableStateOf(false) }
                 var showAddRoutineDialog by remember { mutableStateOf(false) }
+                var showAddWorkoutDialog by remember { mutableStateOf(false) }
 
                 CategorySwitch(
                     selectedCategory = selectedCategory,
@@ -128,7 +180,7 @@ fun CalendarScreen(
                     selectedDate = uiState.currentDate,
                     datesWithCheckedMeals = uiState.datesWithCheckedMeals,
                     isEditingEnabled = uiState.isEditingEnabled,
-                    showDietActions = selectedCategory == CalendarCategory.Diet || selectedCategory == CalendarCategory.Routine,
+                    showDietActions = selectedCategory == CalendarCategory.Diet || selectedCategory == CalendarCategory.Routine || selectedCategory == CalendarCategory.Workout,
                     onDateSelected = { date ->
                         viewModel.selectDate(date)
                     },
@@ -137,6 +189,7 @@ fun CalendarScreen(
                             when (selectedCategory) {
                                 CalendarCategory.Diet -> showAddMealDialog = true
                                 CalendarCategory.Routine -> showAddRoutineDialog = true
+                                CalendarCategory.Workout -> showAddWorkoutDialog = true
                                 else -> {}
                             }
                         }
@@ -188,6 +241,14 @@ fun CalendarScreen(
                             )
                             showAddRoutineDialog = false
                         }
+                    )
+                }
+
+                if (showAddWorkoutDialog) {
+                    AddWorkoutFromClipboardDialog(
+                        viewModel = viewModel,
+                        onDismiss = { showAddWorkoutDialog = false },
+                        onAdded = { showAddWorkoutDialog = false }
                     )
                 }
 
@@ -292,6 +353,95 @@ fun CalendarScreen(
                             }
                         }
                     }
+                } else if (selectedCategory == CalendarCategory.Workout) {
+                    var exerciseModalExerciseId by remember { mutableStateOf<String?>(null) }
+                    val modalSets = remember(exerciseModalExerciseId, uiState.workoutSets) {
+                        exerciseModalExerciseId?.let { id ->
+                            uiState.workoutSets.filter { it.exerciseId == id }
+                        }.orEmpty()
+                    }
+                    PullToRefreshBox(
+                        isRefreshing = uiState.isLoading && !uiState.isWorkoutSaving,
+                        onRefresh = { viewModel.refresh() },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        WorkoutContent(
+                            sets = uiState.workoutSets,
+                            isEditingEnabled = uiState.isEditingEnabled,
+                            onUpdateActuals = viewModel::updateWorkoutSetInMemory,
+                            onUpdateExerciseStatus = viewModel::updateWorkoutExerciseStatus,
+                            onExerciseClick = { exerciseModalExerciseId = it.first().exerciseId }
+                        )
+                    }
+                    if (modalSets.isNotEmpty()) {
+                        WorkoutExerciseDetailModal(
+                            setsInExercise = modalSets,
+                            onDismiss = { exerciseModalExerciseId = null },
+                            onSave = {
+                                viewModel.saveWorkout()
+                                exerciseModalExerciseId = null
+                            },
+                            isEditingEnabled = uiState.isEditingEnabled,
+                            onUpdateActuals = viewModel::updateWorkoutSetInMemory
+                        )
+                    }
+                } else if (selectedCategory == CalendarCategory.Diary) {
+                    var diaryUnlocked by remember { mutableStateOf(false) }
+                    LaunchedEffect(selectedCategory) {
+                        if (selectedCategory != CalendarCategory.Diary) diaryUnlocked = false
+                    }
+                    val keyguardManager = remember(context) {
+                        context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+                    }
+                    val credentialIntent = remember(keyguardManager) {
+                        keyguardManager?.createConfirmDeviceCredentialIntent("Unlock Diary", "Use your device PIN, pattern or password to view your diary.")
+                    }
+                    val credentialLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.StartActivityForResult()
+                    ) { result ->
+                        if (result.resultCode == Activity.RESULT_OK) diaryUnlocked = true
+                    }
+                    if (!diaryUnlocked && credentialIntent != null) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = NavyDeep
+                                )
+                                Text(
+                                    "Diary is protected",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = NavyDeep
+                                )
+                                Button(
+                                    onClick = { credentialLauncher.launch(credentialIntent) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite)
+                                ) {
+                                    Text("Unlock with device PIN")
+                                }
+                            }
+                        }
+                    } else if (diaryUnlocked || credentialIntent == null) {
+                        if (credentialIntent == null) {
+                            diaryUnlocked = true
+                        }
+                        DiaryContent(
+                            modifier = Modifier.weight(1f),
+                            viewModel = viewModel,
+                            uiState = uiState,
+                            isEditingEnabled = uiState.isEditingEnabled
+                        )
+                    }
                 } else {
                     Box(modifier = Modifier.weight(1f)) {
                         CategoryPlaceholder(category = selectedCategory)
@@ -349,6 +499,50 @@ fun CalendarScreen(
                         enabled = uiState.isEditingEnabled
                     ) {
                         if (uiState.isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = PureWhite,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text("Save Changes")
+                    }
+                } else if (selectedCategory == CalendarCategory.Workout) {
+                    Button(
+                        onClick = { viewModel.saveWorkout() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NavyDeep,
+                            contentColor = PureWhite
+                        ),
+                        enabled = uiState.isEditingEnabled && uiState.workoutSets.isNotEmpty()
+                    ) {
+                        if (uiState.isWorkoutSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = PureWhite,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text("Save Workout")
+                    }
+                } else if (selectedCategory == CalendarCategory.Diary) {
+                    Button(
+                        onClick = { viewModel.saveDiary() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NavyDeep,
+                            contentColor = PureWhite
+                        ),
+                        enabled = !uiState.isDiarySaving
+                    ) {
+                        if (uiState.isDiarySaving) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 color = PureWhite,
@@ -437,6 +631,1508 @@ private fun CategoryPlaceholder(category: CalendarCategory) {
             color = PureBlack.copy(alpha = 0.6f),
         )
     }
+}
+
+@Composable
+private fun DiarySectionTitle(title: String) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = NavyDeep
+        )
+        HorizontalDivider(color = NavyDeep, thickness = 2.dp)
+    }
+}
+
+// Scale 1–5: 1 = saddest (orange), 5 = happiest (green). Red and orange emoji faces swapped from original order.
+private val MOOD_EMOJIS = listOf("\uD83D\uDE1E", "\uD83D\uDE14", "\uD83D\uDE41", "\uD83D\uDE0A", "\uD83D\uDE00") // level 1 = orange face, 2 = red face, then neutral → happy
+private val MOOD_COLORS = listOf(
+    androidx.compose.ui.graphics.Color(0xFFFF9800), // 1 = orange
+    androidx.compose.ui.graphics.Color(0xFFE53935), // 2 = red
+    androidx.compose.ui.graphics.Color(0xFFFFEB3B), // 3 = yellow
+    androidx.compose.ui.graphics.Color(0xFF8BC34A), // 4 = light green
+    androidx.compose.ui.graphics.Color(0xFF4CAF50)   // 5 = green
+)
+
+@Composable
+private fun DiaryContent(
+    modifier: Modifier = Modifier,
+    viewModel: CalendarViewModel,
+    uiState: CalendarUiState,
+    isEditingEnabled: Boolean
+) {
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = modifier
+            .verticalScroll(scrollState)
+            .padding(16.dp)
+    ) {
+        DiarySectionTitle("MOOD")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            (1..5).forEach { level ->
+                val selected = uiState.diaryMood == level
+                val color = MOOD_COLORS[level - 1]
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(if (selected) color else color.copy(alpha = 0.3f))
+                        .then(if (selected) Modifier.border(2.dp, NavyDeep, CircleShape) else Modifier)
+                        .clickable(enabled = isEditingEnabled) { viewModel.setDiaryMood(level) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = MOOD_EMOJIS[level - 1], style = MaterialTheme.typography.titleLarge)
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        DiarySectionTitle("JOURNAL")
+        OutlinedTextField(
+            value = uiState.diaryJournalText,
+            onValueChange = viewModel::setDiaryJournalText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 120.dp),
+            placeholder = { Text("How was your day?", color = SlateGray) },
+            maxLines = 6
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        DiarySectionTitle("COLLECTIONS")
+        DiaryCollectionsSection(
+            viewModel = viewModel,
+            collectionsWithImages = uiState.diaryCollectionsWithImages,
+            isEditingEnabled = isEditingEnabled
+        )
+    }
+}
+
+private data class PendingPhoto(val collection: DiaryCollection, val uri: Uri)
+
+@Composable
+private fun DiaryCollectionsSection(
+    viewModel: CalendarViewModel,
+    collectionsWithImages: List<Pair<DiaryCollection, List<DiaryCollectionImage>>>,
+    isEditingEnabled: Boolean
+) {
+    val context = LocalContext.current
+    var showNewCollectionDialog by remember { mutableStateOf(false) }
+    var showTimelapseConfig by remember { mutableStateOf<Pair<DiaryCollection, List<DiaryCollectionImage>>?>(null) }
+    var showImageViewer by remember { mutableStateOf<DiaryCollectionImage?>(null) }
+    var showImageGallery by remember { mutableStateOf<Pair<DiaryCollection, List<DiaryCollectionImage>>?>(null) }
+    var showDeleteCollectionConfirm by remember { mutableStateOf<DiaryCollection?>(null) }
+    var showDeleteImageConfirm by remember { mutableStateOf<DiaryCollectionImage?>(null) }
+    var pendingPhoto by remember { mutableStateOf<PendingPhoto?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        pendingPhoto?.let { (collection, uri) ->
+            if (success) {
+                coroutineScope.launch {
+                    try {
+                        context.contentResolver.openInputStream(uri)?.use { stream ->
+                            val bytes = stream.readBytes()
+                            viewModel.addImageToCollection(
+                                collectionId = collection.id,
+                                fileName = "image_${System.currentTimeMillis()}.jpg",
+                                mimeType = "image/jpeg",
+                                bytes = bytes,
+                                takenAtMillis = System.currentTimeMillis()
+                            )
+                        }
+                    } finally {
+                        pendingPhoto = null
+                    }
+                }
+            } else {
+                pendingPhoto = null
+            }
+        } ?: run { pendingPhoto = null }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) pendingPhoto?.let { takePictureLauncher.launch(it.uri) }
+        else pendingPhoto = null
+    }
+
+    fun onAddPhotoClick(collection: DiaryCollection) {
+        val file = File(context.cacheDir, "diary_${System.currentTimeMillis()}.jpg")
+        file.createNewFile()
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        pendingPhoto = PendingPhoto(collection, uri)
+        when {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED ->
+                takePictureLauncher.launch(uri)
+            else -> permissionLauncher.launch(android.Manifest.permission.CAMERA)
+        }
+    }
+
+    Button(
+        onClick = { showNewCollectionDialog = true },
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite)
+    ) {
+        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("New collection")
+    }
+
+    collectionsWithImages.forEach { (collection, images) ->
+        Spacer(modifier = Modifier.height(12.dp))
+        DiaryCollectionRow(
+            collection = collection,
+            images = images,
+            isEditingEnabled = isEditingEnabled,
+            viewModel = viewModel,
+            context = context,
+            onAddImageClick = { onAddPhotoClick(collection) },
+            onImageClick = { showImageViewer = it },
+            onViewAllClick = { showImageGallery = Pair(collection, images) },
+            onTimelapseClick = { showTimelapseConfig = Pair(collection, images) },
+            onDeleteCollectionClick = { showDeleteCollectionConfirm = collection }
+        )
+    }
+
+    if (showNewCollectionDialog) {
+        var name by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showNewCollectionDialog = false },
+            title = { Text("New collection") },
+            text = {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Collection name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            viewModel.createCollection(name.trim()).fold(
+                                onSuccess = { showNewCollectionDialog = false; name = "" },
+                                onFailure = { }
+                            )
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite)
+                ) { Text("Create") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNewCollectionDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    showDeleteCollectionConfirm?.let { col ->
+        AlertDialog(
+            onDismissRequest = { showDeleteCollectionConfirm = null },
+            title = { Text("Delete collection?") },
+            text = { Text("This will remove \"${col.name}\" and all its images from the app and from Drive.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteDiaryCollection(col)
+                    showDeleteCollectionConfirm = null
+                }) { Text("Delete", color = DeleteRed) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteCollectionConfirm = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    showImageViewer?.let { image ->
+        DiaryImageViewerDialog(
+            image = image,
+            viewModel = viewModel,
+            onDismiss = { showImageViewer = null },
+            onDelete = {
+                showDeleteImageConfirm = image
+                showImageViewer = null
+            }
+        )
+    }
+
+    showDeleteImageConfirm?.let { img ->
+        AlertDialog(
+            onDismissRequest = { showDeleteImageConfirm = null },
+            title = { Text("Remove image?") },
+            text = { Text("This will delete the image from the app and from Drive.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteDiaryImage(img)
+                    showDeleteImageConfirm = null
+                }) { Text("Delete", color = DeleteRed) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteImageConfirm = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    showImageGallery?.let { (col, imgs) ->
+        DiaryImageGalleryDialog(
+            collection = col,
+            images = imgs,
+            viewModel = viewModel,
+            onDismiss = { showImageGallery = null }
+        )
+    }
+
+    showTimelapseConfig?.let { (col, imgs) ->
+        DiaryTimelapseConfigDialog(
+            collection = col,
+            images = imgs,
+            viewModel = viewModel,
+            onDismiss = { showTimelapseConfig = null }
+        )
+    }
+}
+
+@Composable
+private fun DiaryCollectionRow(
+    collection: DiaryCollection,
+    images: List<DiaryCollectionImage>,
+    isEditingEnabled: Boolean,
+    viewModel: CalendarViewModel,
+    context: Context,
+    onAddImageClick: () -> Unit,
+    onImageClick: (DiaryCollectionImage) -> Unit,
+    onViewAllClick: () -> Unit,
+    onTimelapseClick: () -> Unit,
+    onDeleteCollectionClick: () -> Unit
+) {
+    var imageBytesCache by remember(collection.id, images.map { it.id }) { mutableStateOf<Map<String, ByteArray>>(emptyMap()) }
+    LaunchedEffect(collection.id, images) {
+        val newMap = mutableMapOf<String, ByteArray>()
+        images.forEach { img ->
+            viewModel.getImageBytes(img.driveFileId)?.let { bytes -> newMap[img.id] = bytes }
+        }
+        imageBytesCache = newMap
+    }
+    val thumbSize = 72.dp
+    val maxVisibleThumbs = 4
+    val hasOverflow = images.size > maxVisibleThumbs
+    val visibleImages = if (hasOverflow) images.take(maxVisibleThumbs - 1) else images
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(OffWhite)
+            .padding(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = collection.name,
+                style = MaterialTheme.typography.titleSmall,
+                color = NavyDeep
+            )
+            if (isEditingEnabled) {
+                IconButton(onClick = onDeleteCollectionClick) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete collection", tint = DeleteRed, modifier = Modifier.size(20.dp))
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isEditingEnabled) {
+                Box(
+                    modifier = Modifier
+                        .size(thumbSize)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(NavyDeep.copy(alpha = 0.2f))
+                        .border(1.dp, NavyDeep, RoundedCornerShape(8.dp))
+                        .clickable { onAddImageClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add photo", tint = NavyDeep, modifier = Modifier.size(32.dp))
+                }
+            }
+            visibleImages.forEach { img ->
+                val bytes = imageBytesCache[img.id]
+                Box(
+                    modifier = Modifier
+                        .size(thumbSize)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onImageClick(img) }
+                ) {
+                    if (bytes != null) {
+                        val bitmap = remember(bytes) {
+                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+                        }
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize().background(PureBlack.copy(alpha = 0.1f)))
+                    }
+                }
+            }
+            if (hasOverflow) {
+                Box(
+                    modifier = Modifier
+                        .size(thumbSize)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(NavyDeep.copy(alpha = 0.3f))
+                        .clickable { onViewAllClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("${images.size}", color = PureWhite, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        if (images.isNotEmpty()) {
+            Button(
+                onClick = onTimelapseClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = NavyDeep.copy(alpha = 0.8f), contentColor = PureWhite)
+            ) {
+                Text("View Timelapse")
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiaryImageViewerDialog(
+    image: DiaryCollectionImage,
+    viewModel: CalendarViewModel,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(image.driveFileId) {
+        val bytes = viewModel.getImageBytes(image.driveFileId)
+        bitmap = bytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+    }
+    val dateFormat = remember { SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()) }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(12.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = dateFormat.format(Date(image.takenAtMillis)),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PureBlack
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                ) {
+                    bitmap?.let { bmp ->
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDelete) { Text("Remove", color = DeleteRed) }
+                    TextButton(onClick = onDismiss) { Text("Close") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiaryImageGalleryDialog(
+    collection: DiaryCollection,
+    images: List<DiaryCollectionImage>,
+    viewModel: CalendarViewModel,
+    onDismiss: () -> Unit
+) {
+    var index by remember { mutableStateOf(0) }
+    val img = images.getOrNull(index)
+    var bitmap by remember(img) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(img?.driveFileId) {
+        if (img != null) {
+            val bytes = viewModel.getImageBytes(img.driveFileId)
+            bitmap = bytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        }
+    }
+    val dateFormat = remember { SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()) }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(12.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (img != null) {
+                    Text(
+                        text = dateFormat.format(Date(img.takenAtMillis)),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = PureBlack
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                ) {
+                    bitmap?.let { bmp ->
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = { if (index > 0) index-- },
+                        enabled = index > 0
+                    ) { Text("Previous") }
+                    Text("${index + 1} / ${images.size}")
+                    Button(
+                        onClick = { if (index < images.size - 1) index++ },
+                        enabled = index < images.size - 1
+                    ) { Text("Next") }
+                }
+                TextButton(onClick = onDismiss) { Text("Close") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiaryTimelapseConfigDialog(
+    collection: DiaryCollection,
+    images: List<DiaryCollectionImage>,
+    viewModel: CalendarViewModel,
+    onDismiss: () -> Unit
+) {
+    var durationSeconds by remember { mutableStateOf(10) }
+    var showDay by remember { mutableStateOf(true) }
+    var showMonth by remember { mutableStateOf(true) }
+    var showYear by remember { mutableStateOf(true) }
+    var showHour by remember { mutableStateOf(false) }
+    var showMinute by remember { mutableStateOf(false) }
+    var started by remember { mutableStateOf(false) }
+    if (started) {
+        DiaryTimelapsePlayer(
+            images = images,
+            durationSeconds = durationSeconds,
+            showDay = showDay,
+            showMonth = showMonth,
+            showYear = showYear,
+            showHour = showHour,
+            showMinute = showMinute,
+            viewModel = viewModel,
+            onDismiss = {
+                started = false
+                onDismiss()
+            }
+        )
+        return
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Timelapse settings") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Duration (seconds)")
+                Slider(
+                    value = durationSeconds.toFloat(),
+                    onValueChange = { durationSeconds = it.toInt().coerceIn(1, 120) },
+                    valueRange = 1f..120f,
+                    steps = 118
+                )
+                Text("$durationSeconds s")
+                Text("Label on each image:")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = showDay, onCheckedChange = { showDay = it })
+                    Text("Day")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = showMonth, onCheckedChange = { showMonth = it })
+                    Text("Month")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = showYear, onCheckedChange = { showYear = it })
+                    Text("Year")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = showHour, onCheckedChange = { showHour = it })
+                    Text("Hour")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = showMinute, onCheckedChange = { showMinute = it })
+                    Text("Minute")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { started = true }) { Text("Start") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+private fun DiaryTimelapsePlayer(
+    images: List<DiaryCollectionImage>,
+    durationSeconds: Int,
+    showDay: Boolean,
+    showMonth: Boolean,
+    showYear: Boolean,
+    showHour: Boolean,
+    showMinute: Boolean,
+    viewModel: CalendarViewModel,
+    onDismiss: () -> Unit
+) {
+    val totalMs = durationSeconds * 1000L
+    val perImageMs = if (images.isEmpty()) 1000L else totalMs / images.size
+    var currentIndex by remember { mutableStateOf(0) }
+    var isPlaying by remember { mutableStateOf(false) }
+    var progress by remember { mutableStateOf(0f) }
+    var bitmap by remember(images.getOrNull(currentIndex)?.id) { mutableStateOf<Bitmap?>(null) }
+    val currentImage = images.getOrNull(currentIndex)
+    LaunchedEffect(currentImage?.driveFileId) {
+        if (currentImage != null) {
+            val bytes = viewModel.getImageBytes(currentImage.driveFileId)
+            bitmap = bytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        }
+    }
+    LaunchedEffect(isPlaying, currentIndex, images.size) {
+        if (!isPlaying || images.isEmpty()) return@LaunchedEffect
+        kotlinx.coroutines.delay(perImageMs)
+        if (currentIndex < images.size - 1) {
+            currentIndex++
+            progress = currentIndex.toFloat() / (images.size - 1).coerceAtLeast(1)
+        } else {
+            currentIndex = 0
+            progress = 0f
+        }
+    }
+    val dateFormat = remember {
+        val parts = mutableListOf<String>()
+        if (showYear) parts.add("yyyy")
+        if (showMonth) parts.add("MMM")
+        if (showDay) parts.add("d")
+        if (showHour || showMinute) parts.add("HH:mm")
+        SimpleDateFormat(parts.joinToString(" "), Locale.getDefault())
+    }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(12.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (currentImage != null) {
+                    Text(
+                        text = dateFormat.format(Date(currentImage.takenAtMillis)),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = NavyDeep
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                ) {
+                    bitmap?.let { bmp ->
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+                Slider(
+                    value = progress,
+                    onValueChange = {
+                        progress = it
+                        currentIndex = (it * (images.size - 1).coerceAtLeast(1)).toInt().coerceIn(0, images.size - 1)
+                    },
+                    valueRange = 0f..1f
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Button(onClick = { isPlaying = !isPlaying }) {
+                        Text(if (isPlaying) "Pause" else "Play")
+                    }
+                    TextButton(onClick = onDismiss) { Text("Close") }
+                }
+            }
+        }
+    }
+}
+
+private val WORKOUT_STATUS_OPTIONS = listOf("None", "Not Done", "Partial", "Done", "Exceeded", "N/A")
+private fun getWorkoutStatusColor(status: String?): androidx.compose.ui.graphics.Color = when (status) {
+    "Done" -> androidx.compose.ui.graphics.Color(0xFF4CAF50)
+    "Partial" -> androidx.compose.ui.graphics.Color(0xFFFF9800)
+    "Not Done" -> androidx.compose.ui.graphics.Color(0xFFD32F2F)
+    "Exceeded" -> ElectricBlue
+    "N/A" -> androidx.compose.ui.graphics.Color(0xFF757575)
+    else -> PureBlack.copy(alpha = 0.5f) // None or null
+}
+
+@Composable
+private fun WorkoutContent(
+    sets: List<WorkoutSet>,
+    isEditingEnabled: Boolean,
+    onUpdateActuals: (setId: String, actualLoad: Double?, actualReps: Int?, actualVelocity: Double?, actualRpe: Double?, actualRir: Int?, actualDuration: Int?, actualDistance: Double?, actualRest: Int?) -> Unit,
+    onUpdateExerciseStatus: (exerciseId: String, status: String?) -> Unit,
+    onExerciseClick: (List<WorkoutSet>) -> Unit
+) {
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(16.dp)
+    ) {
+        if (sets.isEmpty()) {
+            Text(
+                text = "No workout for this day. Select another date or add a plan at presets/workout_weekly.json.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = PureBlack.copy(alpha = 0.7f),
+                modifier = Modifier.padding(vertical = 24.dp)
+            )
+            return@Column
+        }
+        val byType = sets.groupBy { it.exerciseType.ifBlank { "RESISTANCE" } }.toList()
+            .sortedBy { (type, _) -> type }
+        byType.forEach { (exerciseType, typeSets) ->
+            TypeHeader(title = exerciseType)
+            val orderedByExercise = typeSets.groupBy { it.exerciseId }
+                .toList()
+                .map { (_, block) -> block to typeSets.indexOf(block.first()) }
+                .sortedBy { it.second }
+                .map { it.first }
+            orderedByExercise.forEach { block ->
+                SimpleExerciseCard(
+                    setsInExercise = block,
+                    isEditingEnabled = isEditingEnabled,
+                    onStatusChange = { onUpdateExerciseStatus(block.first().exerciseId, it) },
+                    onClick = { onExerciseClick(block) }
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun TypeHeader(title: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(2.dp)
+                .background(NavyDeep)
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = NavyDeep,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(2.dp)
+                .background(NavyDeep)
+        )
+    }
+}
+
+@Composable
+private fun SimpleExerciseCard(
+    setsInExercise: List<WorkoutSet>,
+    isEditingEnabled: Boolean,
+    onStatusChange: (String?) -> Unit,
+    onClick: () -> Unit
+) {
+    val exerciseName = setsInExercise.firstOrNull()?.exerciseName?.ifBlank { setsInExercise.first().exerciseId } ?: ""
+    val currentStatus = setsInExercise.firstOrNull()?.workoutStatus
+    var expanded by remember { mutableStateOf(false) }
+    val statusColor = getWorkoutStatusColor(currentStatus)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = PureWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, NavyDeep.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = exerciseName,
+                style = MaterialTheme.typography.titleSmall,
+                color = NavyDeep,
+                modifier = Modifier.weight(1f)
+            )
+            Box {
+                Button(
+                    onClick = { if (isEditingEnabled) expanded = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = statusColor.copy(alpha = 0.2f),
+                        contentColor = statusColor,
+                        disabledContainerColor = PureBlack.copy(alpha = 0.12f),
+                        disabledContentColor = PureBlack.copy(alpha = 0.38f)
+                    ),
+                    shape = RoundedCornerShape(4.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    enabled = isEditingEnabled,
+                ) {
+                    Text(
+                        text = currentStatus ?: "None",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    containerColor = PureWhite,
+                ) {
+                    WORKOUT_STATUS_OPTIONS.forEach { status ->
+                        DropdownMenuItem(
+                            text = { Text(status, color = PureBlack) },
+                            onClick = {
+                                onStatusChange(if (status == "None") null else status)
+                                expanded = false
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutExerciseDetailModal(
+    setsInExercise: List<WorkoutSet>,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit,
+    isEditingEnabled: Boolean,
+    onUpdateActuals: (setId: String, actualLoad: Double?, actualReps: Int?, actualVelocity: Double?, actualRpe: Double?, actualRir: Int?, actualDuration: Int?, actualDistance: Double?, actualRest: Int?) -> Unit
+) {
+    val monospaceLabel = MaterialTheme.typography.labelMedium.copy(
+        fontFamily = FontFamily.Monospace
+    )
+    val exerciseName = setsInExercise.firstOrNull()?.exerciseName ?: ""
+    val exerciseType = setsInExercise.firstOrNull()?.exerciseType?.ifBlank { "RESISTANCE" } ?: "RESISTANCE"
+    val showSetLabel = exerciseType == "RESISTANCE"
+    val scrollState = rememberScrollState()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = PureWhite
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 0.dp)
+            ) {
+                Text(
+                    text = exerciseName,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = PureBlack,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                        .verticalScroll(scrollState),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    setsInExercise.sortedBy { it.setNumber }.forEach { setEntry ->
+                        WorkoutSetRow(
+                            setEntry = setEntry,
+                            showSetLabel = showSetLabel,
+                            isEditingEnabled = isEditingEnabled,
+                            monospaceLabel = monospaceLabel,
+                            onUpdateActuals = onUpdateActuals
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Close", color = NavyDeep)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            onSave()
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NavyDeep,
+                            contentColor = PureWhite
+                        )
+                    ) {
+                        Text("Save Changes")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SessionHeader(title: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(2.dp)
+                .background(NavyDeep)
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = PureBlack,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(2.dp)
+                .background(NavyDeep)
+        )
+    }
+}
+
+@Composable
+private fun SupersetDivider() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(NavyDeep.copy(alpha = 0.5f))
+        )
+        Text(
+            text = "SUPERSET",
+            style = MaterialTheme.typography.labelSmall,
+            color = NavyDeep,
+            modifier = Modifier.padding(horizontal = 8.dp)
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(NavyDeep.copy(alpha = 0.5f))
+        )
+    }
+}
+
+@Composable
+private fun ExerciseBlock(
+    setsInExercise: List<WorkoutSet>,
+    isEditingEnabled: Boolean,
+    monospaceLabel: androidx.compose.ui.text.TextStyle,
+    onUpdateActuals: (setId: String, actualLoad: Double?, actualReps: Int?, actualVelocity: Double?, actualRpe: Double?, actualRir: Int?, actualDuration: Int?, actualDistance: Double?, actualRest: Int?) -> Unit
+) {
+    val exerciseName = setsInExercise.firstOrNull()?.exerciseName?.ifBlank { setsInExercise.first().exerciseId } ?: ""
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = PureWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, NavyDeep.copy(alpha = 0.3f))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = exerciseName,
+                style = MaterialTheme.typography.titleSmall,
+                color = NavyDeep,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            setsInExercise.sortedBy { it.setNumber }.forEach { setEntry ->
+                WorkoutSetRow(
+                    setEntry = setEntry,
+                    showSetLabel = setsInExercise.firstOrNull()?.exerciseType == "RESISTANCE",
+                    isEditingEnabled = isEditingEnabled,
+                    monospaceLabel = monospaceLabel,
+                    onUpdateActuals = onUpdateActuals
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutNumberStepper(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    min: Int,
+    max: Int,
+    enabled: Boolean,
+    label: String,
+    textStyle: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = textStyle,
+            color = PureBlack.copy(alpha = 0.8f),
+            modifier = Modifier.widthIn(min = 120.dp)
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            IconButton(
+                onClick = { onValueChange((value - 1).coerceIn(min, max)) },
+                enabled = enabled && value > min,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Decrease",
+                    tint = if (enabled && value > min) NavyDeep else PureBlack.copy(alpha = 0.38f)
+                )
+            }
+            Text(
+                text = value.toString(),
+                style = textStyle,
+                color = PureBlack,
+                modifier = Modifier.widthIn(min = 32.dp),
+                textAlign = TextAlign.Center
+            )
+            IconButton(
+                onClick = { onValueChange((value + 1).coerceIn(min, max)) },
+                enabled = enabled && value < max,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = "Increase",
+                    tint = if (enabled && value < max) NavyDeep else PureBlack.copy(alpha = 0.38f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutSetRow(
+    setEntry: WorkoutSet,
+    showSetLabel: Boolean,
+    isEditingEnabled: Boolean,
+    monospaceLabel: androidx.compose.ui.text.TextStyle,
+    onUpdateActuals: (setId: String, actualLoad: Double?, actualReps: Int?, actualVelocity: Double?, actualRpe: Double?, actualRir: Int?, actualDuration: Int?, actualDistance: Double?, actualRest: Int?) -> Unit
+) {
+    val currentLoad = (setEntry.actualLoad ?: setEntry.targetLoad ?: 0.0).toInt().coerceIn(0, 999)
+    val currentReps = (setEntry.actualReps ?: setEntry.targetReps ?: 0).coerceIn(0, 999)
+    val currentVelocity = (setEntry.actualVelocity ?: setEntry.targetVelocity ?: 0.0).toInt().coerceIn(0, 99)
+    val currentRpe = (setEntry.actualRpe ?: 0.0).toInt().coerceIn(0, 10)
+    val currentRir = (setEntry.actualRir ?: setEntry.targetRir ?: 0).coerceIn(0, 10)
+    val currentDuration = (setEntry.actualDuration ?: setEntry.targetDuration ?: 0).coerceIn(0, 9999)
+    val currentDistanceInt = (setEntry.actualDistance ?: setEntry.targetDistance ?: 0.0).toInt().coerceIn(0, 999)
+    val currentRest = (setEntry.actualRest ?: setEntry.targetRest ?: 0).coerceIn(0, 9999)
+
+    val showLoad = setEntry.targetLoad != null || setEntry.actualLoad != null
+    val showReps = setEntry.targetReps != null || setEntry.actualReps != null
+    val showRpe = setEntry.actualRpe != null || setEntry.targetRir != null || setEntry.targetDuration != null || setEntry.targetDistance != null
+    val showRir = setEntry.targetRir != null || setEntry.actualRir != null
+    val showVelocity = setEntry.targetVelocity != null || setEntry.actualVelocity != null
+    val showDuration = setEntry.targetDuration != null || setEntry.actualDuration != null
+    val showDistance = setEntry.targetDistance != null || setEntry.actualDistance != null
+    val showRest = setEntry.targetRest != null || setEntry.actualRest != null
+    val hasAnyActual = showLoad || showReps || showRpe || showRir || showVelocity || showDuration || showDistance || showRest
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = OffWhite.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, NavyDeep.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            if (showSetLabel) {
+                Text(
+                    text = "Set ${setEntry.setNumber}",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = NavyDeep,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+            }
+
+            if (setEntry.description.isNotBlank()) {
+                Text(
+                    text = setEntry.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PureBlack,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+            }
+
+            if (setEntry.cadence != null) {
+                Text(
+                    text = "Cadence: ${setEntry.cadence}",
+                    style = monospaceLabel,
+                    color = PureBlack.copy(alpha = 0.75f),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            if (setEntry.targetLoad != null || setEntry.targetReps != null || setEntry.targetVelocity != null ||
+                setEntry.targetDuration != null || setEntry.targetDistance != null || setEntry.targetRir != null || setEntry.targetRest != null) {
+                Text(
+                    text = "Target",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PureBlack.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+                val targetParts = buildList {
+                    setEntry.targetLoad?.let { add("${it} ${setEntry.unitLoad}") }
+                    setEntry.targetReps?.let { add("$it r") }
+                    setEntry.targetVelocity?.let { add("${it} ${setEntry.unitVelocity}") }
+                    setEntry.targetDuration?.let { add("$it ${setEntry.unitDuration}") }
+                    setEntry.targetDistance?.let { add("$it ${setEntry.unitDistance}") }
+                    setEntry.targetRir?.let { add("RIR $it") }
+                    setEntry.targetRest?.let { add("Rest $it ${setEntry.restUnit}") }
+                }
+                Text(
+                    text = if (targetParts.isEmpty()) "—" else targetParts.joinToString(" · "),
+                    style = monospaceLabel,
+                    color = PureBlack.copy(alpha = 0.85f),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
+
+            if (hasAnyActual) {
+                Text(
+                    text = "Actual",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PureBlack.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (showLoad) {
+                        WorkoutNumberStepper(
+                            value = currentLoad,
+                            onValueChange = { onUpdateActuals(setEntry.id, it.toDouble(), null, null, null, null, null, null, null) },
+                            min = 0,
+                            max = 999,
+                            enabled = isEditingEnabled,
+                            label = "Load (${setEntry.unitLoad})",
+                            textStyle = monospaceLabel
+                        )
+                    }
+                    if (showReps) {
+                        WorkoutNumberStepper(
+                            value = currentReps,
+                            onValueChange = { onUpdateActuals(setEntry.id, null, it, null, null, null, null, null, null) },
+                            min = 0,
+                            max = 999,
+                            enabled = isEditingEnabled,
+                            label = "Reps",
+                            textStyle = monospaceLabel
+                        )
+                    }
+                    if (showRpe) {
+                        WorkoutNumberStepper(
+                            value = currentRpe,
+                            onValueChange = { onUpdateActuals(setEntry.id, null, null, null, it.toDouble(), null, null, null, null) },
+                            min = 0,
+                            max = 10,
+                            enabled = isEditingEnabled,
+                            label = "RPE (0–10)",
+                            textStyle = monospaceLabel
+                        )
+                    }
+                    if (showRir) {
+                        WorkoutNumberStepper(
+                            value = currentRir,
+                            onValueChange = { onUpdateActuals(setEntry.id, null, null, null, null, it, null, null, null) },
+                            min = 0,
+                            max = 10,
+                            enabled = isEditingEnabled,
+                            label = "RIR (0–10)",
+                            textStyle = monospaceLabel
+                        )
+                    }
+                    if (showVelocity) {
+                        WorkoutNumberStepper(
+                            value = currentVelocity,
+                            onValueChange = { onUpdateActuals(setEntry.id, null, null, it.toDouble(), null, null, null, null, null) },
+                            min = 0,
+                            max = 99,
+                            enabled = isEditingEnabled,
+                            label = "Velocity (${setEntry.unitVelocity})",
+                            textStyle = monospaceLabel
+                        )
+                    }
+                    if (showDuration) {
+                        WorkoutNumberStepper(
+                            value = currentDuration,
+                            onValueChange = { onUpdateActuals(setEntry.id, null, null, null, null, null, it, null, null) },
+                            min = 0,
+                            max = 9999,
+                            enabled = isEditingEnabled,
+                            label = "Duration (${setEntry.unitDuration})",
+                            textStyle = monospaceLabel
+                        )
+                    }
+                    if (showDistance) {
+                        WorkoutNumberStepper(
+                            value = currentDistanceInt,
+                            onValueChange = { onUpdateActuals(setEntry.id, null, null, null, null, null, null, it.toDouble(), null) },
+                            min = 0,
+                            max = 999,
+                            enabled = isEditingEnabled,
+                            label = "Distance (${setEntry.unitDistance})",
+                            textStyle = monospaceLabel
+                        )
+                    }
+                    if (showRest) {
+                        WorkoutNumberStepper(
+                            value = currentRest,
+                            onValueChange = { onUpdateActuals(setEntry.id, null, null, null, null, null, null, null, it) },
+                            min = 0,
+                            max = 9999,
+                            enabled = isEditingEnabled,
+                            label = "Rest (${setEntry.restUnit})",
+                            textStyle = monospaceLabel
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpinBoxInt(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    min: Int = 0,
+    max: Int = 999,
+    enabled: Boolean,
+    textStyle: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.padding(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        IconButton(
+            onClick = { onValueChange((value - 1).coerceIn(min, max)) },
+            enabled = enabled && value > min,
+            modifier = Modifier.size(28.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Decrease",
+                tint = if (enabled && value > min) NavyDeep else PureBlack.copy(alpha = 0.38f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Text(
+            text = value.toString(),
+            style = textStyle,
+            color = PureBlack,
+            modifier = Modifier
+                .widthIn(min = 28.dp)
+                .padding(horizontal = 4.dp),
+            textAlign = TextAlign.Center
+        )
+        IconButton(
+            onClick = { onValueChange((value + 1).coerceIn(min, max)) },
+            enabled = enabled && value < max,
+            modifier = Modifier.size(28.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowUp,
+                contentDescription = "Increase",
+                tint = if (enabled && value < max) NavyDeep else PureBlack.copy(alpha = 0.38f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpinBoxDouble(
+    value: Double,
+    onValueChange: (Double) -> Unit,
+    min: Double = 0.0,
+    max: Double = 999.0,
+    step: Double = 0.5,
+    enabled: Boolean,
+    textStyle: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier
+) {
+    val stepped = (value / step).toInt().toDouble() * step
+    val displayValue = stepped.coerceIn(min, max)
+    Row(
+        modifier = modifier.padding(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        IconButton(
+            onClick = { onValueChange((displayValue - step).coerceIn(min, max)) },
+            enabled = enabled && displayValue > min,
+            modifier = Modifier.size(28.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Decrease",
+                tint = if (enabled && displayValue > min) NavyDeep else PureBlack.copy(alpha = 0.38f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Text(
+            text = if (displayValue == displayValue.toLong().toDouble()) "${displayValue.toLong()}" else "%.1f".format(displayValue),
+            style = textStyle,
+            color = PureBlack,
+            modifier = Modifier
+                .widthIn(min = 32.dp)
+                .padding(horizontal = 4.dp),
+            textAlign = TextAlign.Center
+        )
+        IconButton(
+            onClick = { onValueChange((displayValue + step).coerceIn(min, max)) },
+            enabled = enabled && displayValue < max,
+            modifier = Modifier.size(28.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowUp,
+                contentDescription = "Increase",
+                tint = if (enabled && displayValue < max) NavyDeep else PureBlack.copy(alpha = 0.38f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+private const val WHEEL_ITEM_WIDTH_DP = 56
+
+@Composable
+private fun HorizontalWheelPicker(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    range: IntRange,
+    enabled: Boolean,
+    textStyle: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = (value - range.first).coerceIn(0, (range.last - range.first).coerceAtLeast(0))
+    )
+    val listStateRef = remember { listState }
+    val rangeList = remember(range) { (range.first..range.last).toList() }
+    val horizontalPadding = 72.dp
+
+    Box(modifier = modifier.height(48.dp)) {
+        LazyRow(
+            state = listState,
+            contentPadding = PaddingValues(horizontal = horizontalPadding),
+            verticalAlignment = Alignment.CenterVertically,
+            userScrollEnabled = enabled,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(
+                items = rangeList,
+                key = { it }
+            ) { item ->
+                val isSelected = item == value
+                Text(
+                    text = "$item",
+                    style = textStyle,
+                    color = when {
+                        !enabled -> PureBlack.copy(alpha = 0.38f)
+                        isSelected -> NavyDeep
+                        else -> PureBlack.copy(alpha = 0.5f + 0.2f * (1 - kotlin.math.abs(item - value) / 10f).coerceIn(0f, 1f))
+                    },
+                    modifier = Modifier
+                        .width(WHEEL_ITEM_WIDTH_DP.dp)
+                        .wrapContentWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        LaunchedEffect(value) {
+            val index = (value - range.first).coerceIn(0, (range.last - range.first).coerceAtLeast(0))
+            listStateRef.animateScrollToItem(index)
+        }
+        LaunchedEffect(listStateRef, rangeList) {
+            snapshotFlow {
+                val idx = listStateRef.firstVisibleItemIndex
+                rangeList.getOrNull(idx) ?: value
+            }.collect { newVal ->
+                if (newVal != value) onValueChange(newVal)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddWorkoutFromClipboardDialog(
+    viewModel: CalendarViewModel,
+    onDismiss: () -> Unit,
+    onAdded: () -> Unit
+) {
+    var pastedText by remember { mutableStateOf("") }
+    var validationMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+
+    fun validate() {
+        if (pastedText.isBlank()) {
+            validationMessage = "Paste JSON first"
+            return
+        }
+        validationMessage = viewModel.validateWorkoutJson(pastedText).fold(
+            onSuccess = { "Valid format — ready to add" },
+            onFailure = { it.message ?: "Invalid JSON" }
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Add exercise from JSON", color = PureBlack)
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                        pastedText = clipboard?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                        validationMessage = null
+                        if (pastedText.isNotBlank()) validate()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NavyDeep.copy(alpha = 0.15f),
+                        contentColor = NavyDeep
+                    )
+                ) {
+                    Text("Paste from clipboard")
+                }
+                OutlinedTextField(
+                    value = pastedText,
+                    onValueChange = { pastedText = it; validationMessage = null },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp),
+                    placeholder = { Text("Paste JSON: exercise with \"name\", \"sets\", or session with \"title\", \"exercises\"", color = PureBlack.copy(alpha = 0.5f)) },
+                    maxLines = 8,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NavyDeep,
+                        unfocusedBorderColor = NavyDeep.copy(alpha = 0.6f),
+                        focusedTextColor = PureBlack,
+                        unfocusedTextColor = PureBlack
+                    )
+                )
+                if (validationMessage != null) {
+                    Text(
+                        text = validationMessage!!,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (validationMessage!!.startsWith("Valid")) NavyDeep else DeleteRed
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (pastedText.isBlank()) return@TextButton
+                    viewModel.addWorkoutFromClipboard(pastedText).onSuccess { onAdded() }.onFailure {
+                        validationMessage = it.message ?: "Failed to add"
+                    }
+                },
+                colors = ButtonDefaults.textButtonColors(contentColor = NavyDeep)
+            ) {
+                Text("Confirm add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = PureBlack)
+            }
+        },
+        containerColor = PureWhite
+    )
 }
 
 @Composable

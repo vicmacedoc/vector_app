@@ -1,0 +1,515 @@
+{
+  "id": "v_exercise_plan_week_1_2026",
+  "name": "Phase 1: Week 1 - Hybrid Foundation",
+  "weekly_plan": {
+    "monday": [
+      {
+        "title": "Endurance: AM Intervals (VO2 Max)",
+        "description": "High-intensity intervals to improve running economy and ceiling for the marathon goal.",
+        "exercises": [
+          {
+            "name": "800m Intervals",
+            "type": "ENDURANCE",
+            "targetDistance": 6.4,
+            "unitDistance": "km",
+            "targetRpe": 9.0,
+            "description": "2km Warm-up, then 6x800m at 5k goal pace. 400m light jog recovery. 1km Cool-down."
+          }
+        ]
+      },
+      {
+        "title": "Resistance: Upper A (Shoulder/Trap/Tricep Emphasis)",
+        "description": "Primary strength and targeted hypertrophy.",
+        "exercises": [
+          {
+            "name": "Barbell Bench Press",
+            "type": "RESISTANCE",
+            "sets": [
+              {
+                "setNumber": 1,
+                "description": "Top Set",
+                "targetLoad": 90.0,
+                "unitLoad": "kg",
+                "targetReps": 5,
+                "targetRir": 2,
+                "rest": 120,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 2,
+                "description": "Working Set",
+                "targetLoad": 85.0,
+                "unitLoad": "kg",
+                "targetReps": 8,
+                "targetRir": 2,
+                "rest": 120,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 3,
+                "description": "Working Set",
+                "targetLoad": 85.0,
+                "unitLoad": "kg",
+                "targetReps": 8,
+                "targetRir": 1,
+                "rest": 120,
+                "restUnit": "s"
+              }
+            ]
+          },
+          {
+            "name": "Pendlay Rows",
+            "type": "RESISTANCE",
+            "sets": [
+              {
+                "setNumber": 1,
+                "description": "Explosive pull",
+                "targetLoad": 80.0,
+                "unitLoad": "kg",
+                "targetReps": 8,
+                "targetRir": 2,
+                "rest": 90,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 2,
+                "description": "Explosive pull",
+                "targetLoad": 80.0,
+                "unitLoad": "kg",
+                "targetReps": 8,
+                "targetRir": 2,
+                "rest": 90,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 3,
+                "description": "Slow eccentric",
+                "targetLoad": 70.0,
+                "unitLoad": "kg",
+                "targetReps": 12,
+                "targetRir": 1,
+                "rest": 90,
+                "restUnit": "s"
+              }
+            ]
+          },
+          {
+            "name": "Seated Dumbbell Shoulder Press",
+            "type": "RESISTANCE",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 28.0,
+                "unitLoad": "kg",
+                "targetReps": 10,
+                "targetRir": 2,
+                "rest": 90,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 28.0,
+                "unitLoad": "kg",
+                "targetReps": 10,
+                "targetRir": 2,
+                "rest": 90,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 28.0,
+                "unitLoad": "kg",
+                "targetReps": 10,
+                "targetRir": 1,
+                "rest": 90,
+                "restUnit": "s"
+              }
+            ]
+          },
+          {
+            "name": "Face Pulls (Rope)",
+            "type": "RESISTANCE",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 25.0,
+                "unitLoad": "kg",
+                "targetReps": 15,
+                "targetRir": 1,
+                "rest": 60,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 25.0,
+                "unitLoad": "kg",
+                "targetReps": 15,
+                "targetRir": 1,
+                "rest": 60,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 25.0,
+                "unitLoad": "kg",
+                "targetReps": 15,
+                "targetRir": 1,
+                "rest": 60,
+                "restUnit": "s"
+              }
+            ]
+          },
+          {
+            "name": "EZ Bar Skullcrushers",
+            "type": "RESISTANCE",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 35.0,
+                "unitLoad": "kg",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 60,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 35.0,
+                "unitLoad": "kg",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 60,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 30.0,
+                "unitLoad": "kg",
+                "targetReps": 15,
+                "targetRir": 0,
+                "rest": 60,
+                "restUnit": "s"
+              }
+            ]
+          },
+          {
+            "name": "Dumbbell Shrugs",
+            "type": "RESISTANCE",
+            "sets": [
+              {
+                "setNumber": 1,
+                "description": "Hold peak for 2s",
+                "targetLoad": 35.0,
+                "unitLoad": "kg",
+                "targetReps": 12,
+                "targetRir": 1,
+                "rest": 60,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 2,
+                "description": "Hold peak for 2s",
+                "targetLoad": 35.0,
+                "unitLoad": "kg",
+                "targetReps": 12,
+                "targetRir": 1,
+                "rest": 60,
+                "restUnit": "s"
+              },
+              {
+                "setNumber": 3,
+                "description": "Max reps to failure",
+                "targetLoad": 30.0,
+                "unitLoad": "kg",
+                "targetReps": 15,
+                "targetRir": 0,
+                "rest": 60,
+                "restUnit": "s"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "tuesday": [
+        {
+            "title": "Endurance: AM Recovery Run",
+            "description": "Strict Zone 2 effort to build mitochondrial density and aerobic base without adding significant structural fatigue.",
+            "exercises": [
+            {
+                "name": "Flat Road Run",
+                "type": "ENDURANCE",
+                "targetDuration": 45,
+                "unitDuration": "min",
+                "targetRpe": 3.0
+            }
+            ]
+        },
+        {
+            "title": "Endurance: PM Technical Swim",
+            "description": "Focused on stroke efficiency and increasing total weekly aerobic volume.",
+            "exercises": [
+            {
+                "name": "Swimming Laps",
+                "type": "ENDURANCE",
+                "targetDuration": 30,
+                "unitDuration": "min",
+                "targetRpe": 4.0
+            }
+            ]
+        }
+    ],
+    "wednesday": [
+        {
+            "title": "Resistance: Lower Body & Target Area Frequency",
+            "description": "Squat strength plus high-volume work for rear delts and triceps.",
+            "exercises": [
+            {
+                "name": "Back Squat",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Technique focus", "targetLoad": 75.0, "unitLoad": "kg", "targetReps": 8, "targetRir": 3, "rest": 120, "restUnit": "s" },
+                { "setNumber": 2, "description": "Working set", "targetLoad": 80.0, "unitLoad": "kg", "targetReps": 6, "targetRir": 2, "rest": 120, "restUnit": "s" },
+                { "setNumber": 3, "description": "Working set", "targetLoad": 80.0, "unitLoad": "kg", "targetReps": 6, "targetRir": 2, "rest": 120, "restUnit": "s" },
+                { "setNumber": 4, "description": "Back-off set", "targetLoad": 65.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 120, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Romanian Deadlift (RDL)",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "targetLoad": 90.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 90, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 90.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 90, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 90.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 1, "rest": 90, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Bulgarian Split Squats",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Updated to 3 sets", "targetLoad": 16.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 16.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 16.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 1, "rest": 60, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Rear Delt Cable Flyes",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "targetLoad": 12.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 45, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 12.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 45, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 10.0, "unitLoad": "kg", "targetReps": 20, "targetRir": 0, "rest": 45, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Kelso Shrugs",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "targetLoad": 20.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 20.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 20.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 0, "rest": 60, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Single-Arm Overhead DB Extension",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Long head tricep focus", "targetLoad": 12.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 12.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 12.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 60, "restUnit": "s" }
+                ]
+            }
+            ]
+        }
+    ],
+    "thursday": [
+        {
+            "title": "Endurance: AM Tempo Run",
+            "description": "Improving aerobic power. Run on a flat road or treadmill.",
+            "exercises": [
+            {
+                "name": "Threshold Block",
+                "type": "ENDURANCE",
+                "targetDuration": 40,
+                "unitDuration": "min",
+                "targetRpe": 7.0,
+                "description": "10 min warm-up, 20 min at Marathon Pace (approx 4:45-4:50 min/km), 10 min cool-down."
+            }
+            ]
+        },
+        {
+            "title": "Resistance: Upper B (Shoulder, Trap & Tricep Specialization)",
+            "description": "Higher rep ranges to drive sarcoplasmic hypertrophy in target areas.",
+            "exercises": [
+            {
+                "name": "Incline DB Bench Press",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Focus on upper chest/front delt", "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 90, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 90, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 28.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 90, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Weighted Pull-Ups",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Controlled eccentric", "targetLoad": 10.0, "unitLoad": "kg", "targetReps": 8, "targetRir": 2, "rest": 90, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 10.0, "unitLoad": "kg", "targetReps": 8, "targetRir": 2, "rest": 90, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 0.0, "unitLoad": "kg", "targetReps": 15, "description": "Bodyweight to failure", "targetRir": 0, "rest": 90, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Lu Raises",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Full ROM overhead lateral raise", "targetLoad": 5.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 5.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 5.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Cable Tricep Pushdowns (Straight Bar)",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 25.0, "unitLoad": "kg", "targetReps": 20, "targetRir": 0, "rest": 60, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Dumbbell Shrugs",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "High volume for trap thickness", "targetLoad": 32.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 32.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 32.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 0, "rest": 60, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Reverse Peck Deck (Machine)",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Posterior Delt isolation", "targetLoad": 45.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 45.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 40.0, "unitLoad": "kg", "targetReps": 20, "description": "Partial reps at end", "targetRir": 0, "rest": 60, "restUnit": "s" }
+                ]
+            }
+            ]
+        }
+    ],
+    "friday": [
+        {
+            "title": "Endurance: AM Easy Run",
+            "description": "Low-intensity recovery run to keep the legs moving and build weekly mileage.",
+            "exercises": [
+            {
+                "name": "Zone 2 Recovery Run",
+                "type": "ENDURANCE",
+                "targetDuration": 30,
+                "unitDuration": "min",
+                "targetRpe": 3.0
+            }
+            ]
+        },
+        {
+            "title": "Resistance: Accessory & Weak Point Priority",
+            "description": "Final hypertrophy push for the week, focusing on structural balance and aesthetic targets.",
+            "exercises": [
+            {
+                "name": "Face Pulls (Rope)",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Posterior delt & trap focus", "targetLoad": 25.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 25.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 25.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Dumbbell Lateral Raises",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Side delt focus", "targetLoad": 12.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 12.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 10.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 0, "rest": 60, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Single-Arm Cable Tricep Pushdown",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Isolation and mind-muscle connection", "targetLoad": 15.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 45, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 15.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 45, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 15.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 0, "rest": 45, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Upright Rows (EZ Bar)",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Upper trap & lateral delt focus", "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 60, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Hanging Leg Raises",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Core stability for running", "targetReps": 15, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 2, "targetReps": 15, "targetRir": 2, "rest": 60, "restUnit": "s" },
+                { "setNumber": 3, "targetReps": 15, "targetRir": 2, "rest": 60, "restUnit": "s" }
+                ]
+            },
+            {
+                "name": "Tibialis Raises",
+                "type": "RESISTANCE",
+                "sets": [
+                { "setNumber": 1, "description": "Shin splint prevention for marathon prep", "targetReps": 20, "targetRir": 1, "rest": 45, "restUnit": "s" },
+                { "setNumber": 2, "targetReps": 20, "targetRir": 1, "rest": 45, "restUnit": "s" },
+                { "setNumber": 3, "targetReps": 20, "targetRir": 1, "rest": 45, "restUnit": "s" }
+                ]
+            }
+            ]
+        }
+    ],
+    "saturday": [
+        {
+            "title": "Endurance: AM The Long Run",
+            "description": "Building the specific aerobic capacity and structural durability required to move from the half-marathon to the full 42.2km distance.",
+            "exercises": [
+            {
+                "name": "Long Training Run",
+                "type": "ENDURANCE",
+                "targetDistance": 15.0,
+                "unitDistance": "km",
+                "targetRpe": 5.0,
+                "description": "Maintain a steady pace where you could hold a conversation. Focus on fueling and hydration strategies."
+            }
+            ]
+        }
+    ],
+    "sunday": [
+        {
+            "title": "Other: Active Recovery & PhD Prep",
+            "description": "Low-impact movement to facilitate blood flow and recovery from the week's volume.",
+            "exercises": [
+            {
+                "name": "Yoga or Mobility Flow",
+                "type": "OTHER",
+                "targetDuration": 45,
+                "unitDuration": "min",
+                "description": "Focus on hip flexors, hamstrings, and thoracic mobility."
+            },
+            {
+                "name": "Light Walk",
+                "type": "OTHER",
+                "targetDuration": 30,
+                "unitDuration": "min",
+                "description": "Easy movement to flush the legs after Saturday's long run."
+            }
+            ]
+        }
+    ]
+  }
+}

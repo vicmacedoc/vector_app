@@ -5,8 +5,16 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
-    entities = [DietEntry::class, RoutineEntry::class],
-    version = 4,
+    entities = [
+        DietEntry::class,
+        RoutineEntry::class,
+        WorkoutSet::class,
+        DailyHomeEntry::class,
+        DiaryEntry::class,
+        DiaryCollection::class,
+        DiaryCollectionImage::class
+    ],
+    version = 11,
     exportSchema = false
 )
 @TypeConverters(
@@ -17,4 +25,9 @@ import androidx.room.TypeConverters
 abstract class VectorDatabase : RoomDatabase() {
     abstract fun dietEntryDao(): DietEntryDao
     abstract fun routineEntryDao(): RoutineEntryDao
+    abstract fun workoutSetDao(): WorkoutSetDao
+    abstract fun dailyHomeEntryDao(): DailyHomeEntryDao
+    abstract fun diaryEntryDao(): DiaryEntryDao
+    abstract fun diaryCollectionDao(): DiaryCollectionDao
+    abstract fun diaryCollectionImageDao(): DiaryCollectionImageDao
 }

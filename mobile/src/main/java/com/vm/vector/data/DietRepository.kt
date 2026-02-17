@@ -112,10 +112,12 @@ class DietRepository(
                 else -> emptyList()
             }
             
-            // Convert to DietEntry with PLANNED status
-            val entries = planEntries.map { planEntry ->
+            // Convert to DietEntry with PLANNED status. Generate id at assignment if not in preset.
+            val baseTime = System.currentTimeMillis()
+            val entries = planEntries.mapIndexed { index, planEntry ->
+                val planId = planEntry.id.ifBlank { "gen_${baseTime}_$index" }
                 DietEntry(
-                    id = "${planEntry.id}_${date}",
+                    id = "${planId}_${date}",
                     date = date,
                     plannedTime = planEntry.plannedTime,
                     name = planEntry.name,

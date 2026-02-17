@@ -21,6 +21,7 @@ class ListRepository(
         prettyPrint = true
         prettyPrintIndent = "  "
         explicitNulls = false
+        encodeDefaults = false
     }
 
     suspend fun listJsonFiles(): DriveResult<List<DriveFileInfo>> {
@@ -42,7 +43,11 @@ class ListRepository(
         driveService.deleteFile(fileId)
 
     suspend fun saveFileContent(fileId: String, list: VectorList): DriveResult<Unit> {
-        val json = prettyJson.encodeToString(list)
+        val export = list.copy(
+            id = "",
+            items = list.items.map { it.copy(id = "") }
+        )
+        val json = prettyJson.encodeToString(export)
         return driveService.overwriteFileContent(fileId, json)
     }
 }

@@ -1,0 +1,21 @@
+{
+  "name": "Learning List",
+  "items": [
+    {
+      "title": "First aid protocols",
+      "quantity": 1,
+      "unit": "",
+      "remaining": 1,
+      "priority": "Low",
+      "isChecked": false
+    },
+    {
+      "title": "Memetics",
+      "quantity": 1,
+      "remaining": 1,
+      "unit": "",
+      "priority": "Low",
+      "isChecked": false
+    }
+  ]
+}

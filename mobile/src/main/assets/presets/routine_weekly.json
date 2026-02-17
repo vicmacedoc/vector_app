@@ -1,0 +1,355 @@
+{
+  "name": "Test Routine Plan",
+  "weekly_plan": {
+    "monday": [
+      {
+        "category": "Development",
+        "title": "Productivity",
+        "type": "NUMERICAL",
+        "goalValue": 4.0,
+        "partialThreshold": 2.0,
+        "minValue": 0.0,
+        "maxValue": 10.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Study",
+        "type": "NUMERICAL",
+        "goalValue": 2.0,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 8.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Learn something new",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Make bed",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Social Media",
+        "type": "NUMERICAL",
+        "goalValue": 0.1,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 6.0,
+        "unit": "h",
+        "directionBetter": -1
+      },
+      {
+        "category": "Life",
+        "title": "Movement Practice",
+        "type": "CATEGORICAL"
+      }
+    ],
+    "tuesday": [
+      {
+        "category": "Development",
+        "title": "Productivity",
+        "type": "NUMERICAL",
+        "goalValue": 4.0,
+        "partialThreshold": 2.0,
+        "minValue": 0.0,
+        "maxValue": 10.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Study",
+        "type": "NUMERICAL",
+        "goalValue": 2.0,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 8.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Learn something new",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Make bed",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Social Media",
+        "type": "NUMERICAL",
+        "goalValue": 0.1,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 6.0,
+        "unit": "h",
+        "directionBetter": -1
+      },
+      {
+        "category": "Life",
+        "title": "Movement Practice",
+        "type": "CATEGORICAL"
+      }
+    ],
+    "wednesday": [
+      {
+        "category": "Development",
+        "title": "Productivity",
+        "type": "NUMERICAL",
+        "goalValue": 4.0,
+        "partialThreshold": 2.0,
+        "minValue": 0.0,
+        "maxValue": 10.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Study",
+        "type": "NUMERICAL",
+        "goalValue": 2.0,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 8.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Learn something new",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Make bed",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Social Media",
+        "type": "NUMERICAL",
+        "goalValue": 0.1,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 6.0,
+        "unit": "h",
+        "directionBetter": -1
+      },
+      {
+        "category": "Life",
+        "title": "Movement Practice",
+        "type": "CATEGORICAL"
+      }
+    ],
+    "thursday": [
+      {
+        "category": "Development",
+        "title": "Productivity",
+        "type": "NUMERICAL",
+        "goalValue": 4.0,
+        "partialThreshold": 2.0,
+        "minValue": 0.0,
+        "maxValue": 10.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Study",
+        "type": "NUMERICAL",
+        "goalValue": 2.0,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 8.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Learn something new",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Make bed",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Social Media",
+        "type": "NUMERICAL",
+        "goalValue": 0.1,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 6.0,
+        "unit": "h",
+        "directionBetter": -1
+      },
+      {
+        "category": "Life",
+        "title": "Movement Practice",
+        "type": "CATEGORICAL"
+      }
+    ],
+    "friday": [
+      {
+        "category": "Development",
+        "title": "Productivity",
+        "type": "NUMERICAL",
+        "goalValue": 4.0,
+        "partialThreshold": 2.0,
+        "minValue": 0.0,
+        "maxValue": 10.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Study",
+        "type": "NUMERICAL",
+        "goalValue": 2.0,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 8.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Learn something new",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Make bed",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Social Media",
+        "type": "NUMERICAL",
+        "goalValue": 0.1,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 6.0,
+        "unit": "h",
+        "directionBetter": -1
+      },
+      {
+        "category": "Life",
+        "title": "Movement Practice",
+        "type": "CATEGORICAL"
+      }
+    ],
+    "saturday": [
+      {
+        "category": "Development",
+        "title": "Productivity",
+        "type": "NUMERICAL",
+        "goalValue": 4.0,
+        "partialThreshold": 2.0,
+        "minValue": 0.0,
+        "maxValue": 10.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Study",
+        "type": "NUMERICAL",
+        "goalValue": 2.0,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 8.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Learn something new",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Make bed",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Social Media",
+        "type": "NUMERICAL",
+        "goalValue": 0.1,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 6.0,
+        "unit": "h",
+        "directionBetter": -1
+      },
+      {
+        "category": "Life",
+        "title": "Movement Practice",
+        "type": "CATEGORICAL"
+      }
+    ],
+    "sunday": [
+      {
+        "category": "Development",
+        "title": "Productivity",
+        "type": "NUMERICAL",
+        "goalValue": 4.0,
+        "partialThreshold": 2.0,
+        "minValue": 0.0,
+        "maxValue": 10.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Study",
+        "type": "NUMERICAL",
+        "goalValue": 2.0,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 8.0,
+        "unit": "h",
+        "directionBetter": 1
+      },
+      {
+        "category": "Learning",
+        "title": "Learn something new",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Make bed",
+        "type": "CATEGORICAL"
+      },
+      {
+        "category": "Life",
+        "title": "Social Media",
+        "type": "NUMERICAL",
+        "goalValue": 0.1,
+        "partialThreshold": 1.0,
+        "minValue": 0.0,
+        "maxValue": 6.0,
+        "unit": "h",
+        "directionBetter": -1
+      },
+      {
+        "category": "Life",
+        "title": "Movement Practice",
+        "type": "CATEGORICAL"
+      }
+    ]
+  }
+}

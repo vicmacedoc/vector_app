@@ -1,0 +1,36 @@
+{
+  "name": "Task List",
+  "items": [
+    {
+      "title": "Study for STT 801 exam",
+      "quantity": 4,
+      "unit": "hours",
+      "remaining": 4,
+      "priority": "High",
+      "isChecked": false
+    },
+    {
+      "title": "Finish KIN 950 presentation",
+      "quantity": 8,
+      "remaining": 8,
+      "unit": "hours",
+      "priority": "High",
+      "isChecked": false
+    },
+    {
+      "title": "Send email to Andres for transaction and check mail for debit card",
+      "quantity": 2,
+      "remaining": 2,
+      "unit": "",
+      "priority": "High",
+      "isChecked": false
+    },
+    {
+      "title": "Finish SSN with Jill",
+      "quantity": 1,
+      "unit": "",
+      "isChecked": false,
+      "priority": "Medium"
+    }
+  ]
+}
