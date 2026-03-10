@@ -12,7 +12,10 @@ data class WorkoutSet(
     val setNumber: Int,
     val date: String,
     val sessionTitle: String = "",
+    val sessionDescription: String = "",
     val exerciseName: String = "",
+    val exerciseDescription: String = "",
+    val timing: String? = null,
     val exerciseType: String = "RESISTANCE",
     val groupingId: String? = null,
     val workoutStatus: String? = null, // "Done", "Partial", "Exceed"

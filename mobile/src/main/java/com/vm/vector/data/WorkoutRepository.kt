@@ -1,7 +1,6 @@
 package com.vm.vector.data
 
 import android.content.Context
-import androidx.room.Room
 import kotlinx.coroutines.flow.first
 import com.vm.core.models.VectorDatabase
 import com.vm.core.models.WorkoutSet
@@ -22,18 +21,11 @@ import java.util.*
  */
 class WorkoutRepository(
     private val context: Context,
+    private val database: VectorDatabase,
     private val preferenceManager: PreferenceManager,
     private val driveService: DriveService,
+    private val presetStorage: PresetStorage,
 ) {
-
-    private val database: VectorDatabase = Room.databaseBuilder(
-        context,
-        VectorDatabase::class.java,
-        "vector_database"
-    )
-        .fallbackToDestructiveMigration()
-        .build()
-
     private val dao = database.workoutSetDao()
 
     private val json = Json {
@@ -46,8 +38,37 @@ class WorkoutRepository(
     suspend fun getSetsByDateSync(date: String): List<WorkoutSet> = dao.getSetsByDateSync(date)
 
     /**
-     * When a date is selected: load day's exercises from workout_weekly.json (Drive presets),
-     * merge with any existing Room data for that date (keep actuals), then UPSERT into Room.
+     * Loads workout for a date for display only. Always loads blueprint and merges with existing
+     * so that metadata (sessionDescription, exerciseDescription, timing) is filled when saved sets
+     * have blank values. Does not persist; user taps Save Workout to write to DB.
+     */
+    suspend fun loadWorkoutForDateDisplay(date: String): Result<List<WorkoutSet>> = withContext(Dispatchers.IO) {
+        try {
+            val existing = dao.getSetsByDateSync(date)
+            val blueprintSets = loadBlueprintSetsForDate(date).getOrElse { return@withContext Result.failure(it) }
+            val merged = mergeBlueprintWithExisting(blueprintSets, existing, date)
+            Result.success(merged)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Fetches only the preset from Drive for the given date (no DB read/write).
+     * Use to replace current in-memory workout with latest preset when user taps Refresh from Drive.
+     */
+    suspend fun loadPresetOnlyForDate(date: String): Result<List<WorkoutSet>> = withContext(Dispatchers.IO) {
+        try {
+            val blueprintSets = loadBlueprintSetsForDate(date).getOrElse { return@withContext Result.failure(it) }
+            Result.success(mergeBlueprintWithExisting(blueprintSets, emptyList(), date))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * When a date is selected and caller needs to persist immediately (legacy): load from Drive,
+     * merge with existing Room data, then UPSERT into Room. Prefer loadWorkoutForDateDisplay for Calendar.
      */
     suspend fun loadBlueprintForDate(date: String): Result<List<WorkoutSet>> = withContext(Dispatchers.IO) {
         try {
@@ -62,29 +83,36 @@ class WorkoutRepository(
     }
 
     /**
-     * Fetch preset from Drive (presets/workout_weekly.json) and return WorkoutSet list for the given date (day of week).
+     * Fetches preset from active preset (Settings) and returns WorkoutSet list for the given date (day of week).
+     * If no preset is configured, returns failure.
      */
     private suspend fun loadBlueprintSetsForDate(date: String): Result<List<WorkoutSet>> = withContext(Dispatchers.IO) {
         try {
-            val rootFolderId = preferenceManager.googleDriveFolderId.first() ?: ""
-            if (rootFolderId.isBlank()) {
-                return@withContext Result.failure(Exception("Drive folder ID not configured"))
-            }
-            val driveResult = driveService.getWorkoutWeekly(rootFolderId)
-            val content = when (driveResult) {
-                is DriveResult.Success -> driveResult.data
-                is DriveResult.NeedsRemoteConsent -> return@withContext Result.failure(Exception("Needs remote consent. Please authorize Drive access in Settings."))
-                is DriveResult.ListsFolderNotFound -> return@withContext Result.failure(Exception("presets folder or workout_weekly.json not found in Drive. Ensure presets/workout_weekly.json exists."))
-                is DriveResult.ConfigurationError -> return@withContext Result.failure(Exception("Drive configuration error. Check your Drive folder ID in Settings."))
-                is DriveResult.Unauthorized -> return@withContext Result.failure(Exception("Drive access unauthorized. Sign in and grant DRIVE scope permission."))
-                else -> return@withContext Result.failure(Exception("Failed to fetch workout plan from Drive: $driveResult"))
-            }
+            val content = presetStorage.getPresetContent(PresetCategory.Workout)
+                ?: return@withContext Result.failure(Exception("No workout preset active. Load a preset in Settings or from the Calendar screen."))
+            parseWorkoutPlanContentToSets(content, date)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Parses preset JSON and returns workout sets for the given date. Used when applying a new preset.
+     */
+    fun getPresetSetsForDateFromContent(content: String, date: String): Result<List<WorkoutSet>> = try {
+        parseWorkoutPlanContentToSets(content, date)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    private fun parseWorkoutPlanContentToSets(content: String, date: String): Result<List<WorkoutSet>> {
+        return try {
             val plan = json.decodeFromString<WeeklyWorkoutPlan>(content)
             val parts = date.split("-")
-            if (parts.size != 3) return@withContext Result.failure(Exception("Invalid date format: $date"))
-            val year = parts[0].toIntOrNull() ?: return@withContext Result.failure(Exception("Invalid year: ${parts[0]}"))
-            val month = parts[1].toIntOrNull()?.minus(1) ?: return@withContext Result.failure(Exception("Invalid month: ${parts[1]}"))
-            val day = parts[2].toIntOrNull() ?: return@withContext Result.failure(Exception("Invalid day: ${parts[2]}"))
+            if (parts.size != 3) return Result.failure(Exception("Invalid date format: $date"))
+            val year = parts[0].toIntOrNull() ?: return Result.failure(Exception("Invalid year: ${parts[0]}"))
+            val month = parts[1].toIntOrNull()?.minus(1) ?: return Result.failure(Exception("Invalid month: ${parts[1]}"))
+            val day = parts[2].toIntOrNull() ?: return Result.failure(Exception("Invalid day: ${parts[2]}"))
             val cal = Calendar.getInstance(Locale.US).apply {
                 set(Calendar.YEAR, year)
                 set(Calendar.MONTH, month)
@@ -103,9 +131,10 @@ class WorkoutRepository(
             }
             val sets = mutableListOf<WorkoutSet>()
             sessions.forEachIndexed { sessionIndex, session ->
+                val sessionType = session.type.ifBlank { "RESISTANCE" }
                 session.exercises.forEachIndexed { exerciseIndex, exercise ->
                     val exerciseId = "ex_${sessionIndex}_$exerciseIndex"
-                    val exerciseType = exercise.type.ifBlank { "RESISTANCE" }
+                    val exerciseType = sessionType
                     if (exercise.sets.isEmpty()) {
                         val id = "${date}_${exerciseId}_1"
                         sets.add(
@@ -115,8 +144,10 @@ class WorkoutRepository(
                                 setNumber = 1,
                                 date = date,
                                 sessionTitle = session.title,
+                                sessionDescription = session.description,
                                 exerciseName = exercise.name,
-                                exerciseType = exerciseType,
+                                exerciseDescription = exercise.description,
+                                timing = exercise.timing,
                                 groupingId = exercise.groupingId,
                                 description = exercise.description,
                                 cadence = null,
@@ -153,8 +184,10 @@ class WorkoutRepository(
                                     setNumber = setPlan.setNumber,
                                     date = date,
                                     sessionTitle = session.title,
+                                    sessionDescription = session.description,
                                     exerciseName = exercise.name,
-                                    exerciseType = exerciseType,
+                                    exerciseDescription = exercise.description,
+                                    timing = exercise.timing,
                                     groupingId = exercise.groupingId,
                                     description = setPlan.description,
                                     cadence = setPlan.cadence,
@@ -201,7 +234,10 @@ class WorkoutRepository(
             existingById[blue.id]?.let { kept ->
                 blue.copy(
                     sessionTitle = kept.sessionTitle.ifBlank { blue.sessionTitle },
+                    sessionDescription = kept.sessionDescription.ifBlank { blue.sessionDescription },
                     exerciseName = kept.exerciseName.ifBlank { blue.exerciseName },
+                    exerciseDescription = kept.exerciseDescription.ifBlank { blue.exerciseDescription },
+                    timing = kept.timing ?: blue.timing,
                     exerciseType = kept.exerciseType.ifBlank { blue.exerciseType },
                     groupingId = kept.groupingId ?: blue.groupingId,
                     workoutStatus = kept.workoutStatus ?: blue.workoutStatus,
@@ -224,11 +260,12 @@ class WorkoutRepository(
     suspend fun insertSets(entries: List<WorkoutSet>) = dao.insertSets(entries)
 
     /**
-     * Save Workout: UPSERT current state into Room workout_sets. No Drive log.
+     * Save Workout: replace all sets for date with the given list. Only saved state is in DB (Home completion uses this).
      */
     suspend fun saveWorkoutForDate(date: String, sets: List<WorkoutSet>): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            dao.insertSets(sets)
+            dao.deleteSetsByDate(date)
+            if (sets.isNotEmpty()) dao.insertSets(sets)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -250,11 +287,11 @@ class WorkoutRepository(
                 }
                 trimmed.startsWith("[") -> {
                     val exercises = json.decodeFromString<List<WorkoutExercisePlan>>(trimmed)
-                    exercisesToWorkoutSets(date, "Added", exercises, 0)
+                    exercisesToWorkoutSets(date, "Added", "", exercises, 0)
                 }
                 else -> {
                     val exercise = json.decodeFromString<WorkoutExercisePlan>(trimmed)
-                    exercisesToWorkoutSets(date, "Added", listOf(exercise), 0)
+                    exercisesToWorkoutSets(date, "Added", "", listOf(exercise), 0)
                 }
             }
             if (sets.isEmpty()) Result.failure(Exception("No exercises or sets in JSON"))
@@ -265,19 +302,22 @@ class WorkoutRepository(
     }
 
     private fun sessionToWorkoutSets(date: String, session: WorkoutDaySession, sessionIdPrefix: String): List<WorkoutSet> {
-        return exercisesToWorkoutSets(date, session.title, session.exercises, 0)
+        val sessionType = session.type.ifBlank { "RESISTANCE" }
+        return exercisesToWorkoutSets(date, session.title, session.description, session.exercises, 0, sessionType)
     }
 
     private fun exercisesToWorkoutSets(
         date: String,
         sessionTitle: String,
+        sessionDescription: String = "",
         exercises: List<WorkoutExercisePlan>,
-        sessionIndexOffset: Int
+        sessionIndexOffset: Int,
+        sessionType: String? = null
     ): List<WorkoutSet> {
         val result = mutableListOf<WorkoutSet>()
         exercises.forEachIndexed { exerciseIndex, exercise ->
             val exerciseId = "ex_added_${sessionIndexOffset}_$exerciseIndex"
-            val exerciseType = exercise.type.ifBlank { "RESISTANCE" }
+            val exerciseType = (sessionType?.takeIf { it.isNotBlank() } ?: exercise.type).ifBlank { "RESISTANCE" }
             if (exercise.sets.isEmpty()) {
                 val id = "${date}_${exerciseId}_1"
                 result.add(
@@ -287,8 +327,10 @@ class WorkoutRepository(
                         setNumber = 1,
                         date = date,
                         sessionTitle = sessionTitle,
+                        sessionDescription = sessionDescription,
                         exerciseName = exercise.name,
-                        exerciseType = exerciseType,
+                        exerciseDescription = exercise.description,
+                        timing = exercise.timing,
                         groupingId = exercise.groupingId,
                         description = exercise.description,
                         cadence = null,
@@ -325,8 +367,10 @@ class WorkoutRepository(
                             setNumber = setPlan.setNumber,
                             date = date,
                             sessionTitle = sessionTitle,
+                            sessionDescription = sessionDescription,
                             exerciseName = exercise.name,
-                            exerciseType = exerciseType,
+                            exerciseDescription = exercise.description,
+                            timing = exercise.timing,
                             groupingId = exercise.groupingId,
                             description = setPlan.description,
                             cadence = setPlan.cadence,

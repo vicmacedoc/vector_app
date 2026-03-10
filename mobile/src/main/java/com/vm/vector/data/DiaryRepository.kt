@@ -1,28 +1,21 @@
 package com.vm.vector.data
 
 import android.content.Context
-import androidx.room.Room
 import com.vm.core.models.DiaryCollection
 import com.vm.core.models.DiaryCollectionImage
 import com.vm.core.models.DiaryEntry
 import com.vm.core.models.VectorDatabase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import java.io.File
 import java.util.*
 
 class DiaryRepository(
     private val context: Context,
+    private val database: VectorDatabase,
     private val preferenceManager: PreferenceManager,
     private val driveService: DriveService,
 ) {
-    private val database: VectorDatabase = Room.databaseBuilder(
-        context,
-        VectorDatabase::class.java,
-        "vector_database"
-    )
-        .fallbackToDestructiveMigration()
-        .build()
-
     private val diaryEntryDao = database.diaryEntryDao()
     private val diaryCollectionDao = database.diaryCollectionDao()
     private val diaryCollectionImageDao = database.diaryCollectionImageDao()
@@ -53,6 +46,12 @@ class DiaryRepository(
 
     /** Creates a new collection: creates folder in Drive under collections/{date}_{sanitizedName}, then saves to DB. */
     suspend fun createCollection(date: String, name: String): Result<DiaryCollection> {
+        val trimmedName = name.trim()
+        if (trimmedName.isBlank()) return Result.failure(Exception("Collection name cannot be empty"))
+        val existing = diaryCollectionDao.getByDateSync(date)
+        if (existing.any { it.name.equals(trimmedName, ignoreCase = true) }) {
+            return Result.failure(Exception("A collection with this name already exists for this date"))
+        }
         val rootFolderId = preferenceManager.googleDriveFolderId.first() ?: ""
         if (rootFolderId.isBlank()) {
             return Result.failure(Exception("Drive not configured"))
@@ -63,7 +62,7 @@ class DiaryRepository(
             is DriveResult.NeedsRemoteConsent -> return Result.failure(Exception("Drive consent needed"))
             else -> return Result.failure(Exception("Could not get collections folder"))
         }
-        val folderName = sanitizeCollectionFolderName(date, name)
+        val folderName = sanitizeCollectionFolderName(date, trimmedName)
         val folderResult = driveService.discoverOrCreateFolder(collectionsId, folderName)
         val driveFolderId = when (folderResult) {
             is DriveResult.Success -> folderResult.data
@@ -71,7 +70,7 @@ class DiaryRepository(
             else -> return Result.failure(Exception("Could not create collection folder"))
         }
         val id = "col_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(8)}"
-        val collection = DiaryCollection(id = id, date = date, name = name, driveFolderId = driveFolderId)
+        val collection = DiaryCollection(id = id, date = date, name = trimmedName, driveFolderId = driveFolderId)
         diaryCollectionDao.insert(collection)
         return Result.success(collection)
     }
@@ -116,18 +115,20 @@ class DiaryRepository(
         return Result.success(Unit)
     }
 
+    /** Deletes collection locally first so the UI updates; then best-effort delete from Drive. */
     suspend fun deleteCollection(collection: DiaryCollection): Result<Unit> {
-        val driveFolderId = collection.driveFolderId
-        if (driveFolderId != null) {
-            val deleteResult = driveService.deleteFolderAndContents(driveFolderId)
-            when (deleteResult) {
-                is DriveResult.Success -> { /* ok */ }
-                is DriveResult.NeedsRemoteConsent -> return Result.failure(Exception("Drive consent needed"))
-                else -> return Result.failure(Exception("Failed to delete folder from Drive"))
-            }
-        }
         diaryCollectionImageDao.deleteByCollectionId(collection.id)
         diaryCollectionDao.deleteById(collection.id)
+        collection.driveFolderId?.let { folderId ->
+            when (driveService.deleteFolderAndContents(folderId)) {
+                is DriveResult.Success -> { /* cleaned up on Drive */ }
+                is DriveResult.NeedsRemoteConsent,
+                is DriveResult.Unauthorized,
+                is DriveResult.ConfigurationError,
+                is DriveResult.OtherError -> { /* best-effort: collection already removed locally */ }
+                else -> { }
+            }
+        }
         return Result.success(Unit)
     }
 
@@ -146,6 +147,36 @@ class DiaryRepository(
             else -> null
         }
     }
+
+    /** Uploads journal audio from a local relative path (e.g. diary_audio/yyyy-MM-dd.3gp). Returns the Drive file ID on success. */
+    suspend fun uploadDiaryAudioFromPath(date: String, localRelativePath: String): Result<String> {
+        val file = File(context.filesDir, localRelativePath)
+        if (!file.exists()) return Result.failure(Exception("Audio file not found"))
+        val bytes = file.readBytes()
+        return uploadDiaryAudio(date, bytes)
+    }
+
+    /** Uploads journal audio to Drive under diary_audio/{date}.3gp. Returns the Drive file ID on success. */
+    suspend fun uploadDiaryAudio(date: String, audioBytes: ByteArray): Result<String> {
+        val rootFolderId = preferenceManager.googleDriveFolderId.first() ?: ""
+        if (rootFolderId.isBlank()) return Result.failure(Exception("Drive not configured"))
+        val folderResult = driveService.discoverOrCreateFolder(rootFolderId, "diary_audio")
+        val folderId = when (folderResult) {
+            is DriveResult.Success -> folderResult.data
+            is DriveResult.NeedsRemoteConsent -> return Result.failure(Exception("Drive consent needed"))
+            else -> return Result.failure(Exception("Could not get diary_audio folder"))
+        }
+        val fileName = "$date.3gp"
+        val uploadResult = driveService.uploadBinaryToFolder(folderId, fileName, "audio/3gpp", audioBytes)
+        return when (uploadResult) {
+            is DriveResult.Success -> Result.success(uploadResult.data.id)
+            is DriveResult.NeedsRemoteConsent -> Result.failure(Exception("Drive consent needed"))
+            else -> Result.failure(Exception("Upload failed"))
+        }
+    }
+
+    /** Downloads journal audio bytes from Drive for playback. Returns null on failure. */
+    suspend fun getDiaryAudioBytes(driveFileId: String): ByteArray? = getImageBytes(driveFileId)
 
     private fun sanitizeCollectionFolderName(date: String, name: String): String {
         val safe = name.replace(Regex("[^a-zA-Z0-9 _-]"), "_").take(80).trim()

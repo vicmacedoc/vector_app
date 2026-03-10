@@ -19,9 +19,11 @@ data class DietEntry(
     val carbs: Double,            // Added back
     val fats: Double,             // Added back
     val plannedAmount: Double,    // Base weight/count
-    val quantityMultiplier: Double = 1.0, 
+    val quantityMultiplier: Double = 1.0,
     val unit: String,
     val isChecked: Boolean = false,
+    /** When true, meal was not eaten (red tile); takes precedence over isChecked for display. */
+    val notEaten: Boolean = false,
     val status: AuditStatus = AuditStatus.PLANNED,
     val timestamp: Long = System.currentTimeMillis()
 )

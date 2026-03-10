@@ -13,5 +13,6 @@ data class DiaryEntry(
     @PrimaryKey val date: String,  // YYYY-MM-DD
     val mood: Int? = null,        // 1 = red/sad, 5 = green/happy
     val journalText: String? = null,
+    val journalAudioDriveFileId: String? = null,  // Drive file ID for journal audio
     val timestamp: Long = System.currentTimeMillis()
 )

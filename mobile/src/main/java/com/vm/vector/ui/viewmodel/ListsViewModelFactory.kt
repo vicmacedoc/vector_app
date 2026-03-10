@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.vm.vector.data.DriveService
 import com.vm.vector.data.GoogleDriveAuthManager
 import com.vm.vector.data.ListRepository
+import com.vm.vector.data.ListsLocalCache
 import com.vm.vector.data.PreferenceManager
 
 class ListsViewModelFactory(
@@ -15,12 +16,13 @@ class ListsViewModelFactory(
     private val preferenceManager = PreferenceManager(context)
     private val authManager = GoogleDriveAuthManager(context)
     private val driveService = DriveService(context, authManager)
-    private val repository = ListRepository(preferenceManager, driveService)
+    private val listsLocalCache = ListsLocalCache(context)
+    private val repository = ListRepository(preferenceManager, driveService, listsLocalCache)
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ListsViewModel::class.java)) {
-            return ListsViewModel(repository) as T
+            return ListsViewModel(repository, preferenceManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

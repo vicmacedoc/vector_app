@@ -22,4 +22,7 @@ interface WorkoutSetDao {
 
     @Query("DELETE FROM workout_sets WHERE date = :date")
     suspend fun deleteSetsByDate(date: String)
+
+    @Query("DELETE FROM workout_sets")
+    suspend fun deleteAllSets()
 }

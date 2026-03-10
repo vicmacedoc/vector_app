@@ -81,9 +81,13 @@ dependencies {
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     
-    // ViewModel
+    // ViewModel & Lifecycle
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
+    implementation("androidx.lifecycle:lifecycle-process:2.8.6")
+    
+    // Coroutines for Wear message Task.await()
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     
     // Google Sign-In & Drive API
     implementation("com.google.android.gms:play-services-auth:21.2.0")

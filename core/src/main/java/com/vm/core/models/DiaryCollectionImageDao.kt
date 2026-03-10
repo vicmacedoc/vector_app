@@ -22,4 +22,7 @@ interface DiaryCollectionImageDao {
 
     @Query("DELETE FROM diary_collection_image WHERE collectionId = :collectionId")
     suspend fun deleteByCollectionId(collectionId: String)
+
+    @Query("DELETE FROM diary_collection_image")
+    suspend fun deleteAll()
 }

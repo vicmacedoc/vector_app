@@ -1,7 +1,5 @@
 package com.vm.vector.data
 
-import android.content.Context
-import androidx.room.Room
 import com.vm.core.models.AuditStatus
 import com.vm.core.models.DietEntry
 import com.vm.core.models.DietPlanEntry
@@ -18,18 +16,11 @@ import java.util.*
 
 @OptIn(ExperimentalSerializationApi::class)
 class DietRepository(
-    private val context: Context,
+    private val database: VectorDatabase,
     private val preferenceManager: PreferenceManager,
     private val driveService: DriveService,
+    private val presetStorage: PresetStorage,
 ) {
-    private val database: VectorDatabase = Room.databaseBuilder(
-        context,
-        VectorDatabase::class.java,
-        "vector_database"
-    )
-        .fallbackToDestructiveMigration() // Handle schema changes by recreating database
-        .build()
-
     private val dao = database.dietEntryDao()
 
     private val prettyJson = Json {
@@ -59,11 +50,27 @@ class DietRepository(
     suspend fun getDatesWithCheckedMeals(): List<String> = dao.getDatesWithCheckedMeals()
 
     /**
-     * Deletes all diet entries from the database (daily responses only, not presets or JSON files).
+     * Replaces all entries for a date with the given list. Used when saving from Calendar
+     * so that only explicitly saved state is persisted (completion circles read from this).
+     */
+    suspend fun replaceEntriesForDate(date: String, entries: List<DietEntry>) {
+        dao.deleteEntriesByDate(date)
+        if (entries.isNotEmpty()) dao.insertEntries(entries)
+    }
+
+    /**
+     * Deletes all day-entry data from the database (diet, routine, workout, diary, daily home).
+     * Presets and Lists JSON files in Drive are not modified.
      */
     suspend fun resetDatabase(): Result<Unit> {
         return try {
-            dao.deleteAllEntries()
+            database.diaryCollectionImageDao().deleteAll()
+            database.diaryCollectionDao().deleteAll()
+            database.dietEntryDao().deleteAllEntries()
+            database.routineEntryDao().deleteAllEntries()
+            database.workoutSetDao().deleteAllSets()
+            database.dailyHomeEntryDao().deleteAll()
+            database.diaryEntryDao().deleteAll()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -71,27 +78,24 @@ class DietRepository(
     }
 
     /**
-     * Loads weekly diet plan from Drive and returns entries for a specific day of week.
+     * Loads weekly diet plan from active preset (Settings) and returns entries for a specific day of week.
+     * If no preset is configured, returns failure.
      */
     suspend fun loadPresetEntriesForDate(date: String): Result<List<DietEntry>> {
         return try {
-            val rootFolderId = preferenceManager.googleDriveFolderId.first()
-            if (rootFolderId.isNullOrBlank()) {
-                return Result.failure(Exception("Drive folder ID not configured"))
-            }
-            
-            // Fetch diet_weekly.json from Drive
-            val dietWeeklyResult = driveService.getDietWeekly(rootFolderId)
-            val jsonContent = when (dietWeeklyResult) {
-                is DriveResult.Success -> dietWeeklyResult.data
-                is DriveResult.NeedsRemoteConsent -> return Result.failure(Exception("Needs remote consent. Please authorize Drive access in Settings."))
-                is DriveResult.ListsFolderNotFound -> return Result.failure(Exception("presets folder or diet_weekly.json not found in Drive. Please ensure the file exists at presets/diet_weekly.json"))
-                is DriveResult.ConfigurationError -> return Result.failure(Exception("Drive configuration error. Please check your Drive folder ID in Settings."))
-                is DriveResult.Unauthorized -> return Result.failure(Exception("Drive access unauthorized. Please sign in and grant DRIVE scope permission."))
-                else -> return Result.failure(Exception("Failed to fetch diet plan from Drive: $dietWeeklyResult"))
-            }
-            
-            // Parse weekly plan
+            val jsonContent = presetStorage.getPresetContent(PresetCategory.Diet)
+                ?: return Result.failure(Exception("No diet preset active. Load a preset in Settings or from the Calendar screen."))
+            parsePresetContentAndGetEntriesForDate(jsonContent, date)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Parses preset JSON and returns diet entries for the given date. Used when applying a new preset.
+     */
+    fun parsePresetContentAndGetEntriesForDate(jsonContent: String, date: String): Result<List<DietEntry>> {
+        return try {
             val weeklyPlan = json.decodeFromString<WeeklyDietPlan>(jsonContent)
             
             // Determine day of week
@@ -141,22 +145,15 @@ class DietRepository(
     }
 
     /**
-     * Saves all entries for a date to Room and uploads/updates JSON log to Drive logs/diet_logs.json.
-     * Saves scaled values (base * multiplier) and sets AuditStatus to ADJUSTED if multiplier != 1.0.
+     * Saves all entries for a date to Room. Saves scaled values (base * multiplier) and sets
+     * AuditStatus to ADJUSTED if multiplier != 1.0. Backup to Drive is handled separately.
      */
     suspend fun saveDay(date: String): Result<Unit> {
         return try {
             val entries = dao.getEntriesByDateSync(date)
-            
-            // Create scaled entries: multiply base values by multiplier, reset multiplier to 1.0
-            // Set status to ADJUSTED if multiplier != 1.0, otherwise keep original status
             val scaledEntries = entries.map { entry ->
                 val multiplier = entry.quantityMultiplier
-                val newStatus = if (multiplier != 1.0) {
-                    AuditStatus.ADJUSTED
-                } else {
-                    entry.status
-                }
+                val newStatus = if (multiplier != 1.0) AuditStatus.ADJUSTED else entry.status
                 entry.copy(
                     kcal = entry.kcal * multiplier,
                     protein = entry.protein * multiplier,
@@ -167,71 +164,8 @@ class DietRepository(
                     status = newStatus
                 )
             }
-            
-            // Save scaled entries to Room
             dao.insertEntries(scaledEntries)
-            
-            // Upload to Drive logs/ folder
-            val rootFolderId = preferenceManager.googleDriveFolderId.first()
-            if (rootFolderId.isNullOrBlank()) {
-                return Result.failure(Exception("Drive folder ID not configured"))
-            }
-            
-            // Discover or create logs folder
-            val logsFolderResult = driveService.discoverOrCreateFolder(rootFolderId, "logs")
-            val logsFolderId = when (logsFolderResult) {
-                is DriveResult.Success -> logsFolderResult.data
-                is DriveResult.NeedsRemoteConsent -> return Result.failure(Exception("Needs remote consent"))
-                else -> return Result.failure(Exception("Failed to access logs folder: $logsFolderResult"))
-            }
-            
-            // Try to fetch existing diet_logs.json
-            val allLogs = mutableMapOf<String, List<DietEntry>>()
-            val existingLogsResult = driveService.getFileContentFromFolder(logsFolderId, "diet_logs.json")
-            
-            if (existingLogsResult is DriveResult.Success) {
-                try {
-                    // Parse existing logs (format: { "YYYY-MM-DD": [entries], ... })
-                    val existingData = json.decodeFromString<Map<String, List<DietEntry>>>(existingLogsResult.data)
-                    allLogs.putAll(existingData)
-                } catch (e: Exception) {
-                    // If parsing fails, start fresh - log the error but continue
-                    android.util.Log.w("DietRepository", "Failed to parse existing logs, starting fresh", e)
-                }
-            }
-            
-            // Update with current date's scaled entries
-            allLogs[date] = scaledEntries
-            
-            // Generate pretty-printed JSON
-            val jsonLog = prettyJson.encodeToString(allLogs)
-            
-            // Upload/overwrite diet_logs.json
-            val fileIdResult = driveService.findFileInFolder(logsFolderId, "diet_logs.json")
-            when (fileIdResult) {
-                is DriveResult.Success -> {
-                    // File exists, overwrite it
-                    val overwriteResult = driveService.overwriteFileContent(fileIdResult.data.id, jsonLog)
-                    when (overwriteResult) {
-                        is DriveResult.Success -> Result.success(Unit)
-                        is DriveResult.NeedsRemoteConsent -> Result.failure(Exception("Needs remote consent"))
-                        else -> Result.failure(Exception("Failed to update log: $overwriteResult"))
-                    }
-                }
-                is DriveResult.ConfigurationError -> {
-                    // File doesn't exist, create it
-                    val uploadResult = driveService.uploadJsonFileToFolder(logsFolderId, "diet_logs.json", jsonLog)
-                    when (uploadResult) {
-                        is DriveResult.Success -> Result.success(Unit)
-                        is DriveResult.NeedsRemoteConsent -> Result.failure(Exception("Needs remote consent"))
-                        else -> Result.failure(Exception("Failed to upload log: $uploadResult"))
-                    }
-                }
-                else -> {
-                    // Other error (e.g., NeedsRemoteConsent)
-                    Result.failure(Exception("Failed to access log file: $fileIdResult"))
-                }
-            }
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

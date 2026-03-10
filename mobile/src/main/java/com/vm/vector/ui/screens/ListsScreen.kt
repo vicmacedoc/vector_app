@@ -1,10 +1,14 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
 package com.vm.vector.ui.screens
 
+import android.content.ClipboardManager
+import android.content.Context
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -48,7 +53,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -58,6 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
@@ -126,8 +131,8 @@ fun ListsScreen(
     }
 
     LaunchedEffect(Unit) {
-        if (isSignedIn && uiState.files.isEmpty()) {
-            viewModel.refresh()
+        if (isSignedIn) {
+            viewModel.loadFromLocal()
         }
     }
 
@@ -219,52 +224,62 @@ fun ListsScreen(
                         }
                         else -> {
                             Column(modifier = Modifier.fillMaxSize()) {
-                                PullToRefreshBox(
-                                    isRefreshing = uiState.isLoading && !uiState.isSaving,
-                                    onRefresh = { viewModel.refresh() },
-                                    modifier = Modifier.weight(1f),
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxSize()
+                                        .verticalScroll(rememberScrollState())
+                                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
                                 ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .verticalScroll(rememberScrollState())
-                                            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                                    ) {
-                                        ListsDropdownRow(
-                                            files = uiState.files,
-                                            selectedFileId = uiState.selectedFileId,
-                                            onFileSelected = viewModel::selectFile,
-                                            onAddClick = viewModel::openAddModal,
-                                            onTrashClick = { viewModel.requestDeleteFile(uiState.selectedFileId!!) },
-                                            canTrash = uiState.selectedFileId != null,
-                                        )
+                                    ListsDropdownRow(
+                                        files = uiState.files,
+                                        selectedFileId = uiState.selectedFileId,
+                                        onFileSelected = viewModel::selectFile,
+                                        onRefreshClick = { viewModel.refresh() },
+                                        isRefreshing = uiState.isLoading && !uiState.isSaving,
+                                        onAddClick = viewModel::openAddModal,
+                                        onTrashClick = { viewModel.requestDeleteFile(uiState.selectedFileId!!) },
+                                        canTrash = uiState.selectedFileId != null,
+                                    )
                                         uiState.workingList?.let { list ->
-                                            Text(
-                                                text = list.name,
-                                                style = MaterialTheme.typography.headlineMedium,
-                                                color = PureBlack,
-                                            )
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            ) {
+                                                Text(
+                                                    text = list.name,
+                                                    style = MaterialTheme.typography.headlineMedium,
+                                                    color = PureBlack,
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                                IconButton(
+                                                    onClick = viewModel::openAddEntryModal,
+                                                    modifier = Modifier.size(40.dp),
+                                                ) {
+                                                    Icon(Icons.Default.Add, contentDescription = "Add entry", tint = NavyDeep)
+                                                }
+                                            }
                                             val sorted = list.items
                                                 .sortedBy { it.isChecked }
                                             sorted.forEach { item ->
-                                                ListItemRow(
+                                                ListItemRowWithLongPress(
                                                     item = item,
                                                     onCheckChange = { viewModel.toggleItemCheck(item.id) },
                                                     onRemainingChange = { viewModel.updateItemRemaining(item.id, it) },
                                                     onPriorityChange = { viewModel.updateItemPriority(item.id, it) },
+                                                    onDeleteRequest = { viewModel.requestDeleteEntry(item.id) },
                                                 )
                                             }
                                         }
                                     }
-                                }
                                 if (uiState.selectedFileId != null && uiState.workingList != null) {
                                     Button(
                                         onClick = { viewModel.saveChanges() },
-                                        enabled = !uiState.isSaving,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                                            .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 0.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite),
                                     ) {
                                         if (uiState.isSaving) {
@@ -276,7 +291,7 @@ fun ListsScreen(
                                             Spacer(modifier = Modifier.width(8.dp))
                                         }
                                         Text(
-                                            if (uiState.isSaving) "Saving…" else "Save Changes",
+                                            "Save Changes",
                                             color = PureWhite,
                                         )
                                     }
@@ -313,6 +328,32 @@ fun ListsScreen(
                 containerColor = PureWhite,
             )
         }
+
+        if (uiState.showAddEntryModal) {
+            AddEntryModal(
+                onDismiss = viewModel::closeAddEntryModal,
+                onConfirm = viewModel::addEntry,
+            )
+        }
+
+        if (uiState.showDeleteEntryConfirm && uiState.deleteTargetItemId != null) {
+            AlertDialog(
+                onDismissRequest = viewModel::cancelDeleteEntry,
+                title = { Text("Delete entry?", color = PureBlack) },
+                text = { Text("This entry will be removed from the list. Save Changes to update the file in Drive.", color = PureBlack) },
+                confirmButton = {
+                    TextButton(onClick = viewModel::confirmDeleteEntry) {
+                        Text("Delete", color = DeleteRed)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::cancelDeleteEntry) {
+                        Text("Cancel", color = PureBlack)
+                    }
+                },
+                containerColor = PureWhite,
+            )
+        }
     }
 }
 
@@ -324,6 +365,32 @@ private fun priorityColor(p: String) = when (p) {
     "Low" -> PriorityLow
     "Hold" -> PriorityHold
     else -> PriorityNone
+}
+
+@Composable
+private fun ListItemRowWithLongPress(
+    item: VectorItem,
+    onCheckChange: () -> Unit,
+    onRemainingChange: (Double) -> Unit,
+    onPriorityChange: (String) -> Unit,
+    onDeleteRequest: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(item.id) {
+                detectTapGestures(
+                    onLongPress = { onDeleteRequest() },
+                )
+            },
+    ) {
+        ListItemRow(
+            item = item,
+            onCheckChange = onCheckChange,
+            onRemainingChange = onRemainingChange,
+            onPriorityChange = onPriorityChange,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -468,6 +535,7 @@ private fun AddFileModal(
 ) {
     var fileName by remember { mutableStateOf("") }
     var jsonContent by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -484,6 +552,19 @@ private fun AddFileModal(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
+                Button(
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                        jsonContent = clipboard?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NavyDeep.copy(alpha = 0.15f),
+                        contentColor = NavyDeep,
+                    ),
+                ) {
+                    Text("Fill from Clipboard")
+                }
                 OutlinedTextField(
                     value = jsonContent,
                     onValueChange = { jsonContent = it },
@@ -513,12 +594,155 @@ private fun AddFileModal(
     )
 }
 
+@Composable
+private fun AddEntryModal(
+    onDismiss: () -> Unit,
+    onConfirm: (title: String, quantity: Double?, remaining: Double?, unit: String?, priority: String?) -> Unit,
+) {
+    var title by remember { mutableStateOf("") }
+    var quantityText by remember { mutableStateOf("") }
+    var remainingText by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("") }
+    var priority by remember { mutableStateOf("None") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add entry", color = PureBlack) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title", color = PureBlack) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NavyDeep,
+                        unfocusedBorderColor = NavyDeep,
+                        focusedTextColor = PureBlack,
+                        unfocusedTextColor = PureBlack,
+                    ),
+                )
+                OutlinedTextField(
+                    value = quantityText,
+                    onValueChange = { quantityText = it },
+                    label = { Text("Quantity (optional)", color = PureBlack) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NavyDeep,
+                        unfocusedBorderColor = NavyDeep,
+                        focusedTextColor = PureBlack,
+                        unfocusedTextColor = PureBlack,
+                    ),
+                )
+                OutlinedTextField(
+                    value = remainingText,
+                    onValueChange = { remainingText = it },
+                    label = { Text("Remaining (optional)", color = PureBlack) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NavyDeep,
+                        unfocusedBorderColor = NavyDeep,
+                        focusedTextColor = PureBlack,
+                        unfocusedTextColor = PureBlack,
+                    ),
+                )
+                OutlinedTextField(
+                    value = unit,
+                    onValueChange = { unit = it },
+                    label = { Text("Unit (optional)", color = PureBlack) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NavyDeep,
+                        unfocusedBorderColor = NavyDeep,
+                        focusedTextColor = PureBlack,
+                        unfocusedTextColor = PureBlack,
+                    ),
+                )
+                var priorityExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = priorityExpanded,
+                    onExpandedChange = { priorityExpanded = !priorityExpanded },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    OutlinedTextField(
+                        value = priority,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Priority", color = PureBlack) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = priorityExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NavyDeep,
+                            unfocusedBorderColor = NavyDeep,
+                            focusedTextColor = PureBlack,
+                            unfocusedTextColor = PureBlack,
+                        ),
+                    )
+                    DropdownMenu(
+                        expanded = priorityExpanded,
+                        onDismissRequest = { priorityExpanded = false },
+                        containerColor = PureWhite,
+                    ) {
+                        PRIORITY_VALUES.forEach { p ->
+                            DropdownMenuItem(
+                                text = { Text(text = p, color = PureBlack) },
+                                onClick = {
+                                    priority = p
+                                    priorityExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val qty = quantityText.trim().toDoubleOrNull()
+                    val remaining = remainingText.trim().toDoubleOrNull()
+                    val priorityValue = if (priority == "None") null else priority
+                    onConfirm(
+                        title.trim(),
+                        qty,
+                        remaining,
+                        unit.takeIf { it.isNotBlank() },
+                        priorityValue,
+                    )
+                },
+                enabled = title.isNotBlank(),
+            ) {
+                Text("Add", color = NavyDeep)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = PureBlack)
+            }
+        },
+        containerColor = PureWhite,
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ListsDropdownRow(
     files: List<DriveFileInfo>,
     selectedFileId: String?,
     onFileSelected: (String) -> Unit,
+    onRefreshClick: () -> Unit,
+    isRefreshing: Boolean,
     onAddClick: () -> Unit,
     onTrashClick: () -> Unit,
     canTrash: Boolean,
@@ -569,6 +793,24 @@ private fun ListsDropdownRow(
                         },
                     )
                 }
+            }
+        }
+        IconButton(
+            onClick = onRefreshClick,
+            enabled = !isRefreshing,
+            modifier = Modifier
+                .background(PureWhite)
+                .border(1.5.dp, NavyDeep, RoundedCornerShape(8.dp))
+                .size(48.dp),
+        ) {
+            if (isRefreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = NavyDeep,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Icon(Icons.Default.Refresh, contentDescription = "Refresh lists from Drive", tint = NavyDeep)
             }
         }
         IconButton(

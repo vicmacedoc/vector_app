@@ -472,6 +472,85 @@ class DriveService(
     }
 
     /**
+     * Uploads the full database backup to Drive under database/vector_database.db.
+     * Creates the database folder if needed; overwrites existing file.
+     */
+    suspend fun uploadDatabaseBackup(rootFolderId: String, dbBytes: ByteArray): DriveResult<Unit> = withContext(Dispatchers.IO) {
+        val account = authManager.getLastSignedInAccount()
+        if (account == null) {
+            Log.w(TAG, "uploadDatabaseBackup: No signed-in account")
+            return@withContext DriveResult.Unauthorized
+        }
+        try {
+            val drive = buildDrive(account)
+            if (!validateRoot(drive, rootFolderId)) {
+                Log.w(TAG, "uploadDatabaseBackup: Invalid root id=$rootFolderId")
+                return@withContext DriveResult.ConfigurationError
+            }
+            val folderResult = discoverOrCreateFolder(rootFolderId, DriveConfig.DATABASE_SUBFOLDER_NAME)
+            val folderId = when (folderResult) {
+                is DriveResult.Success -> folderResult.data
+                is DriveResult.NeedsRemoteConsent -> return@withContext DriveResult.NeedsRemoteConsent((folderResult as DriveResult.NeedsRemoteConsent).intent)
+                else -> return@withContext folderResult as DriveResult<Unit>
+            }
+            val existing = findFileInFolder(folderId, DriveConfig.DATABASE_FILENAME)
+            if (existing is DriveResult.Success) {
+                val deleteResult = deleteFile(existing.data.id)
+                if (deleteResult !is DriveResult.Success) return@withContext deleteResult as DriveResult<Unit>
+            }
+            val uploadResult = uploadBinaryToFolder(folderId, DriveConfig.DATABASE_FILENAME, "application/x-sqlite3", dbBytes)
+            return@withContext when (uploadResult) {
+                is DriveResult.Success -> DriveResult.Success(Unit)
+                is DriveResult.NeedsRemoteConsent -> DriveResult.NeedsRemoteConsent(uploadResult.intent)
+                else -> uploadResult as DriveResult<Unit>
+            }
+        } catch (e: Exception) {
+            val recoverable = e as? UserRecoverableAuthIOException ?: e.cause as? UserRecoverableAuthIOException
+            if (recoverable != null) {
+                Log.w(TAG, "uploadDatabaseBackup: NeedRemoteConsent", e)
+                return@withContext DriveResult.NeedsRemoteConsent(recoverable.intent)
+            }
+            mapDriveException("uploadDatabaseBackup", e)
+        }
+    }
+
+    /**
+     * Downloads the full database backup from Drive database/vector_database.db.
+     */
+    suspend fun downloadDatabaseBackup(rootFolderId: String): DriveResult<ByteArray> = withContext(Dispatchers.IO) {
+        val account = authManager.getLastSignedInAccount()
+        if (account == null) {
+            Log.w(TAG, "downloadDatabaseBackup: No signed-in account")
+            return@withContext DriveResult.Unauthorized
+        }
+        try {
+            val drive = buildDrive(account)
+            if (!validateRoot(drive, rootFolderId)) {
+                Log.w(TAG, "downloadDatabaseBackup: Invalid root id=$rootFolderId")
+                return@withContext DriveResult.ConfigurationError
+            }
+            val folderId = discoverSubfolder(drive, rootFolderId, DriveConfig.DATABASE_SUBFOLDER_NAME)
+                ?: run {
+                    Log.w(TAG, "downloadDatabaseBackup: database folder not found")
+                    return@withContext DriveResult.ListsFolderNotFound
+                }
+            val fileResult = findFileInFolder(folderId, DriveConfig.DATABASE_FILENAME)
+            val fileId = when (fileResult) {
+                is DriveResult.Success -> fileResult.data.id
+                else -> return@withContext DriveResult.ConfigurationError
+            }
+            return@withContext downloadFileBytes(fileId)
+        } catch (e: Exception) {
+            val recoverable = e as? UserRecoverableAuthIOException ?: e.cause as? UserRecoverableAuthIOException
+            if (recoverable != null) {
+                Log.w(TAG, "downloadDatabaseBackup: NeedRemoteConsent", e)
+                return@withContext DriveResult.NeedsRemoteConsent(recoverable.intent)
+            }
+            mapDriveException("downloadDatabaseBackup", e)
+        }
+    }
+
+    /**
      * Fetches [DriveConfig.DIET_WEEKLY_FILENAME] from the discovered 'presets' folder.
      */
     suspend fun getDietWeekly(rootFolderId: String): DriveResult<String> = withContext(Dispatchers.IO) {

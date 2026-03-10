@@ -14,7 +14,7 @@ import androidx.room.TypeConverters
         DiaryCollection::class,
         DiaryCollectionImage::class
     ],
-    version = 11,
+    version = 16,
     exportSchema = false
 )
 @TypeConverters(

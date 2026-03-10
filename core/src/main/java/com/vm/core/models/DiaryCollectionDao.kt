@@ -22,4 +22,7 @@ interface DiaryCollectionDao {
 
     @Query("UPDATE diary_collection SET driveFolderId = :folderId WHERE id = :id")
     suspend fun updateDriveFolderId(id: String, folderId: String)
+
+    @Query("DELETE FROM diary_collection")
+    suspend fun deleteAll()
 }

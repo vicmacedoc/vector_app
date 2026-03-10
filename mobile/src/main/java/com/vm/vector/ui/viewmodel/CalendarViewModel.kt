@@ -1,5 +1,6 @@
 package com.vm.vector.ui.viewmodel
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vm.core.models.AuditStatus
@@ -11,10 +12,12 @@ import com.vm.core.models.RoutineStatus
 import com.vm.core.models.RoutineType
 import com.vm.core.models.WorkoutSet
 import java.util.UUID
+import com.vm.vector.data.DatabaseBackupManager
 import com.vm.vector.data.DietRepository
 import com.vm.vector.data.DiaryRepository
 import com.vm.vector.data.RoutineRepository
 import com.vm.vector.data.WorkoutRepository
+import com.vm.vector.VectorApplication
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,15 +46,23 @@ data class CalendarUiState(
     // Diary
     val diaryMood: Int? = null,
     val diaryJournalText: String = "",
+    val diaryAudioPath: String? = null,           // local path for current recording
+    val diaryAudioDriveFileId: String? = null,   // Drive file ID for saved audio
     val diaryCollectionsWithImages: List<Pair<DiaryCollection, List<DiaryCollectionImage>>> = emptyList(),
     val isDiarySaving: Boolean = false,
+    val isCreatingCollection: Boolean = false,
+    val noPresetForDiet: Boolean = false,
+    val noPresetForRoutine: Boolean = false,
+    val noPresetForWorkout: Boolean = false,
 )
 
 class CalendarViewModel(
+    private val application: Application,
     private val dietRepository: DietRepository,
     private val routineRepository: RoutineRepository,
     private val workoutRepository: WorkoutRepository,
     private val diaryRepository: DiaryRepository,
+    private val backupManager: DatabaseBackupManager,
 ) : ViewModel() {
 
     private val _currentDate = MutableStateFlow(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()))
@@ -68,8 +79,14 @@ class CalendarViewModel(
     private val _editingEntry = MutableStateFlow<DietEntry?>(null)
     private val _diaryMood = MutableStateFlow<Int?>(null)
     private val _diaryJournalText = MutableStateFlow("")
+    private val _diaryAudioPath = MutableStateFlow<String?>(null)
+    private val _diaryAudioDriveFileId = MutableStateFlow<String?>(null)
     private val _diaryCollectionsWithImages = MutableStateFlow<List<Pair<DiaryCollection, List<DiaryCollectionImage>>>>(emptyList())
     private val _isDiarySaving = MutableStateFlow(false)
+    private val _isCreatingCollection = MutableStateFlow(false)
+    private val _noPresetForDiet = MutableStateFlow(false)
+    private val _noPresetForRoutine = MutableStateFlow(false)
+    private val _noPresetForWorkout = MutableStateFlow(false)
     private var collectionJob: Job? = null
     private var routineCollectionJob: Job? = null
     private var workoutCollectionJob: Job? = null
@@ -88,8 +105,14 @@ class CalendarViewModel(
         _isEditingEnabled,
         _diaryMood,
         _diaryJournalText,
+        _diaryAudioPath,
+        _diaryAudioDriveFileId,
         _diaryCollectionsWithImages,
-        _isDiarySaving
+        _isDiarySaving,
+        _isCreatingCollection,
+        _noPresetForDiet,
+        _noPresetForRoutine,
+        _noPresetForWorkout
     ) { values: Array<Any?> ->
         val date = values[0] as String
         @Suppress("UNCHECKED_CAST")
@@ -108,9 +131,15 @@ class CalendarViewModel(
         val editingEnabled = values[10] as? Boolean ?: true
         val diaryMood = values[11] as? Int?
         val diaryJournalText = values[12] as? String ?: ""
+        val diaryAudioPath = values[13] as? String?
+        val diaryAudioDriveFileId = values[14] as? String?
         @Suppress("UNCHECKED_CAST")
-        val diaryCollectionsWithImages = (values[13] as? List<Pair<DiaryCollection, List<DiaryCollectionImage>>>) ?: emptyList()
-        val isDiarySaving = values[14] as? Boolean ?: false
+        val diaryCollectionsWithImages = (values[15] as? List<Pair<DiaryCollection, List<DiaryCollectionImage>>>) ?: emptyList()
+        val isDiarySaving = values[16] as? Boolean ?: false
+        val isCreatingCollection = values[17] as? Boolean ?: false
+        val noPresetForDiet = values[18] as? Boolean ?: false
+        val noPresetForRoutine = values[19] as? Boolean ?: false
+        val noPresetForWorkout = values[20] as? Boolean ?: false
         CalendarUiState(
             entries = entriesList,
             routineEntries = routineEntriesList,
@@ -125,8 +154,14 @@ class CalendarViewModel(
             isEditingEnabled = editingEnabled,
             diaryMood = diaryMood,
             diaryJournalText = diaryJournalText,
+            diaryAudioPath = diaryAudioPath,
+            diaryAudioDriveFileId = diaryAudioDriveFileId,
             diaryCollectionsWithImages = diaryCollectionsWithImages,
-            isDiarySaving = isDiarySaving
+            isDiarySaving = isDiarySaving,
+            isCreatingCollection = isCreatingCollection,
+            noPresetForDiet = noPresetForDiet,
+            noPresetForRoutine = noPresetForRoutine,
+            noPresetForWorkout = noPresetForWorkout
         )
     }.stateIn(
         scope = viewModelScope,
@@ -141,6 +176,26 @@ class CalendarViewModel(
         loadDatesWithCheckedMeals()
         loadDiaryForDate(_currentDate.value)
         updateEditingState()
+        (application as? VectorApplication)?.let { app ->
+            viewModelScope.launch {
+                app.wearDataReceived.collect { (date, wearSets) ->
+                    if (date == _currentDate.value) {
+                        val byId = _workoutSets.value.associateBy { it.id }.toMutableMap()
+                        wearSets.forEach { wearSet ->
+                            val withStatus = if (wearSet.hasAnyActual()) wearSet.copy(workoutStatus = "Done") else wearSet
+                            byId[withStatus.id] = withStatus
+                        }
+                        _workoutSets.value = byId.values.toList()
+                        app.clearPendingWearData(date)
+                        syncWorkoutSetsToWearCache()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun syncWorkoutSetsToWearCache() {
+        (application as? VectorApplication)?.setWorkoutSetsForWearRequest(_currentDate.value, _workoutSets.value)
     }
 
     fun refresh() {
@@ -149,13 +204,67 @@ class CalendarViewModel(
         loadWorkoutForDate(_currentDate.value)
         loadDatesWithCheckedMeals()
     }
-    
+
+    /**
+     * Fetch newest preset from Drive and replace current in-memory content for this category.
+     * Does not persist; user taps Save Changes to write to DB.
+     */
+    fun refreshFromDriveForDiet() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val result = dietRepository.loadPresetEntriesForDate(_currentDate.value)
+                if (result.isSuccess) {
+                    _entries.value = result.getOrNull() ?: emptyList()
+                } else {
+                    showError(result.exceptionOrNull()?.message ?: "Failed to fetch diet preset")
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun refreshFromDriveForRoutine() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val result = routineRepository.loadPresetEntriesForDate(_currentDate.value)
+                if (result.isSuccess) {
+                    _routineEntries.value = result.getOrNull() ?: emptyList()
+                } else {
+                    showError(result.exceptionOrNull()?.message ?: "Failed to fetch routine preset")
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun refreshFromDriveForWorkout() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val result = workoutRepository.loadPresetOnlyForDate(_currentDate.value)
+                if (result.isSuccess) {
+                    _workoutSets.value = result.getOrNull() ?: emptyList()
+                    syncWorkoutSetsToWearCache()
+                } else {
+                    showError(result.exceptionOrNull()?.message ?: "Failed to fetch workout preset")
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     private fun updateEditingState() {
         viewModelScope.launch {
             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             val today = dateFormat.format(Date())
             val currentDateStr = _currentDate.value
-            _isEditingEnabled.value = currentDateStr <= today
+            // Past dates and future dates: editing locked by default. Only today is editable by default.
+            _isEditingEnabled.value = (currentDateStr == today)
         }
     }
     
@@ -184,6 +293,8 @@ class CalendarViewModel(
                 val entry = diaryRepository.getDiaryEntryByDateSync(date)
                 _diaryMood.value = entry?.mood
                 _diaryJournalText.value = entry?.journalText.orEmpty()
+                _diaryAudioPath.value = null
+                _diaryAudioDriveFileId.value = entry?.journalAudioDriveFileId
                 _diaryCollectionsWithImages.value = diaryRepository.getCollectionsWithImagesSync(date)
             } catch (e: Exception) {
                 _diaryCollectionsWithImages.value = emptyList()
@@ -199,14 +310,41 @@ class CalendarViewModel(
         _diaryJournalText.value = text
     }
 
+    fun setDiaryAudioPath(path: String?) {
+        _diaryAudioPath.value = path
+    }
+
+    fun setDiaryAudioDriveFileId(id: String?) {
+        _diaryAudioDriveFileId.value = id
+    }
+
+    suspend fun getDiaryAudioBytes(): ByteArray? {
+        val id = _diaryAudioDriveFileId.value ?: return null
+        return diaryRepository.getDiaryAudioBytes(id)
+    }
+
     fun saveDiary() {
         viewModelScope.launch {
             _isDiarySaving.value = true
             try {
+                var journalAudioDriveFileId: String? = _diaryAudioDriveFileId.value
+                if (_diaryAudioPath.value != null) {
+                    val uploadResult = diaryRepository.uploadDiaryAudioFromPath(_currentDate.value, _diaryAudioPath.value!!)
+                    journalAudioDriveFileId = uploadResult.getOrNull()
+                    if (journalAudioDriveFileId != null) {
+                        _diaryAudioDriveFileId.value = journalAudioDriveFileId
+                        _diaryAudioPath.value = null
+                    } else {
+                        _isDiarySaving.value = false
+                        showError("Failed to upload diary audio: ${uploadResult.exceptionOrNull()?.message}")
+                        return@launch
+                    }
+                }
                 val entry = com.vm.core.models.DiaryEntry(
                     date = _currentDate.value,
                     mood = _diaryMood.value?.coerceIn(1, 5),
-                    journalText = _diaryJournalText.value.ifBlank { null }
+                    journalText = _diaryJournalText.value.ifBlank { null },
+                    journalAudioDriveFileId = journalAudioDriveFileId
                 )
                 diaryRepository.saveDiaryEntry(entry)
                 _isDiarySaving.value = false
@@ -219,11 +357,17 @@ class CalendarViewModel(
     }
 
     suspend fun createCollection(name: String): Result<DiaryCollection> {
-        val result = diaryRepository.createCollection(_currentDate.value, name)
-        if (result.isSuccess) {
-            loadDiaryForDate(_currentDate.value)
+        if (_isCreatingCollection.value) return Result.failure(Exception("Creation already in progress"))
+        _isCreatingCollection.value = true
+        return try {
+            val result = diaryRepository.createCollection(_currentDate.value, name)
+            if (result.isSuccess) {
+                loadDiaryForDate(_currentDate.value)
+            }
+            result
+        } finally {
+            _isCreatingCollection.value = false
         }
-        return result
     }
 
     suspend fun addImageToCollection(
@@ -268,68 +412,60 @@ class CalendarViewModel(
         _isLoading.value = true
         collectionJob = viewModelScope.launch {
             try {
-                // First, get existing entries from Room
+                // Load only from DB (saved state). Preset loaded into memory only; persist when user taps Save.
                 val existingEntries = dietRepository.getEntriesByDateSync(date)
-                
-                // If entries exist in Room, show them immediately
                 if (existingEntries.isNotEmpty()) {
+                    _noPresetForDiet.value = false
                     _entries.value = existingEntries
                     _isLoading.value = false
+                    loadDatesWithCheckedMeals()
+                    return@launch
                 }
-                
-                // If no entries exist, load from preset (Drive fallback)
-                if (existingEntries.isEmpty()) {
-                    val presetResult = dietRepository.loadPresetEntriesForDate(date)
-                    when {
-                        presetResult.isSuccess -> {
-                            val presetEntries = presetResult.getOrNull() ?: emptyList()
-                            // Insert preset entries into Room
-                            if (presetEntries.isNotEmpty()) {
-                                dietRepository.insertEntries(presetEntries)
-                            } else {
-                                // Empty preset for this day - show info message
-                                showError("No diet plan found for this day. Please check presets/diet_weekly.json in Drive.")
-                            }
+                val presetResult = dietRepository.loadPresetEntriesForDate(date)
+                when {
+                    presetResult.isSuccess -> {
+                        _noPresetForDiet.value = false
+                        val presetEntries = presetResult.getOrNull() ?: emptyList()
+                        if (presetEntries.isNotEmpty()) {
+                            _entries.value = presetEntries
+                        } else {
+                            _entries.value = emptyList()
+                            showError("No diet plan found for this day in the preset.")
                         }
-                        else -> {
-                            // Drive fetch failed - show specific error message
-                            val error = presetResult.exceptionOrNull()
-                            val errorMsg = error?.message ?: "Unknown error"
-                            when {
-                                errorMsg.contains("diet_weekly.json not found", ignoreCase = true) || 
-                                errorMsg.contains("ListsFolderNotFound", ignoreCase = true) -> {
-                                    showError("Diet plan not found. Please ensure presets/diet_weekly.json exists in your Drive folder.")
-                                }
-                                errorMsg.contains("403") || errorMsg.contains("Forbidden") -> {
-                                    showError("Drive access denied. Please grant DRIVE scope permission in Settings.")
-                                }
-                                errorMsg.contains("NeedsRemoteConsent") || errorMsg.contains("consent") -> {
-                                    showError("Drive consent required. Please authorize access in Settings.")
-                                }
-                                errorMsg.contains("Drive folder ID not configured") -> {
-                                    showError("Drive not configured. Please set your Drive folder ID in Settings.")
-                                }
-                                else -> {
-                                    showError("Failed to load diet plan: $errorMsg")
-                                }
+                    }
+                    else -> {
+                        val error = presetResult.exceptionOrNull()
+                        val errorMsg = error?.message ?: "Unknown error"
+                        when {
+                            errorMsg.contains("No diet preset active", ignoreCase = true) -> {
+                                _noPresetForDiet.value = true
+                                _entries.value = emptyList()
+                            }
+                            errorMsg.contains("403") || errorMsg.contains("Forbidden") -> {
+                                _noPresetForDiet.value = false
+                                showError("Drive access denied. Please grant DRIVE scope permission in Settings.")
+                                _entries.value = emptyList()
+                            }
+                            errorMsg.contains("NeedsRemoteConsent") || errorMsg.contains("consent") -> {
+                                _noPresetForDiet.value = false
+                                showError("Drive consent required. Please authorize access in Settings.")
+                                _entries.value = emptyList()
+                            }
+                            errorMsg.contains("Drive folder ID not configured") -> {
+                                _noPresetForDiet.value = false
+                                showError("Drive not configured. Please set your Drive folder ID in Settings.")
+                                _entries.value = emptyList()
+                            }
+                            else -> {
+                                _noPresetForDiet.value = false
+                                showError("Failed to load diet plan: $errorMsg")
+                                _entries.value = emptyList()
                             }
                         }
                     }
                 }
-                
-                // Collect entries (will include newly inserted presets or existing entries)
-                // Use first() to get initial value, then collect updates
-                val initialEntries = dietRepository.getEntriesByDate(date).first()
-                _entries.value = initialEntries
                 _isLoading.value = false
-                
-                // Continue collecting updates
-                dietRepository.getEntriesByDate(date).cancellable().collect { entries ->
-                    _entries.value = entries
-                    loadDatesWithCheckedMeals() // Refresh checked dates when entries change
-                }
             } catch (e: kotlinx.coroutines.CancellationException) {
-                // Cancellation is expected when switching dates - don't show error
                 _isLoading.value = false
             } catch (e: Exception) {
                 _isLoading.value = false
@@ -342,65 +478,58 @@ class CalendarViewModel(
         routineCollectionJob?.cancel()
         routineCollectionJob = viewModelScope.launch {
             try {
-                // First, get existing entries from Room
+                // Load only from DB (saved state). Preset loaded into memory only; persist when user taps Save.
                 val existingEntries = routineRepository.getEntriesByDateSync(date)
-                
-                // If entries exist in Room, show them immediately
                 if (existingEntries.isNotEmpty()) {
+                    _noPresetForRoutine.value = false
                     _routineEntries.value = existingEntries
+                    return@launch
                 }
-                
-                // If no entries exist, load from preset (Drive fallback)
-                if (existingEntries.isEmpty()) {
-                    val presetResult = routineRepository.loadPresetEntriesForDate(date)
-                    when {
-                        presetResult.isSuccess -> {
-                            val presetEntries = presetResult.getOrNull() ?: emptyList()
-                            // Insert preset entries into Room
-                            if (presetEntries.isNotEmpty()) {
-                                routineRepository.insertEntries(presetEntries)
-                            } else {
-                                // Empty preset for this day - show info message
-                                showError("No routine plan found for this day. Please check presets/routine_weekly.json in Drive.")
-                            }
+                val presetResult = routineRepository.loadPresetEntriesForDate(date)
+                when {
+                    presetResult.isSuccess -> {
+                        _noPresetForRoutine.value = false
+                        val presetEntries = presetResult.getOrNull() ?: emptyList()
+                        if (presetEntries.isNotEmpty()) {
+                            _routineEntries.value = presetEntries
+                        } else {
+                            _routineEntries.value = emptyList()
+                            showError("No routine plan found for this day in the preset.")
                         }
-                        else -> {
-                            // Drive fetch failed - show specific error message
-                            val error = presetResult.exceptionOrNull()
-                            val errorMsg = error?.message ?: "Unknown error"
-                            when {
-                                errorMsg.contains("routine_weekly.json not found", ignoreCase = true) || 
-                                errorMsg.contains("ListsFolderNotFound", ignoreCase = true) -> {
-                                    showError("Routine plan not found. Please ensure presets/routine_weekly.json exists in your Drive folder.")
-                                }
-                                errorMsg.contains("403") || errorMsg.contains("Forbidden") -> {
-                                    showError("Drive access denied. Please grant DRIVE scope permission in Settings.")
-                                }
-                                errorMsg.contains("NeedsRemoteConsent") || errorMsg.contains("consent") -> {
-                                    showError("Drive consent required. Please authorize access in Settings.")
-                                }
-                                errorMsg.contains("Drive folder ID not configured") -> {
-                                    showError("Drive not configured. Please set your Drive folder ID in Settings.")
-                                }
-                                else -> {
-                                    showError("Failed to load routine plan: $errorMsg")
-                                }
+                    }
+                    else -> {
+                        val error = presetResult.exceptionOrNull()
+                        val errorMsg = error?.message ?: "Unknown error"
+                        when {
+                            errorMsg.contains("No routine preset active", ignoreCase = true) -> {
+                                _noPresetForRoutine.value = true
+                                _routineEntries.value = emptyList()
+                            }
+                            errorMsg.contains("403") || errorMsg.contains("Forbidden") -> {
+                                _noPresetForRoutine.value = false
+                                showError("Drive access denied. Please grant DRIVE scope permission in Settings.")
+                                _routineEntries.value = emptyList()
+                            }
+                            errorMsg.contains("NeedsRemoteConsent") || errorMsg.contains("consent") -> {
+                                _noPresetForRoutine.value = false
+                                showError("Drive consent required. Please authorize access in Settings.")
+                                _routineEntries.value = emptyList()
+                            }
+                            errorMsg.contains("Drive folder ID not configured") -> {
+                                _noPresetForRoutine.value = false
+                                showError("Drive not configured. Please set your Drive folder ID in Settings.")
+                                _routineEntries.value = emptyList()
+                            }
+                            else -> {
+                                _noPresetForRoutine.value = false
+                                showError("Failed to load routine plan: $errorMsg")
+                                _routineEntries.value = emptyList()
                             }
                         }
                     }
                 }
-                
-                // Collect entries (will include newly inserted presets or existing entries)
-                // Use first() to get initial value, then collect updates
-                val initialEntries = routineRepository.getEntriesByDate(date).first()
-                _routineEntries.value = initialEntries
-                
-                // Continue collecting updates
-                routineRepository.getEntriesByDate(date).cancellable().collect { entries ->
-                    _routineEntries.value = entries
-                }
             } catch (e: kotlinx.coroutines.CancellationException) {
-                // Cancellation is expected when switching dates - don't show error
+                // expected when switching dates
             } catch (e: Exception) {
                 showError("Failed to load routine entries: ${e.message}")
             }
@@ -411,15 +540,32 @@ class CalendarViewModel(
         workoutCollectionJob?.cancel()
         workoutCollectionJob = viewModelScope.launch {
             try {
-                val result = workoutRepository.loadBlueprintForDate(date)
-                if (result.isFailure) {
+                // Load for display only: saved sets from DB, or blueprint in memory (persist on Save Workout).
+                val result = workoutRepository.loadWorkoutForDateDisplay(date)
+                if (result.isSuccess) {
+                    _noPresetForWorkout.value = false
+                    var sets = result.getOrNull() ?: emptyList()
+                    val pending = (application as? com.vm.vector.VectorApplication)?.getAndClearPendingWearData(date)
+                    if (!pending.isNullOrEmpty()) {
+                        val byId = sets.associateBy { it.id }.toMutableMap()
+                        pending.forEach { wearSet ->
+                            val withStatus = if (wearSet.hasAnyActual()) wearSet.copy(workoutStatus = "Done") else wearSet
+                            byId[withStatus.id] = withStatus
+                        }
+                        sets = byId.values.toList()
+                    }
+                    _workoutSets.value = sets
+                    syncWorkoutSetsToWearCache()
+                } else {
                     val msg = result.exceptionOrNull()?.message ?: "Failed to load workout plan"
-                    if (!msg.contains("workout_weekly.json", ignoreCase = true)) {
+                    if (msg.contains("No workout preset active", ignoreCase = true)) {
+                        _noPresetForWorkout.value = true
+                    } else {
+                        _noPresetForWorkout.value = false
                         showError(msg)
                     }
-                }
-                workoutRepository.getSetsByDate(date).cancellable().collect { sets ->
-                    _workoutSets.value = sets
+                    _workoutSets.value = emptyList()
+                    syncWorkoutSetsToWearCache()
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // expected when switching dates
@@ -454,6 +600,7 @@ class CalendarViewModel(
                 actualRest = actualRest ?: entry.actualRest
             )
         }
+        syncWorkoutSetsToWearCache()
     }
 
     /** Update workout status (Done/Partial/Exceed) for all sets in an exercise. */
@@ -462,6 +609,7 @@ class CalendarViewModel(
             if (entry.exerciseId != exerciseId) entry
             else entry.copy(workoutStatus = status)
         }
+        syncWorkoutSetsToWearCache()
     }
 
     fun saveWorkout() {
@@ -470,7 +618,7 @@ class CalendarViewModel(
             val result = workoutRepository.saveWorkoutForDate(_currentDate.value, _workoutSets.value)
             _isWorkoutSaving.value = false
             if (result.isSuccess) {
-                showSuccess("Workout saved")
+                showSuccess("Exercise saved")
             } else {
                 showError("Failed to save workout: ${result.exceptionOrNull()?.message ?: "Unknown error"}")
             }
@@ -487,6 +635,7 @@ class CalendarViewModel(
         return result.fold(
             onSuccess = { newSets ->
                 _workoutSets.value = _workoutSets.value + newSets
+                syncWorkoutSetsToWearCache()
                 Result.success(Unit)
             },
             onFailure = { Result.failure(it) }
@@ -504,42 +653,43 @@ class CalendarViewModel(
             quantityMultiplier = multiplier.coerceIn(0.0, 3.0),
             status = newStatus
         )
-        viewModelScope.launch {
-            dietRepository.updateEntry(updated)
-        }
+        _entries.value = _entries.value.map { if (it.id == entryId) updated else it }
     }
 
-    fun toggleEntryChecked(entryId: String) {
+    /** Cycles eaten state: blank → done (blue) → not eaten (red) → blank. */
+    fun cycleEntryEatenState(entryId: String) {
         if (!_isEditingEnabled.value) return
         val entry = _entries.value.find { it.id == entryId } ?: return
-        val updated = entry.copy(isChecked = !entry.isChecked)
-        viewModelScope.launch {
-            dietRepository.updateEntry(updated)
-            loadDatesWithCheckedMeals() // Refresh checked dates
+        val updated = when {
+            entry.notEaten -> entry.copy(notEaten = false)
+            !entry.isChecked -> entry.copy(isChecked = true)
+            else -> entry.copy(isChecked = false, notEaten = true)
         }
+        _entries.value = _entries.value.map { if (it.id == entryId) updated else it }
     }
 
     fun updateRoutineValue(entryId: String, newValue: Double?) {
         if (!_isEditingEnabled.value) return
-        viewModelScope.launch {
-            routineRepository.updateEntryValue(entryId, _currentDate.value, newValue)
-        }
+        val entry = _routineEntries.value.find { it.id == entryId } ?: return
+        val updated = routineRepository.computeEntryWithNewValue(entry, newValue)
+        _routineEntries.value = _routineEntries.value.map { if (it.id == entryId) updated else it }
     }
 
     fun updateRoutineStatus(entryId: String, newStatus: RoutineStatus) {
         if (!_isEditingEnabled.value) return
-        viewModelScope.launch {
-            routineRepository.updateEntryStatus(entryId, _currentDate.value, newStatus)
-        }
+        val entry = _routineEntries.value.find { it.id == entryId } ?: return
+        val isGoalMet = newStatus == RoutineStatus.DONE || newStatus == RoutineStatus.EXCEEDED
+        val updated = entry.copy(status = newStatus, isGoalMet = isGoalMet)
+        _routineEntries.value = _routineEntries.value.map { if (it.id == entryId) updated else it }
     }
-    
+
     fun toggleNumericalStatus(entryId: String) {
         if (!_isEditingEnabled.value) return
-        viewModelScope.launch {
-            routineRepository.toggleNumericalStatus(entryId, _currentDate.value)
-        }
+        val entry = _routineEntries.value.find { it.id == entryId } ?: return
+        val updated = routineRepository.computeToggleNumericalStatus(entry)
+        _routineEntries.value = _routineEntries.value.map { if (it.id == entryId) updated else it }
     }
-    
+
     fun addManualRoutineEntry(
         title: String,
         category: String,
@@ -552,26 +702,24 @@ class CalendarViewModel(
         directionBetter: Int = 1
     ) {
         if (!_isEditingEnabled.value) return
-        viewModelScope.launch {
-            val newEntry = RoutineEntry(
-                id = UUID.randomUUID().toString(),
-                date = _currentDate.value,
-                category = category,
-                title = title,
-                type = type,
-                unit = unit,
-                goalValue = goalValue,
-                partialThreshold = partialThreshold,
-                minValue = minValue,
-                maxValue = maxValue,
-                currentValue = null,
-                directionBetter = directionBetter,
-                status = RoutineStatus.NONE,
-                isGoalMet = false,
-                timestamp = System.currentTimeMillis()
-            )
-            routineRepository.insertEntry(newEntry)
-        }
+        val newEntry = RoutineEntry(
+            id = UUID.randomUUID().toString(),
+            date = _currentDate.value,
+            category = category,
+            title = title,
+            type = type,
+            unit = unit,
+            goalValue = goalValue,
+            partialThreshold = partialThreshold,
+            minValue = minValue,
+            maxValue = maxValue,
+            currentValue = null,
+            directionBetter = directionBetter,
+            status = RoutineStatus.NONE,
+            isGoalMet = false,
+            timestamp = System.currentTimeMillis()
+        )
+        _routineEntries.value = _routineEntries.value + newEntry
     }
     
     fun toggleEditingEnabled() {
@@ -589,25 +737,24 @@ class CalendarViewModel(
         fats: Double = 0.0
     ) {
         if (!_isEditingEnabled.value) return
-        viewModelScope.launch {
-            val newEntry = DietEntry(
-                id = UUID.randomUUID().toString(),
-                date = _currentDate.value,
-                plannedTime = plannedTime,
-                name = name,
-                kcal = kcal,
-                protein = protein,
-                carbs = carbs,
-                fats = fats,
-                plannedAmount = plannedAmount,
-                quantityMultiplier = 1.0,
-                unit = unit,
-                isChecked = false,
-                status = AuditStatus.UNPLANNED,
-                timestamp = System.currentTimeMillis()
-            )
-            dietRepository.insertEntry(newEntry)
-        }
+        val newEntry = DietEntry(
+            id = UUID.randomUUID().toString(),
+            date = _currentDate.value,
+            plannedTime = plannedTime,
+            name = name,
+            kcal = kcal,
+            protein = protein,
+            carbs = carbs,
+            fats = fats,
+            plannedAmount = plannedAmount,
+            quantityMultiplier = 1.0,
+            unit = unit,
+            isChecked = false,
+            notEaten = false,
+            status = AuditStatus.UNPLANNED,
+            timestamp = System.currentTimeMillis()
+        )
+        _entries.value = _entries.value + newEntry
     }
     
     fun updateManualEntry(
@@ -622,28 +769,23 @@ class CalendarViewModel(
         fats: Double = 0.0
     ) {
         if (!_isEditingEnabled.value) return
-        viewModelScope.launch {
-            val entry = _entries.value.find { it.id == entryId } ?: return@launch
-            val updated = entry.copy(
-                name = name,
-                plannedTime = plannedTime,
-                plannedAmount = plannedAmount,
-                unit = unit,
-                kcal = kcal,
-                protein = protein,
-                carbs = carbs,
-                fats = fats
-            )
-            dietRepository.updateEntry(updated)
-        }
+        val entry = _entries.value.find { it.id == entryId } ?: return
+        val updated = entry.copy(
+            name = name,
+            plannedTime = plannedTime,
+            plannedAmount = plannedAmount,
+            unit = unit,
+            kcal = kcal,
+            protein = protein,
+            carbs = carbs,
+            fats = fats
+        )
+        _entries.value = _entries.value.map { if (it.id == entryId) updated else it }
     }
     
     fun deleteEntry(entryId: String) {
         if (!_isEditingEnabled.value) return
-        viewModelScope.launch {
-            val entry = _entries.value.find { it.id == entryId } ?: return@launch
-            dietRepository.deleteEntry(entry)
-        }
+        _entries.value = _entries.value.filter { it.id != entryId }
     }
     
     fun editUnplannedEntry(entry: DietEntry) {
@@ -658,22 +800,56 @@ class CalendarViewModel(
         _editingEntry.value = null
     }
 
-    fun saveDay() {
+    /**
+     * Saves only the Routine data for the current date.
+     * Called when the user taps Save Changes on the Routine tab. We do not persist Diet here
+     * because _entries may be stale (e.g. from another date or not yet loaded), which would
+     * overwrite Diet in the DB and break Daily Inputs for Nutrition.
+     */
+    fun saveRoutineDay() {
         viewModelScope.launch {
             _isSaving.value = true
-            val dietResult = dietRepository.saveDay(_currentDate.value)
-            val routineResult = routineRepository.saveDay(_currentDate.value)
+            val date = _currentDate.value
+            routineRepository.replaceEntriesForDate(date, _routineEntries.value)
+            val result = routineRepository.saveDay(date)
             _isSaving.value = false
-            when {
-                dietResult.isSuccess && routineResult.isSuccess -> {
-                    showSuccess("Day saved successfully")
+            loadDatesWithCheckedMeals()
+            if (result.isSuccess) {
+                showSuccess("Routine saved")
+                viewModelScope.launch {
+                    backupManager.backup().onFailure { e ->
+                        showError("Routine saved; backup to Drive failed: ${e.message ?: "Unknown error"}")
+                    }
                 }
-                dietResult.isFailure -> {
-                    showError("Failed to save diet: ${dietResult.exceptionOrNull()?.message ?: "Unknown error"}")
+            } else {
+                showError("Failed to save routine: ${result.exceptionOrNull()?.message ?: "Unknown error"}")
+            }
+        }
+    }
+
+    /**
+     * Saves only the Diet/Nutrition data for the current date.
+     * Called when the user taps Save Changes on the Diet tab. We do not persist Routine here
+     * because _routineEntries may be stale, which would overwrite Routine in the DB and break
+     * Daily Inputs for Routine.
+     */
+    fun saveDietDay() {
+        viewModelScope.launch {
+            _isSaving.value = true
+            val date = _currentDate.value
+            dietRepository.replaceEntriesForDate(date, _entries.value)
+            val result = dietRepository.saveDay(date)
+            _isSaving.value = false
+            loadDatesWithCheckedMeals()
+            if (result.isSuccess) {
+                showSuccess("Nutrition saved")
+                viewModelScope.launch {
+                    backupManager.backup().onFailure { e ->
+                        showError("Nutrition saved; backup to Drive failed: ${e.message ?: "Unknown error"}")
+                    }
                 }
-                routineResult.isFailure -> {
-                    showError("Failed to save routine: ${routineResult.exceptionOrNull()?.message ?: "Unknown error"}")
-                }
+            } else {
+                showError("Failed to save diet: ${result.exceptionOrNull()?.message ?: "Unknown error"}")
             }
         }
     }
@@ -693,3 +869,7 @@ class CalendarViewModel(
         _snackbarMessage.value = message
     }
 }
+
+private fun WorkoutSet.hasAnyActual(): Boolean =
+    actualLoad != null || actualReps != null || actualRpe != null || actualRir != null ||
+        actualDuration != null || actualDistance != null || actualRest != null

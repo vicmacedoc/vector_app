@@ -13,4 +13,7 @@ interface DailyHomeEntryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: DailyHomeEntry)
+
+    @Query("DELETE FROM daily_home")
+    suspend fun deleteAll()
 }

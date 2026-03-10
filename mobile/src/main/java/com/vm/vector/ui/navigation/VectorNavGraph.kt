@@ -38,7 +38,7 @@ fun VectorNavGraph(
             ListsScreen()
         }
         composable(Screen.Calendar.route) {
-            CalendarScreen()
+            CalendarScreen(onNavigateToSettings = { navController.navigate(Screen.Settings.route) })
         }
         composable(
             route = Screen.CalendarWithDate.route,
@@ -49,7 +49,11 @@ fun VectorNavGraph(
         ) { backStackEntry ->
             val date = backStackEntry.arguments?.getString("date") ?: ""
             val category = backStackEntry.arguments?.getString("category") ?: "Diet"
-            CalendarScreen(initialDate = date, initialCategory = category)
+            CalendarScreen(
+                initialDate = date,
+                initialCategory = category,
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+            )
         }
         composable(Screen.Home.route) {
             HomeScreen(

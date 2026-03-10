@@ -1,5 +1,6 @@
 package com.vm.core.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** JSON preset: presets/workout_weekly.json */
@@ -24,6 +25,8 @@ data class WeeklyWorkoutPlanDays(
 @Serializable
 data class WorkoutDaySession(
     val title: String = "",
+    val description: String = "",
+    val type: String = "RESISTANCE",
     val exercises: List<WorkoutExercisePlan> = emptyList()
 )
 
@@ -33,6 +36,7 @@ data class WorkoutExercisePlan(
     val type: String = "RESISTANCE",
     val groupingId: String? = null,
     val description: String = "",
+    val timing: String? = null,
     val targetDistance: Double? = null,
     val unitDistance: String = "km",
     val targetDuration: Int? = null,
@@ -57,5 +61,5 @@ data class WorkoutSetPlan(
     val unitDistance: String = "km",
     val targetRir: Int? = null,
     val rest: Int? = null,
-    val restUnit: String = "s"
+    @SerialName("unitRest") val restUnit: String = "s"
 )
