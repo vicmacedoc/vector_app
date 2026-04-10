@@ -1,6 +1,7 @@
 package com.vm.vector.data
 
 import android.content.Intent
+import kotlinx.serialization.Serializable
 
 /**
  * Result of a Drive API operation. Used for UI states (Configuration Error, Create lists folder).
@@ -17,4 +18,13 @@ sealed class DriveResult<out T> {
     data class OtherError(val message: String) : DriveResult<Nothing>()
 }
 
+@Serializable
 data class DriveFileInfo(val id: String, val name: String)
+
+/** File row from Drive list (images / folders) with metadata for diary sync. */
+data class DriveListedFile(
+    val id: String,
+    val name: String,
+    val mimeType: String?,
+    val modifiedTimeRfc3339: String?,
+)

@@ -1,0 +1,77 @@
+{
+  "name": "Learning List",
+  "items": [
+    {
+      "title": "First Aid Principles",
+      "quantity": 1,
+      "unit": "h",
+      "remaining": 1,
+      "priority": "High",
+      "isChecked": false
+    },
+    {
+      "title": "GAS & Supercompensation Models",
+      "quantity": 2,
+      "unit": "h",
+      "remaining": 2,
+      "priority": "High",
+      "isChecked": false
+    },
+    {
+      "title": "P vs. NP: Philosophical Implications",
+      "quantity": 3,
+      "unit": "h",
+      "remaining": 3,
+      "priority": "Medium",
+      "isChecked": false
+    },
+    {
+      "title": "Prospect Theory & Loss Aversion",
+      "quantity": 1,
+      "unit": "h",
+      "remaining": 1,
+      "priority": "Medium",
+      "isChecked": false
+    },
+    {
+      "title": "Predictive Coding & Bayesian Brain",
+      "quantity": 3,
+      "unit": "h",
+      "remaining": 3,
+      "priority": "High",
+      "isChecked": false
+    },
+    {
+      "title": "Nash Equilibrium in multi-agent systems",
+      "quantity": 90,
+      "unit": "min",
+      "remaining": 90,
+      "priority": "Low",
+      "isChecked": false
+    },
+    {
+      "title": "The 'Hard Problem' of Consciousness",
+      "quantity": 45,
+      "unit": "min",
+      "remaining": 45,
+      "priority": "Medium",
+      "isChecked": false
+    },
+    {
+      "title": "Allostatic Load vs. Homeostasis",
+      "quantity": 1,
+      "unit": "h",
+      "remaining": 1,
+      "priority": "High",
+      "isChecked": false
+    },
+    {
+      "title": "Cognitive Dissonance theory basics",
+      "quantity": 30,
+      "unit": "min",
+      "remaining": 30,
+      "priority": "Medium",
+      "isChecked": false
+    }
+  ]
+}

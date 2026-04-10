@@ -1,0 +1,96 @@
+{
+  "name": "Weekly Groceries",
+  "items": [
+    {
+      "title": "Chicken Breast (Family Pack)",
+      "isChecked": false,
+      "quantity": 5,
+      "remaining": 0,
+      "unit": "lbs"
+    },
+    {
+      "title": "Lactose-Free Greek Yogurt (Plain)",
+      "isChecked": false,
+      "quantity": 1,
+      "remaining": 0,
+      "unit": "tub (32oz)"
+    },
+    {
+      "title": "Large Eggs (Grade A)",
+      "isChecked": false,
+      "quantity": 2,
+      "remaining": 0,
+      "unit": "dozen"
+    },
+    {
+      "title": "Fairlife Ultra-Filtered Whole Milk",
+      "isChecked": false,
+      "quantity": 2,
+      "remaining": 0,
+      "unit": "bottles (52oz)"
+    },
+    {
+      "title": "Fresh Zucchini",
+      "isChecked": false,
+      "quantity": 3,
+      "remaining": 0,
+      "unit": "large un"
+    },
+    {
+      "title": "Fresh Spinach (Large Tub/Bag)",
+      "isChecked": false,
+      "quantity": 2,
+      "remaining": 0,
+      "unit": "bags (10oz)"
+    },
+    {
+      "title": "Frozen Mixed Berries",
+      "isChecked": false,
+      "quantity": 1,
+      "remaining": 0,
+      "unit": "bag (24oz)"
+    },
+    {
+      "title": "Jasmine Rice",
+      "isChecked": false,
+      "quantity": 5,
+      "remaining": 0,
+      "unit": "lbs"
+    },
+    {
+      "title": "White Rice Cakes (Plain/Salt-free)",
+      "isChecked": false,
+      "quantity": 1.0,
+      "remaining": 0.0,
+      "unit": "pack"
+    },
+    {
+      "title": "Soy Sauce",
+      "isChecked": false,
+      "quantity": 1,
+      "unit": "bottle",
+      "remaining": 0
+    },
+    {
+      "title": "Minced Garlic (Water/Oil)",
+      "isChecked": false,
+      "quantity": 1,
+      "unit": "jar (8oz)",
+      "remaining": 0
+    },
+    {
+      "title": "Protein Bars (Aloha Bar)",
+      "isChecked": false,
+      "quantity": 1,
+      "remaining": 0,
+      "unit": "box (6-12 count)"
+    },
+    {
+      "title": "Whey Protein Isolate",
+      "isChecked": false,
+      "quantity": 1,
+      "remaining": 0,
+      "unit": "tub (2lbs)"
+    }
+  ]
+}
