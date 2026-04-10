@@ -1,5 +1,6 @@
 package com.vm.vector.ui.viewmodel
 
+import android.app.Application
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -32,14 +33,16 @@ class HomeViewModelFactory(
         dietRepository,
         routineRepository,
         workoutRepository,
-        diaryRepository,
-        preferenceManager
+        diaryRepository
     )
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
-            return HomeViewModel(homeRepository, preferenceManager) as T
+            return HomeViewModel(
+                context.applicationContext as Application,
+                homeRepository
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

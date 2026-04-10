@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 /**
- * Single image in a diary collection. Stored in Drive under the collection folder.
+ * Single image in a diary collection. Stored in Drive under the shared collections folder.
  */
 @Entity(tableName = "diary_collection_image", indices = [Index("collectionId")])
 @Serializable

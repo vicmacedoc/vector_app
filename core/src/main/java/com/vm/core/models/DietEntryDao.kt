@@ -10,6 +10,14 @@ interface DietEntryDao {
     
     @Query("SELECT * FROM diet_logs WHERE date = :date ORDER BY plannedTime ASC")
     suspend fun getEntriesByDateSync(date: String): List<DietEntry>
+
+    @Query(
+        "SELECT * FROM diet_logs WHERE date >= :startDate AND date <= :endDate ORDER BY date ASC, plannedTime ASC"
+    )
+    suspend fun getEntriesBetweenSync(startDate: String, endDate: String): List<DietEntry>
+
+    @Query("SELECT MIN(date) FROM diet_logs")
+    suspend fun getMinDate(): String?
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEntry(entry: DietEntry)

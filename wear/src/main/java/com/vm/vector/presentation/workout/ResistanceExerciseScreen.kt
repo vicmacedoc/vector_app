@@ -39,8 +39,9 @@ fun ResistanceExerciseScreen(
     set: WorkoutSet,
     setNumber: Int,
     totalSets: Int,
-    isLastSet: Boolean,
     restCountdownSec: Int?,
+    /** After last set: show "Next" without countdown; rest is recorded as planned when user taps. */
+    pendingNextWithoutCountdown: Boolean = false,
     onUpdateSet: (WorkoutSet) -> Unit,
     onStartSet: () -> Unit,
     onStopSet: () -> Unit,
@@ -59,7 +60,7 @@ fun ResistanceExerciseScreen(
     var isRunning by remember { mutableStateOf(false) }
 
     val stepperShape = RoundedCornerShape(8.dp)
-    val inRest = restCountdownSec != null
+    val inRest = restCountdownSec != null || pendingNextWithoutCountdown
 
     // Bottom region background: Green = Start, Red = Stop, Blue = Next
     val bottomBackgroundColor = when {
@@ -208,7 +209,7 @@ fun ResistanceExerciseScreen(
             ) {
                 when {
                     inRest -> Text(
-                        text = "Next (${restCountdownSec}s)",
+                        text = if (pendingNextWithoutCountdown) "Next" else "Next (${restCountdownSec}s)",
                         style = MaterialTheme.typography.body2,
                         color = Color.White,
                         modifier = Modifier.clickable(onClick = onSkipRest)

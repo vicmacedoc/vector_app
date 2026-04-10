@@ -11,6 +11,14 @@ interface DailyHomeEntryDao {
     @Query("SELECT * FROM daily_home WHERE date = :date LIMIT 1")
     suspend fun getByDateSync(date: String): DailyHomeEntry?
 
+    @Query(
+        "SELECT * FROM daily_home WHERE date >= :startDate AND date <= :endDate ORDER BY date ASC"
+    )
+    suspend fun getEntriesBetweenSync(startDate: String, endDate: String): List<DailyHomeEntry>
+
+    @Query("SELECT MIN(date) FROM daily_home")
+    suspend fun getMinDate(): String?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: DailyHomeEntry)
 

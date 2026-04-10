@@ -4,8 +4,8 @@ import com.vm.core.models.DailyHomeEntry
 import com.vm.core.models.RoutineStatus
 import com.vm.core.models.RoutineType
 import com.vm.core.models.VectorDatabase
+import com.vm.vector.data.analysis.AnalysisStats
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -21,7 +21,6 @@ class HomeRepository(
     private val routineRepository: RoutineRepository,
     private val workoutRepository: WorkoutRepository,
     private val diaryRepository: DiaryRepository,
-    private val preferenceManager: PreferenceManager,
 ) {
     private val dao = database.dailyHomeEntryDao()
 
@@ -31,7 +30,7 @@ class HomeRepository(
 
     suspend fun getTodayEntrySync(): DailyHomeEntry? = dao.getByDateSync(today())
 
-    /** Returns the date string (yyyy-MM-dd) for today + the given day offset (-1 = yesterday, 0 = today, 1 = tomorrow). */
+    /** Returns the date string (yyyy-MM-dd) for today plus [dayOffset] calendar days. */
     fun dateForOffset(dayOffset: Int): String {
         val cal = Calendar.getInstance(Locale.US)
         cal.time = Date()
@@ -146,17 +145,24 @@ class HomeRepository(
         return last7Dates().map { date ->
             val sets = workoutRepository.getSetsByDateSync(date)
             val total = sets.size
-            val completed = sets.count { it.isCompleted }
+            val completed = sets.count { AnalysisStats.workoutSetCountsAsCompleted(it) }
             val percent = if (total == 0) 0 else (100 * completed / total)
             DayCompletion(date = date, percent = percent, hasData = total > 0)
         }
     }
 
-    /** Last 7 days (oldest first) for Diary: hasData if day has mood, journal text, or any collection; percent 100 when hasData. */
+    /**
+     * Last 7 days (oldest first) for Diary: hasData only when a saved [DiaryEntry] exists for that day
+     * with mood, journal text, and/or journal audio (same data as Calendar → Diary → Save Changes).
+     * Photo albums (Drive collections) are ignored here so refresh/upload does not affect Home.
+     */
     suspend fun getDiaryCompletionLast7Days(): List<DayCompletion> = last7Dates().map { date ->
         val entry = diaryRepository.getDiaryEntryByDateSync(date)
-        val collections = diaryRepository.getCollectionsByDateSync(date)
-        val hasContent = entry != null && (entry.mood != null || !entry.journalText.isNullOrBlank()) || collections.isNotEmpty()
+        val hasContent = entry != null && (
+            entry.mood != null ||
+                !entry.journalText.isNullOrBlank() ||
+                !entry.journalAudioDriveFileId.isNullOrBlank()
+            )
         DayCompletion(date = date, percent = if (hasContent) 100 else 0, hasData = hasContent)
     }
 

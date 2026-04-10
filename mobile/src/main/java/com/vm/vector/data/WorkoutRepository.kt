@@ -28,6 +28,14 @@ class WorkoutRepository(
 ) {
     private val dao = database.workoutSetDao()
 
+    companion object {
+        /** Persisted when user saves an empty workout so Home Daily Inputs / completion see the day as logged. */
+        const val REST_DAY_ACK_EXERCISE_ID: String = "__vector_rest_day_ack__"
+
+        fun isRestDayAcknowledgment(set: WorkoutSet): Boolean =
+            set.exerciseId == REST_DAY_ACK_EXERCISE_ID
+    }
+
     private val json = Json {
         ignoreUnknownKeys = true
         explicitNulls = false
@@ -105,6 +113,13 @@ class WorkoutRepository(
         Result.failure(e)
     }
 
+    private fun WorkoutSet.hasWearActuals(): Boolean =
+        actualLoad != null || actualReps != null || actualRpe != null || actualRir != null ||
+            actualDuration != null || actualDistance != null || actualRest != null
+
+    private fun targetMusclesCsv(exercise: WorkoutExercisePlan): String =
+        exercise.target.joinToString(",")
+
     private fun parseWorkoutPlanContentToSets(content: String, date: String): Result<List<WorkoutSet>> {
         return try {
             val plan = json.decodeFromString<WeeklyWorkoutPlan>(content)
@@ -135,6 +150,7 @@ class WorkoutRepository(
                 session.exercises.forEachIndexed { exerciseIndex, exercise ->
                     val exerciseId = "ex_${sessionIndex}_$exerciseIndex"
                     val exerciseType = sessionType
+                    val muscles = targetMusclesCsv(exercise)
                     if (exercise.sets.isEmpty()) {
                         val id = "${date}_${exerciseId}_1"
                         sets.add(
@@ -171,7 +187,8 @@ class WorkoutRepository(
                                 actualRpe = null,
                                 actualRir = null,
                                 actualRest = null,
-                                isCompleted = false
+                                isCompleted = false,
+                                targetMuscles = muscles
                             )
                         )
                     } else {
@@ -211,7 +228,8 @@ class WorkoutRepository(
                                     actualRpe = null,
                                     actualRir = null,
                                     actualRest = null,
-                                    isCompleted = false
+                                    isCompleted = false,
+                                    targetMuscles = muscles
                                 )
                             )
                         }
@@ -241,6 +259,7 @@ class WorkoutRepository(
                     exerciseType = kept.exerciseType.ifBlank { blue.exerciseType },
                     groupingId = kept.groupingId ?: blue.groupingId,
                     workoutStatus = kept.workoutStatus ?: blue.workoutStatus,
+                    targetMuscles = kept.targetMuscles.ifBlank { blue.targetMuscles },
                     actualLoad = kept.actualLoad,
                     actualReps = kept.actualReps,
                     actualVelocity = kept.actualVelocity,
@@ -261,15 +280,56 @@ class WorkoutRepository(
 
     /**
      * Save Workout: replace all sets for date with the given list. Only saved state is in DB (Home completion uses this).
+     * Saving with no sets stores a single acknowledgment row so rest / empty days still update Daily Inputs.
      */
     suspend fun saveWorkoutForDate(date: String, sets: List<WorkoutSet>): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             dao.deleteSetsByDate(date)
-            if (sets.isNotEmpty()) dao.insertSets(sets)
+            if (sets.isNotEmpty()) {
+                dao.insertSets(sets)
+            } else {
+                dao.insertSets(listOf(restDayAcknowledgmentSet(date)))
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun restDayAcknowledgmentSet(date: String): WorkoutSet {
+        val id = "${date}_${REST_DAY_ACK_EXERCISE_ID}_1"
+        return WorkoutSet(
+            id = id,
+            exerciseId = REST_DAY_ACK_EXERCISE_ID,
+            setNumber = 1,
+            date = date,
+            exerciseType = "REST_ACK",
+            workoutStatus = "Done",
+            isCompleted = true,
+            sessionTitle = "",
+            sessionDescription = "",
+            exerciseName = "",
+            exerciseDescription = "",
+        )
+    }
+
+    /**
+     * Merges sets received from Wear into the current workout for [date] (same rules as Calendar) and persists.
+     * Called when the watch sends a completed workout so data is not lost if the user never taps Save Changes.
+     */
+    suspend fun mergeWearCompletionAndSave(date: String, wearSets: List<WorkoutSet>): Result<Unit> = withContext(Dispatchers.IO) {
+        if (wearSets.isEmpty()) return@withContext Result.success(Unit)
+        val displayResult = loadWorkoutForDateDisplay(date)
+        if (displayResult.isFailure) return@withContext Result.failure(
+            displayResult.exceptionOrNull() ?: Exception("Could not load workout for merge")
+        )
+        val sets = displayResult.getOrNull() ?: emptyList()
+        val byId = sets.associateBy { it.id }.toMutableMap()
+        wearSets.forEach { wearSet ->
+            val withStatus = if (wearSet.hasWearActuals()) wearSet.copy(workoutStatus = "Done") else wearSet
+            byId[withStatus.id] = withStatus
+        }
+        saveWorkoutForDate(date, byId.values.toList())
     }
 
     /**
@@ -318,6 +378,7 @@ class WorkoutRepository(
         exercises.forEachIndexed { exerciseIndex, exercise ->
             val exerciseId = "ex_added_${sessionIndexOffset}_$exerciseIndex"
             val exerciseType = (sessionType?.takeIf { it.isNotBlank() } ?: exercise.type).ifBlank { "RESISTANCE" }
+            val muscles = targetMusclesCsv(exercise)
             if (exercise.sets.isEmpty()) {
                 val id = "${date}_${exerciseId}_1"
                 result.add(
@@ -354,7 +415,8 @@ class WorkoutRepository(
                         actualRpe = null,
                         actualRir = null,
                         actualRest = null,
-                        isCompleted = false
+                        isCompleted = false,
+                        targetMuscles = muscles
                     )
                 )
             } else {
@@ -394,7 +456,8 @@ class WorkoutRepository(
                             actualRpe = null,
                             actualRir = null,
                             actualRest = null,
-                            isCompleted = false
+                            isCompleted = false,
+                            targetMuscles = muscles
                         )
                     )
                 }

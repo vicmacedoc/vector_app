@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,6 +63,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.view.WindowCompat
@@ -101,6 +103,7 @@ import kotlinx.serialization.json.Json
 import com.vm.core.ui.theme.DeleteRed
 import com.vm.core.ui.theme.ElectricBlue
 import com.vm.core.ui.theme.NavyDeep
+import com.vm.core.ui.theme.moodColorForLevel
 import com.vm.core.ui.theme.OffWhite
 import com.vm.core.ui.theme.PureBlack
 import com.vm.core.ui.theme.PureWhite
@@ -108,6 +111,9 @@ import com.vm.core.ui.theme.SlateGray
 import com.vm.core.ui.theme.VectorTheme
 import com.vm.vector.VectorApplication
 import com.vm.vector.audio.DailyPlanAudioHelper
+import com.vm.vector.data.DiaryPhotoSummary
+import com.vm.vector.ui.util.isoCalendarDateToUtcPickerMillis
+import com.vm.vector.ui.util.utcPickerMillisToIsoCalendarDate
 import com.vm.vector.ui.viewmodel.CalendarUiState
 import com.vm.vector.ui.viewmodel.CalendarViewModel
 import com.vm.vector.ui.viewmodel.CalendarViewModelFactory
@@ -145,7 +151,7 @@ fun CalendarScreen(
         "Diary" -> CalendarCategory.Diary
         else -> CalendarCategory.Routine
     }
-    var selectedCategory by remember(initialCategory) { mutableStateOf(initialCat) }
+    var selectedCategory by rememberSaveable(initialCategory) { mutableStateOf(initialCat) }
 
     LaunchedEffect(initialDate) {
         if (!initialDate.isNullOrBlank()) {
@@ -186,6 +192,7 @@ fun CalendarScreen(
                 var showAddWorkoutDialog by remember { mutableStateOf(false) }
                 var showActivateEditingAlert by remember { mutableStateOf(false) }
                 var showRefreshFromDriveModal by remember { mutableStateOf(false) }
+                var showRefreshDiaryModal by remember { mutableStateOf(false) }
 
                 CategorySwitch(
                     selectedCategory = selectedCategory,
@@ -196,12 +203,22 @@ fun CalendarScreen(
                     selectedDate = uiState.currentDate,
                     datesWithCheckedMeals = uiState.datesWithCheckedMeals,
                     isEditingEnabled = uiState.isEditingEnabled,
-                    showDietActions = selectedCategory == CalendarCategory.Diet || selectedCategory == CalendarCategory.Routine || selectedCategory == CalendarCategory.Workout,
+                    showRefreshButton = selectedCategory == CalendarCategory.Diet ||
+                        selectedCategory == CalendarCategory.Routine ||
+                        selectedCategory == CalendarCategory.Workout ||
+                        selectedCategory == CalendarCategory.Diary,
+                    showAddButton = selectedCategory == CalendarCategory.Diet ||
+                        selectedCategory == CalendarCategory.Routine ||
+                        selectedCategory == CalendarCategory.Workout,
                     onDateSelected = { date ->
                         viewModel.selectDate(date)
                     },
                     onRefreshFromDriveClick = {
-                        showRefreshFromDriveModal = true
+                        if (selectedCategory == CalendarCategory.Diary) {
+                            showRefreshDiaryModal = true
+                        } else {
+                            showRefreshFromDriveModal = true
+                        }
                     },
                     onAddMealClick = {
                         if (uiState.isEditingEnabled) {
@@ -312,6 +329,33 @@ fun CalendarScreen(
                         dismissButton = {
                             TextButton(onClick = { showRefreshFromDriveModal = false }) {
                                 Text("No", color = NavyDeep)
+                            }
+                        },
+                        containerColor = PureWhite
+                    )
+                }
+
+                if (showRefreshDiaryModal) {
+                    AlertDialog(
+                        onDismissRequest = { showRefreshDiaryModal = false },
+                        title = { Text("Refresh diary photos", color = PureBlack) },
+                        text = {
+                            Text(
+                                "Fetch images from your Google Drive collections folder and update the list on this device?",
+                                color = PureBlack
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                viewModel.refreshDiaryFromDrive()
+                                showRefreshDiaryModal = false
+                            }) {
+                                Text("Refresh", color = NavyDeep)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showRefreshDiaryModal = false }) {
+                                Text("Cancel", color = NavyDeep)
                             }
                         },
                         containerColor = PureWhite
@@ -512,7 +556,8 @@ fun CalendarScreen(
                             modifier = Modifier.weight(1f),
                             viewModel = viewModel,
                             uiState = uiState,
-                            isEditingEnabled = uiState.isEditingEnabled
+                            isEditingEnabled = uiState.isEditingEnabled,
+                            isDiaryRefreshing = uiState.isDiaryRefreshing,
                         )
                     }
                 } else {
@@ -591,7 +636,7 @@ fun CalendarScreen(
                             containerColor = NavyDeep,
                             contentColor = PureWhite
                         ),
-                        enabled = uiState.isEditingEnabled && uiState.workoutSets.isNotEmpty()
+                        enabled = uiState.isEditingEnabled
                     ) {
                         if (uiState.isWorkoutSaving) {
                             CircularProgressIndicator(
@@ -637,14 +682,21 @@ fun CalendarScreen(
             }
         }
 
-        // Show alert when workout data is received from watch
+        // Show alert when workout or routine data is received from watch
         val app = context.applicationContext as? VectorApplication
         if (app != null) {
-            val wearMessage by app.wearWorkoutReceivedMessage.collectAsState(initial = null)
-            LaunchedEffect(wearMessage) {
-                wearMessage?.let { msg ->
+            val wearWorkoutMessage by app.wearWorkoutReceivedMessage.collectAsState(initial = null)
+            LaunchedEffect(wearWorkoutMessage) {
+                wearWorkoutMessage?.let { msg ->
                     snackbarHostState.showSnackbar(msg)
                     app.clearWearWorkoutReceivedMessage()
+                }
+            }
+            val wearRoutineMessage by app.wearRoutineReceivedMessage.collectAsState(initial = null)
+            LaunchedEffect(wearRoutineMessage) {
+                wearRoutineMessage?.let { msg ->
+                    snackbarHostState.showSnackbar(msg)
+                    app.clearWearRoutineReceivedMessage()
                 }
             }
         }
@@ -760,20 +812,13 @@ private fun DiarySectionTitle(title: String) {
 
 // Scale 1–5: 1 = saddest (orange), 5 = happiest (green). Red and orange emoji faces swapped from original order.
 private val MOOD_EMOJIS = listOf("\uD83D\uDE1E", "\uD83D\uDE14", "\uD83D\uDE41", "\uD83D\uDE0A", "\uD83D\uDE00") // level 1 = orange face, 2 = red face, then neutral → happy
-private val MOOD_COLORS = listOf(
-    androidx.compose.ui.graphics.Color(0xFFE53935), // 1 = red (swapped with orange)
-    androidx.compose.ui.graphics.Color(0xFFFF9800), // 2 = orange (swapped with red)
-    androidx.compose.ui.graphics.Color(0xFFFFEB3B), // 3 = yellow
-    androidx.compose.ui.graphics.Color(0xFF8BC34A), // 4 = light green
-    androidx.compose.ui.graphics.Color(0xFF4CAF50)   // 5 = green
-)
-
 @Composable
 private fun DiaryContent(
     modifier: Modifier = Modifier,
     viewModel: CalendarViewModel,
     uiState: CalendarUiState,
-    isEditingEnabled: Boolean
+    isEditingEnabled: Boolean,
+    isDiaryRefreshing: Boolean,
 ) {
     val scrollState = rememberScrollState()
     Column(
@@ -788,7 +833,7 @@ private fun DiaryContent(
         ) {
             (1..5).forEach { level ->
                 val selected = uiState.diaryMood == level
-                val color = MOOD_COLORS[level - 1]
+                val color = moodColorForLevel(level)
                 Box(
                     modifier = Modifier
                         .size(48.dp)
@@ -827,6 +872,7 @@ private fun DiaryContent(
         DiaryCollectionsSection(
             viewModel = viewModel,
             collectionsWithImages = uiState.diaryCollectionsWithImages,
+            isDiaryRefreshing = isDiaryRefreshing,
             isCreatingCollection = uiState.isCreatingCollection,
             isEditingEnabled = isEditingEnabled
         )
@@ -976,20 +1022,42 @@ private fun JournalAudioRow(
     Spacer(modifier = Modifier.height(8.dp))
 }
 
-private data class PendingPhoto(val collection: DiaryCollection, val uri: Uri)
+private data class PendingPhoto(val collectionId: String, val uri: Uri)
+
+private fun formatDiaryPhotoRange(summary: DiaryPhotoSummary): String {
+    val fmt = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+    return if (summary.rangeStartMillis == summary.rangeEndMillis) {
+        fmt.format(Date(summary.rangeStartMillis))
+    } else {
+        "${fmt.format(Date(summary.rangeStartMillis))} – ${fmt.format(Date(summary.rangeEndMillis))}"
+    }
+}
+
+private fun diaryAlbumSummary(images: List<DiaryCollectionImage>): DiaryPhotoSummary? {
+    if (images.isEmpty()) return null
+    val times = images.map { it.takenAtMillis }
+    val latest = images.sortedByDescending { it.takenAtMillis }.take(4).map { it.driveFileId }
+    return DiaryPhotoSummary(
+        totalCount = images.size,
+        rangeStartMillis = times.minOrNull()!!,
+        rangeEndMillis = times.maxOrNull()!!,
+        latestPreviewDriveFileIds = latest
+    )
+}
 
 @Composable
 private fun DiaryCollectionsSection(
     viewModel: CalendarViewModel,
     collectionsWithImages: List<Pair<DiaryCollection, List<DiaryCollectionImage>>>,
+    isDiaryRefreshing: Boolean,
     isCreatingCollection: Boolean,
     isEditingEnabled: Boolean
 ) {
     val context = LocalContext.current
     var showNewCollectionDialog by remember { mutableStateOf(false) }
-    var showTimelapseConfig by remember { mutableStateOf<Pair<DiaryCollection, List<DiaryCollectionImage>>?>(null) }
+    var showTimelapseConfig by remember { mutableStateOf<List<DiaryCollectionImage>?>(null) }
     var showImageViewer by remember { mutableStateOf<DiaryCollectionImage?>(null) }
-    var showImageGallery by remember { mutableStateOf<Pair<DiaryCollection, List<DiaryCollectionImage>>?>(null) }
+    var showImageGallery by remember { mutableStateOf<List<DiaryCollectionImage>?>(null) }
     var showDeleteCollectionConfirm by remember { mutableStateOf<DiaryCollection?>(null) }
     var showDeleteImageConfirm by remember { mutableStateOf<DiaryCollectionImage?>(null) }
     var pendingPhoto by remember { mutableStateOf<PendingPhoto?>(null) }
@@ -998,23 +1066,24 @@ private fun DiaryCollectionsSection(
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
-        pendingPhoto?.let { (collection, uri) ->
+        pendingPhoto?.let { (collectionId, uri) ->
             if (success) {
                 coroutineScope.launch {
                     try {
-                        context.contentResolver.openInputStream(uri)?.use { stream ->
-                            val rawBytes = stream.readBytes()
-                            // Apply EXIF orientation so the image is saved in display orientation
-                            // (prevents 90° CCW rotation from camera sensor orientation).
-                            val bytes = applyExifOrientationToJpegBytes(rawBytes) ?: rawBytes
-                            viewModel.addImageToCollection(
-                                collectionId = collection.id,
-                                fileName = "image_${System.currentTimeMillis()}.jpg",
-                                mimeType = "image/jpeg",
-                                bytes = bytes,
-                                takenAtMillis = System.currentTimeMillis()
-                            )
+                        val rawBytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        if (rawBytes == null) {
+                            viewModel.notifyDiaryError("Failed to read captured photo.")
+                            return@launch
                         }
+                        val bytes = applyExifOrientationToJpegBytes(rawBytes) ?: rawBytes
+                        viewModel.addImageToCollection(
+                            collectionId = collectionId,
+                            mimeType = "image/jpeg",
+                            bytes = bytes,
+                            takenAtMillis = System.currentTimeMillis()
+                        )
+                    } catch (e: Exception) {
+                        viewModel.notifyDiaryError("Failed to upload photo: ${e.message ?: "Unknown error"}")
                     } finally {
                         pendingPhoto = null
                     }
@@ -1032,11 +1101,11 @@ private fun DiaryCollectionsSection(
         else pendingPhoto = null
     }
 
-    fun onAddPhotoClick(collection: DiaryCollection) {
+    fun startCameraForCollection(collectionId: String) {
         val file = File(context.cacheDir, "diary_${System.currentTimeMillis()}.jpg")
         file.createNewFile()
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        pendingPhoto = PendingPhoto(collection, uri)
+        pendingPhoto = PendingPhoto(collectionId, uri)
         when {
             ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED ->
                 takePictureLauncher.launch(uri)
@@ -1044,42 +1113,85 @@ private fun DiaryCollectionsSection(
         }
     }
 
-    Button(
-        onClick = { showNewCollectionDialog = true },
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(OffWhite)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(8.dp))
-        Text("New collection")
-    }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Albums (Google Drive)",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = NavyDeep
+                )
+                Text(
+                    text = "Each folder under your Drive “collections” folder is an album. Refresh to sync.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SlateGray
+                )
+            }
+            if (isDiaryRefreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(28.dp),
+                    color = NavyDeep,
+                    strokeWidth = 2.dp
+                )
+            }
+        }
 
-    collectionsWithImages.forEach { (collection, images) ->
-        Spacer(modifier = Modifier.height(12.dp))
-        DiaryCollectionRow(
-            collection = collection,
-            images = images,
-            isEditingEnabled = isEditingEnabled,
-            viewModel = viewModel,
-            context = context,
-            onAddImageClick = { onAddPhotoClick(collection) },
-            onImageClick = { showImageViewer = it },
-            onViewAllClick = { showImageGallery = Pair(collection, images) },
-            onTimelapseClick = { showTimelapseConfig = Pair(collection, images) },
-            onDeleteCollectionClick = { showDeleteCollectionConfirm = collection }
-        )
+        Button(
+            onClick = { showNewCollectionDialog = true },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("New album")
+        }
+
+        if (collectionsWithImages.isEmpty()) {
+            Text(
+                text = "No albums yet. Create one or pull from Drive with Refresh.",
+                style = MaterialTheme.typography.bodySmall,
+                color = PureBlack.copy(alpha = 0.6f)
+            )
+        }
+
+        collectionsWithImages.forEach { (collection, images) ->
+            DiaryAlbumCard(
+                collection = collection,
+                images = images,
+                viewModel = viewModel,
+                isEditingEnabled = isEditingEnabled,
+                onAddPhoto = { startCameraForCollection(collection.id) },
+                onTimelapse = {
+                    if (images.isNotEmpty()) showTimelapseConfig = images.sortedBy { it.takenAtMillis }
+                },
+                onRemoveAlbum = { showDeleteCollectionConfirm = collection },
+                onImageClick = { showImageViewer = it },
+                onViewAll = { showImageGallery = images.sortedBy { it.takenAtMillis } }
+            )
+        }
     }
 
     if (showNewCollectionDialog) {
         var name by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { if (!isCreatingCollection) showNewCollectionDialog = false },
-            title = { Text("New collection") },
+            title = { Text("New album") },
             text = {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Collection name") },
+                    label = { Text("Album name (Drive folder title)") },
                     singleLine = true,
                     enabled = !isCreatingCollection
                 )
@@ -1108,13 +1220,17 @@ private fun DiaryCollectionsSection(
     showDeleteCollectionConfirm?.let { col ->
         AlertDialog(
             onDismissRequest = { showDeleteCollectionConfirm = null },
-            title = { Text("Delete collection?") },
-            text = { Text("This will remove \"${col.name}\" and all its images from the app and from Drive.") },
+            title = { Text("Remove album?") },
+            text = {
+                Text(
+                    "Remove \"${col.name}\" from this device? Photo files stay on Google Drive until you delete them in Drive."
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteDiaryCollection(col)
                     showDeleteCollectionConfirm = null
-                }) { Text("Delete", color = DeleteRed) }
+                }) { Text("Remove", color = DeleteRed) }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteCollectionConfirm = null }) { Text("Cancel") }
@@ -1151,18 +1267,16 @@ private fun DiaryCollectionsSection(
         )
     }
 
-    showImageGallery?.let { (col, imgs) ->
+    showImageGallery?.let { imgs ->
         DiaryImageGalleryDialog(
-            collection = col,
             images = imgs,
             viewModel = viewModel,
             onDismiss = { showImageGallery = null }
         )
     }
 
-    showTimelapseConfig?.let { (col, imgs) ->
+    showTimelapseConfig?.let { imgs ->
         DiaryTimelapseConfigDialog(
-            collection = col,
             images = imgs,
             viewModel = viewModel,
             onDismiss = { showTimelapseConfig = null }
@@ -1171,120 +1285,164 @@ private fun DiaryCollectionsSection(
 }
 
 @Composable
-private fun DiaryCollectionRow(
+private fun DiaryAlbumCard(
     collection: DiaryCollection,
     images: List<DiaryCollectionImage>,
-    isEditingEnabled: Boolean,
     viewModel: CalendarViewModel,
-    context: Context,
-    onAddImageClick: () -> Unit,
+    isEditingEnabled: Boolean,
+    onAddPhoto: () -> Unit,
+    onTimelapse: () -> Unit,
+    onRemoveAlbum: () -> Unit,
     onImageClick: (DiaryCollectionImage) -> Unit,
-    onViewAllClick: () -> Unit,
-    onTimelapseClick: () -> Unit,
-    onDeleteCollectionClick: () -> Unit
+    onViewAll: () -> Unit,
 ) {
-    var imageBytesCache by remember(collection.id, images.map { it.id }) { mutableStateOf<Map<String, ByteArray>>(emptyMap()) }
-    LaunchedEffect(collection.id, images) {
-        val newMap = mutableMapOf<String, ByteArray>()
-        images.forEach { img ->
-            viewModel.getImageBytes(img.driveFileId)?.let { bytes -> newMap[img.id] = bytes }
-        }
-        imageBytesCache = newMap
+    val summary = diaryAlbumSummary(images)
+    val previewImages = remember(images) {
+        images.sortedByDescending { it.takenAtMillis }.take(4)
     }
-    val thumbSize = 72.dp
-    val maxVisibleThumbs = 4
-    val hasOverflow = images.size > maxVisibleThumbs
-    val visibleImages = if (hasOverflow) images.take(maxVisibleThumbs - 1) else images
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(OffWhite)
-            .padding(12.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = PureWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = collection.name,
-                style = MaterialTheme.typography.titleSmall,
-                color = NavyDeep
-            )
-            if (isEditingEnabled) {
-                IconButton(onClick = onDeleteCollectionClick) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete collection", tint = DeleteRed, modifier = Modifier.size(20.dp))
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isEditingEnabled) {
-                Box(
-                    modifier = Modifier
-                        .size(thumbSize)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(NavyDeep.copy(alpha = 0.2f))
-                        .border(1.dp, NavyDeep, RoundedCornerShape(8.dp))
-                        .clickable { onAddImageClick() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add photo", tint = NavyDeep, modifier = Modifier.size(32.dp))
-                }
-            }
-            visibleImages.forEach { img ->
-                val bytes = imageBytesCache[img.id]
-                Box(
-                    modifier = Modifier
-                        .size(thumbSize)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onImageClick(img) }
-                ) {
-                    if (bytes != null) {
-                        val bitmap = remember(bytes) {
-                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-                        }
-                        if (bitmap != null) {
-                            Image(
-                                bitmap = bitmap,
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = collection.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = NavyDeep
+                    )
+                    if (summary != null) {
+                        Text(
+                            text = "${summary.totalCount} photos · ${formatDiaryPhotoRange(summary)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlateGray
+                        )
                     } else {
-                        Box(modifier = Modifier.fillMaxSize().background(PureBlack.copy(alpha = 0.1f)))
+                        Text(
+                            text = "No photos",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlateGray
+                        )
+                    }
+                }
+                if (isEditingEnabled) {
+                    IconButton(onClick = onRemoveAlbum) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Remove album",
+                            tint = DeleteRed
+                        )
                     }
                 }
             }
-            if (hasOverflow) {
-                Box(
+            if (previewImages.isNotEmpty()) {
+                Row(
                     modifier = Modifier
-                        .size(thumbSize)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(NavyDeep.copy(alpha = 0.3f))
-                        .clickable { onViewAllClick() },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("${images.size}", color = PureWhite, style = MaterialTheme.typography.labelMedium)
+                    previewImages.forEach { img ->
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onImageClick(img) }
+                        ) {
+                            DiaryDriveThumb(
+                                driveFileId = img.driveFileId,
+                                viewModel = viewModel,
+                                size = 56.dp
+                            )
+                        }
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = onAddPhoto,
+                    enabled = isEditingEnabled
+                ) { Text("Add photo") }
+                TextButton(
+                    onClick = onTimelapse,
+                    enabled = images.isNotEmpty()
+                ) { Text("Timelapse") }
+                if (images.isNotEmpty()) {
+                    TextButton(onClick = onViewAll) { Text("View all") }
                 }
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        if (images.isNotEmpty()) {
-            Button(
-                onClick = onTimelapseClick,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = NavyDeep.copy(alpha = 0.8f), contentColor = PureWhite)
-            ) {
-                Text("View Timelapse")
-            }
+    }
+}
+
+@Composable
+private fun DiaryDriveThumb(
+    driveFileId: String,
+    viewModel: CalendarViewModel,
+    size: Dp,
+) {
+    var bitmap by remember(driveFileId) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(driveFileId) {
+        val bytes = viewModel.getImageBytes(driveFileId)
+        bitmap = bytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+    }
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(8.dp))
+            .background(PureBlack.copy(alpha = 0.08f))
+    ) {
+        bitmap?.let { bmp ->
+            Image(
+                bitmap = bmp.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+@Composable
+private fun DiaryImageThumb(
+    image: DiaryCollectionImage,
+    viewModel: CalendarViewModel,
+    onClick: () -> Unit,
+) {
+    var bitmap by remember(image.id) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(image.driveFileId) {
+        val bytes = viewModel.getImageBytes(image.driveFileId)
+        bitmap = bytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+    }
+    Box(
+        modifier = Modifier
+            .size(72.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .background(PureBlack.copy(alpha = 0.08f))
+    ) {
+        bitmap?.let { bmp ->
+            Image(
+                bitmap = bmp.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }
@@ -1339,14 +1497,13 @@ private fun DiaryImageViewerDialog(
 
 @Composable
 private fun DiaryImageGalleryDialog(
-    collection: DiaryCollection,
     images: List<DiaryCollectionImage>,
     viewModel: CalendarViewModel,
     onDismiss: () -> Unit
 ) {
     var index by remember { mutableStateOf(0) }
     val img = images.getOrNull(index)
-    var bitmap by remember(img) { mutableStateOf<Bitmap?>(null) }
+    var bitmap by remember(img?.id) { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(img?.driveFileId) {
         if (img != null) {
             val bytes = viewModel.getImageBytes(img.driveFileId)
@@ -1401,7 +1558,6 @@ private fun DiaryImageGalleryDialog(
 
 @Composable
 private fun DiaryTimelapseConfigDialog(
-    collection: DiaryCollection,
     images: List<DiaryCollectionImage>,
     viewModel: CalendarViewModel,
     onDismiss: () -> Unit
@@ -1487,29 +1643,33 @@ private fun DiaryTimelapsePlayer(
     viewModel: CalendarViewModel,
     onDismiss: () -> Unit
 ) {
-    val totalMs = durationSeconds * 1000L
-    val perImageMs = if (images.isEmpty()) 1000L else totalMs / images.size
-    var currentIndex by remember { mutableStateOf(0) }
+    val sortedImages = remember(images) { images.sortedBy { it.takenAtMillis } }
+    var currentIndex by remember(sortedImages) { mutableStateOf(0) }
     var isPlaying by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0f) }
-    var bitmap by remember(images.getOrNull(currentIndex)?.id) { mutableStateOf<Bitmap?>(null) }
-    val currentImage = images.getOrNull(currentIndex)
+    LaunchedEffect(sortedImages) {
+        currentIndex = 0
+        progress = 0f
+        isPlaying = false
+    }
+    val totalMs = durationSeconds * 1000L
+    val perImageMs = if (sortedImages.isEmpty()) 1000L else (totalMs / sortedImages.size).coerceAtLeast(1L)
+    val currentImage = sortedImages.getOrNull(currentIndex)
+    var bitmap by remember(currentImage?.id) { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(currentImage?.driveFileId) {
         if (currentImage != null) {
             val bytes = viewModel.getImageBytes(currentImage.driveFileId)
             bitmap = bytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        } else {
+            bitmap = null
         }
     }
-    LaunchedEffect(isPlaying, currentIndex, images.size) {
-        if (!isPlaying || images.isEmpty()) return@LaunchedEffect
+    LaunchedEffect(isPlaying, currentIndex, sortedImages.size) {
+        if (!isPlaying || sortedImages.isEmpty()) return@LaunchedEffect
+        if (sortedImages.size <= 1) return@LaunchedEffect
         kotlinx.coroutines.delay(perImageMs)
-        if (currentIndex < images.size - 1) {
-            currentIndex++
-            progress = currentIndex.toFloat() / (images.size - 1).coerceAtLeast(1)
-        } else {
-            currentIndex = 0
-            progress = 0f
-        }
+        currentIndex = (currentIndex + 1) % sortedImages.size
+        progress = currentIndex.toFloat() / (sortedImages.size - 1).coerceAtLeast(1)
     }
     val dateFormat = remember {
         val parts = mutableListOf<String>()
@@ -1548,9 +1708,13 @@ private fun DiaryTimelapsePlayer(
                     value = progress,
                     onValueChange = {
                         progress = it
-                        currentIndex = (it * (images.size - 1).coerceAtLeast(1)).toInt().coerceIn(0, images.size - 1)
+                        if (sortedImages.size > 1) {
+                            currentIndex =
+                                (it * (sortedImages.size - 1)).toInt().coerceIn(0, sortedImages.size - 1)
+                        }
                     },
-                    valueRange = 0f..1f
+                    valueRange = 0f..1f,
+                    enabled = sortedImages.size > 1
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -2019,6 +2183,8 @@ private fun WorkoutNumberStepper(
     textStyle: androidx.compose.ui.text.TextStyle,
     modifier: Modifier = Modifier
 ) {
+    var showEditDialog by remember { mutableStateOf(false) }
+    var draftText by remember { mutableStateOf("") }
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -2049,7 +2215,15 @@ private fun WorkoutNumberStepper(
                 text = value.toString(),
                 style = textStyle,
                 color = PureBlack,
-                modifier = Modifier.widthIn(min = 32.dp),
+                modifier = Modifier
+                    .widthIn(min = 32.dp)
+                    .clickable(
+                        enabled = enabled,
+                        onClick = {
+                            draftText = value.toString()
+                            showEditDialog = true
+                        }
+                    ),
                 textAlign = TextAlign.Center
             )
             IconButton(
@@ -2064,6 +2238,41 @@ private fun WorkoutNumberStepper(
                 )
             }
         }
+    }
+    if (showEditDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text(label, color = PureBlack) },
+            text = {
+                OutlinedTextField(
+                    value = draftText,
+                    onValueChange = { t -> draftText = t.filter { it.isDigit() }.take(6) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            draftText.toIntOrNull()?.let { onValueChange(it.coerceIn(min, max)) }
+                            showEditDialog = false
+                        }
+                    ),
+                    label = { Text("Value ($min–$max)") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        draftText.toIntOrNull()?.let { onValueChange(it.coerceIn(min, max)) }
+                        showEditDialog = false
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 
@@ -2080,6 +2289,8 @@ private fun WorkoutNumberStepperDouble(
     modifier: Modifier = Modifier
 ) {
     val rounded = (value * 10).toInt() / 10.0
+    var showEditDialog by remember { mutableStateOf(false) }
+    var draftText by remember { mutableStateOf("") }
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -2110,7 +2321,15 @@ private fun WorkoutNumberStepperDouble(
                 text = "%.1f".format(rounded),
                 style = textStyle,
                 color = PureBlack,
-                modifier = Modifier.widthIn(min = 32.dp),
+                modifier = Modifier
+                    .widthIn(min = 32.dp)
+                    .clickable(
+                        enabled = enabled,
+                        onClick = {
+                            draftText = "%.1f".format(rounded).trimEnd('0').trimEnd('.').ifEmpty { "0" }
+                            showEditDialog = true
+                        }
+                    ),
                 textAlign = TextAlign.Center
             )
             IconButton(
@@ -2125,6 +2344,54 @@ private fun WorkoutNumberStepperDouble(
                 )
             }
         }
+    }
+    if (showEditDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text(label, color = PureBlack) },
+            text = {
+                OutlinedTextField(
+                    value = draftText,
+                    onValueChange = { t ->
+                        val out = StringBuilder()
+                        var dotSeen = false
+                        for (c in t) {
+                            when {
+                                c.isDigit() -> out.append(c)
+                                c == '.' && !dotSeen -> {
+                                    dotSeen = true
+                                    out.append(c)
+                                }
+                            }
+                        }
+                        draftText = out.toString().take(16)
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            draftText.toDoubleOrNull()?.let { onValueChange(it.coerceIn(min, max)) }
+                            showEditDialog = false
+                        }
+                    ),
+                    label = { Text("Value") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        draftText.toDoubleOrNull()?.let { onValueChange(it.coerceIn(min, max)) }
+                        showEditDialog = false
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 
@@ -2919,7 +3186,8 @@ private fun WeekScroller(
     selectedDate: String,
     datesWithCheckedMeals: Set<String>,
     isEditingEnabled: Boolean,
-    showDietActions: Boolean,
+    showRefreshButton: Boolean,
+    showAddButton: Boolean,
     onDateSelected: (String) -> Unit,
     onRefreshFromDriveClick: () -> Unit,
     onAddMealClick: () -> Unit,
@@ -2939,9 +3207,7 @@ private fun WeekScroller(
     } catch (e: Exception) {
         Date()
     }
-    
-    val selectedDateState = remember { mutableStateOf(selectedDateObj) }
-    
+
     // Generate 7 days: 3 days before, selected day, 3 days after
     val weekDays = remember(selectedDate) {
         val calendar = Calendar.getInstance().apply { time = selectedDateObj }
@@ -3033,10 +3299,7 @@ private fun WeekScroller(
         ) {
             // Calendar icon button for date picker
             IconButton(
-                onClick = {
-                    selectedDateState.value = selectedDateObj
-                    showDatePicker = true
-                },
+                onClick = { showDatePicker = true },
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
@@ -3055,7 +3318,7 @@ private fun WeekScroller(
                 modifier = Modifier.weight(1f)
             )
             
-            if (showDietActions) {
+            if (showRefreshButton) {
                 IconButton(
                     onClick = onRefreshFromDriveClick,
                     modifier = Modifier.size(48.dp)
@@ -3067,6 +3330,8 @@ private fun WeekScroller(
                         modifier = Modifier.size(24.dp)
                     )
                 }
+            }
+            if (showAddButton) {
                 IconButton(
                     onClick = onAddMealClick,
                     modifier = Modifier
@@ -3080,6 +3345,8 @@ private fun WeekScroller(
                         modifier = Modifier.size(24.dp)
                     )
                 }
+            }
+            if (showRefreshButton || showAddButton) {
                 if (isPastDay()) {
                     IconButton(
                         onClick = onEditClick,
@@ -3116,8 +3383,15 @@ private fun WeekScroller(
     
     // Date picker dialog
     if (showDatePicker) {
+        val initialPickerMillis = remember(selectedDate) {
+            try {
+                isoCalendarDateToUtcPickerMillis(selectedDate)
+            } catch (_: Exception) {
+                selectedDateObj.time
+            }
+        }
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDateState.value.time
+            initialSelectedDateMillis = initialPickerMillis
         )
         
         val datePickerColors = DatePickerDefaults.colors(
@@ -3139,11 +3413,9 @@ private fun WeekScroller(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val selected = Date(millis)
-                            onDateSelected(dateFormatter.format(selected))
-                            showDatePicker = false
-                        }
+                        val millis = datePickerState.selectedDateMillis ?: initialPickerMillis
+                        onDateSelected(utcPickerMillisToIsoCalendarDate(millis))
+                        showDatePicker = false
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = NavyDeep

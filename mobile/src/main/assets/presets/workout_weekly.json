@@ -3,58 +3,86 @@
   "weekly_plan": {
     "monday": [
       {
-        "title": "Resistance: Upper A (Strength & Target Area Priming)",
-        "description": "Heavy compound movements focusing on mechanical tension for priority muscle groups.",
+        "title": "Resistance: Upper A",
+        "description": "High-intensity session focusing on mechanical tension. Targets Posterior Delts, Triceps Long Head, and Traps as priorities.",
         "type": "RESISTANCE",
         "exercises": [
           {
+            "name": "Reverse Pec Deck Fly",
+            "description": "Primary focus on the posterior deltoid. Do not allow the traps to take over; maintain a constant arc.",
+            "target": ["shoulder"],
+            "timing": "3-1-2-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 70, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 70, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 70, "unitLoad": "lbs", "targetReps": 10, "targetRir": 1, "rest": 60, "unitRest": "s" }
+            ]
+          },
+          {
             "name": "Barbell Bench Press",
-            "description": "Primary chest/tricep builder. Focus on a controlled 4s eccentric.",
+            "description": "Primary horizontal press. Lower to mid-chest. (0.5 sets for Triceps/Shoulders)",
+            "target": ["chest", "triceps", "shoulder"],
+            "timing": "4-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 145, "unitLoad": "lbs", "targetReps": 8, "targetRir": 2, "rest": 120, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 145, "unitLoad": "lbs", "targetReps": 8, "targetRir": 2, "rest": 120, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 145, "unitLoad": "lbs", "targetReps": 8, "targetRir": 1, "rest": 120, "unitRest": "s" }
+            ]
+          },
+          {
+            "name": "Incline Dumbbell Press",
+            "description": "30-degree incline. Focus on the stretch at the bottom. (0.5 sets for Triceps/Shoulders)",
+            "target": ["chest", "triceps", "shoulder"],
             "timing": "4-1-2-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 82.5, "unitLoad": "kg", "targetReps": 8, "targetRir": 2, "rest": 120, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 82.5, "unitLoad": "kg", "targetReps": 8, "targetRir": 2, "rest": 120, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 85.0, "unitLoad": "kg", "targetReps": 6, "targetRir": 2, "rest": 120, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 50, "unitLoad": "lbs", "targetReps": 10, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 50, "unitLoad": "lbs", "targetReps": 10, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 50, "unitLoad": "lbs", "targetReps": 10, "targetRir": 1, "rest": 90, "unitRest": "s" }
             ]
           },
           {
-            "name": "Pendlay Rows",
-            "description": "Explosive pull targeting traps and posterior deltoids as synergists.",
-            "timing": "2-1-1-1",
+            "name": "Weighted Pull-Ups",
+            "description": "Controlled descent. Use a slightly wider grip to engage the back and traps. (0.5 sets for Biceps/Traps)",
+            "target": ["back", "biceps", "traps"],
+            "timing": "4-1-1-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 75.0, "unitLoad": "kg", "targetReps": 8, "targetRir": 2, "rest": 90, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 75.0, "unitLoad": "kg", "targetReps": 8, "targetRir": 2, "rest": 90, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 75.0, "unitLoad": "kg", "targetReps": 8, "targetRir": 2, "rest": 90, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 20, "unitLoad": "lbs", "targetReps": 8, "targetRir": 2, "rest": 120, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 20, "unitLoad": "lbs", "targetReps": 8, "targetRir": 2, "rest": 120, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 20, "unitLoad": "lbs", "targetReps": 8, "targetRir": 1, "rest": 120, "unitRest": "s" }
             ]
           },
           {
-            "name": "Reverse Pec Deck Fly",
-            "description": "Highest EMG activation for the posterior deltoid.",
+            "name": "Wide-Grip Chest Supported Row",
+            "description": "Elbows out to 45-60 degrees. Focus on scapular retraction and posterior delts. (0.5 sets for Traps/Shoulder)",
+            "target": ["back", "traps", "shoulder"],
             "timing": "3-1-1-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 40.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 40.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 40.0, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 100, "unitLoad": "lbs", "targetReps": 10, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 100, "unitLoad": "lbs", "targetReps": 10, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 100, "unitLoad": "lbs", "targetReps": 10, "targetRir": 1, "rest": 90, "unitRest": "s" },
+              { "setNumber": 4, "targetLoad": 100, "unitLoad": "lbs", "targetReps": 5, "targetRir": 1, "rest": 90, "unitRest": "s", "description": "Partial set to match 3.5 total sets for back" }
+            ]
+          },
+          {
+            "name": "Incline EZ-Bar Skullcrushers",
+            "description": "Performed on an incline to maximize triceps long-head stretch. (Direct Triceps stimulus)",
+            "target": ["triceps"],
+            "timing": "4-1-2-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 65, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 65, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 65, "unitLoad": "lbs", "targetReps": 10, "targetRir": 1, "rest": 60, "unitRest": "s" }
             ]
           },
           {
             "name": "Unilateral Dumbbell Shrugs",
-            "description": "Targeting the upper trapezius for aesthetic development.",
-            "timing": "2-2-1-1",
+            "description": "Hold at the peak for 2 seconds. (Direct Trap stimulus)",
+            "target": ["traps"],
+            "timing": "2-2-2-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 32.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 32.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 32.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 60, "unitRest": "s" }
-            ]
-          },
-          {
-            "name": "EZ Bar Skullcrushers",
-            "description": "Stretch-mediated hypertrophy for the triceps long head.",
-            "timing": "4-1-2-1",
-            "sets": [
-              { "setNumber": 1, "targetLoad": 35.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 90, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 35.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 90, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 90, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 60, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 60, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 60, "unitLoad": "lbs", "targetReps": 6, "targetRir": 1, "rest": 60, "unitRest": "s", "description": "Partial set to match target volume" }
             ]
           }
         ]
@@ -62,91 +90,123 @@
     ],
     "tuesday": [
       {
-        "title": "Resistance: Lower A (Leg Strength & Compound Focus)",
-        "description": "Primary lower body session performed while fresh to maximize mTOR signaling.",
+        "title": "Resistance: Lower A",
+        "description": "High mechanical tension session focusing on compound lower body movements. Emphasis on controlled eccentrics to maximize hypertrophy stimulus.",
         "type": "RESISTANCE",
         "exercises": [
           {
-            "name": "Barbell Back Squat",
-            "description": "Prioritize depth for long muscle length hypertrophy.",
-            "timing": "4-1-2-1",
+            "name": "Back Squat",
+            "description": "Primary knee-dominant compound. Focus on depth and a controlled 4-second eccentric. (1.0 Quad, 0.5 Hamstring stimulus)",
+            "target": ["quads", "hamstrings", "glutes"],
+            "timing": "4-1-1-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 70.0, "unitLoad": "kg", "targetReps": 8, "targetRir": 3, "rest": 150, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 75.0, "unitLoad": "kg", "targetReps": 6, "targetRir": 2, "rest": 150, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 75.0, "unitLoad": "kg", "targetReps": 6, "targetRir": 2, "rest": 150, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 185, "unitLoad": "lbs", "targetReps": 8, "targetRir": 2, "rest": 120, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 185, "unitLoad": "lbs", "targetReps": 8, "targetRir": 2, "rest": 120, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 185, "unitLoad": "lbs", "targetReps": 8, "targetRir": 1, "rest": 120, "unitRest": "s" }
             ]
           },
           {
             "name": "Romanian Deadlift (RDL)",
-            "description": "Controlled eccentric targeting hamstrings.",
-            "timing": "4-1-1-1",
+            "description": "Primary hip-hinge compound. Focus on the stretch in the hamstrings. Do not round the back. (1.0 Hamstring, 0.5 Quad stimulus)",
+            "target": ["hamstrings", "quads", "back"],
+            "timing": "3-1-1-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 90.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 120, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 90.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 120, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 90.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 120, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 195, "unitLoad": "lbs", "targetReps": 10, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 195, "unitLoad": "lbs", "targetReps": 10, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 195, "unitLoad": "lbs", "targetReps": 10, "targetRir": 1, "rest": 90, "unitRest": "s" }
             ]
           },
           {
             "name": "Leg Press",
             "description": "Quad focus with feet low on the sled.",
+            "target": ["quads", "hamstrings", "glutes"],
             "timing": "3-1-2-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 140.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 140.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 140.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 90, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 200, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 200, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 200, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 90, "unitRest": "s" },
+              { "setNumber": 4, "targetLoad": 200, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 90, "unitRest": "s" }
             ]
-          }
-        ]
-      },
-      {
-        "title": "Endurance: PM Technical Swim",
-        "description": "Low impact aerobic volume separated from lifting by 6+ hours to minimize interference.",
-        "type": "ENDURANCE",
-        "exercises": [
+          },
           {
-            "name": "Swimming Laps",
-            "targetDuration": 30,
-            "unitDuration": "min",
-            "targetRpe": 4.0
+            "name": "Standing Calf Raises",
+            "description": "Full range of motion. Pause for 2 seconds at the bottom stretch and 1 second at the peak contraction.",
+            "target": ["calves"],
+            "timing": "2-1-1-2",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 135, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 135, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 135, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 60, "unitRest": "s" }
+            ]
           }
         ]
       }
     ],
     "wednesday": [
       {
-        "title": "Resistance: Upper B (Hypertrophy & Metabolic Stress)",
-        "description": "High-volume session focusing on sarcoplasmic hypertrophy.",
+        "title": "Resistance: Target ISO",
+        "description": "High-volume metabolic session focusing on priority isolation and stretch-mediated hypertrophy.",
         "type": "RESISTANCE",
         "exercises": [
           {
-            "name": "Incline Dumbbell Bench Press",
-            "description": "30-45 degree incline for upper chest development.",
+            "name": "Face Pulls (Rope)",
+            "description": "Pull toward the forehead, emphasizing external rotation. Targets posterior delts and middle/lower traps. (0.5 Trap stimulus)",
+            "target": ["shoulder", "traps"],
             "timing": "3-1-2-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 30.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 90, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 45, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 45, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 45, "unitLoad": "lbs", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" }
             ]
           },
           {
-            "name": "Face Pulls (Rope)",
-            "description": "Targets mid-traps and posterior delts.",
-            "timing": "2-1-1-2",
+            "name": "Dumbbell Lateral Raises",
+            "description": "Strict form. Focus on the lateral deltoid head. Controlled eccentric.",
+            "target": ["shoulder"],
+            "timing": "3-1-1-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 22.5, "unitLoad": "kg", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 22.5, "unitLoad": "kg", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 22.5, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 20, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 20, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 20, "unitLoad": "lbs", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" }
             ]
           },
           {
-            "name": "Overhead Cable Tricep Extension",
-            "description": "Stretch-mediated focus for priority long head.",
-            "timing": "4-1-1-1",
+            "name": "Overhead Cable Extensions",
+            "description": "Targets the long head of the triceps in a stretched position. Essential for stretch-mediated hypertrophy.",
+            "target": ["triceps"],
+            "timing": "4-1-2-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 25.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 25.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 25.0, "unitLoad": "kg", "targetReps": 12, "targetRir": 1, "rest": 60, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 40, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 40, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 40, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 4, "targetLoad": 40, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 60, "unitRest": "s" }
             ]
+          },
+          {
+            "name": "Incline Dumbbell Curls",
+            "description": "Set bench to 45 degrees. Focus on the deep stretch at the bottom of the movement.",
+            "target": ["biceps"],
+            "timing": "4-1-2-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 25, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 25, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 25, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 4, "targetLoad": 25, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 60, "unitRest": "s" }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Endurance: PM Technical Swim",
+        "description": "Zone 2 aerobic maintenance. Focus on efficiency and low joint impact.",
+        "type": "ENDURANCE",
+        "exercises": [
+          {
+            "name": "Swimming Laps",
+            "description": "Consistent effort at 60-70% Max Heart Rate.",
+            "targetDuration": 45,
+            "unitDuration": "min",
+            "targetRpe": 4.0
           }
         ]
       }
@@ -161,38 +221,98 @@
     ],
     "friday": [
       {
-        "title": "Resistance: Lower B (Hypertrophy & Accessory)",
-        "description": "High-repetition work targeting quads and priority upper back.",
+        "title": "Resistance: Upper B",
+        "description": "Hypertrophy-focused session utilizing moderate loads (60-80% 1RM) and controlled eccentrics. High focus on triceps long head and posterior delts.",
         "type": "RESISTANCE",
         "exercises": [
           {
-            "name": "Bulgarian Split Squats",
-            "description": "Maximum depth for quadriceps and glutes.",
+            "name": "Flat Dumbbell Bench Press",
+            "description": "Horizontal press for chest volume. (0.5 sets for Triceps/Front Delts)",
+            "target": ["chest", "triceps", "shoulder"],
+            "timing": "4-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 55, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 55, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 55, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 90, "unitRest": "s" }
+            ]
+          },
+          {
+            "name": "Cable Chest Flyes",
+            "description": "Isolation for chest. Focus on the squeeze at peak contraction.",
+            "target": ["chest"],
+            "timing": "3-1-2-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 30, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 30, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 30, "unitLoad": "lbs", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" }
+            ]
+          },
+          {
+            "name": "Wide-Grip Lat Pulldown",
+            "description": "Vertical pull. Focus on pulling with the elbows. (0.5 sets for Biceps/Traps)",
+            "target": ["back", "biceps", "traps"],
+            "timing": "3-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 120, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 120, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 120, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 90, "unitRest": "s" }
+            ]
+          },
+          {
+            "name": "Seated Cable Row",
+            "description": "Neutral grip. Focus on scapular retraction and posterior delts. (0.5 sets for Traps/Biceps/Shoulder)",
+            "target": ["back", "traps", "biceps", "shoulder"],
+            "timing": "3-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 110, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 110, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 110, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 4, "targetLoad": 110, "unitLoad": "lbs", "targetReps": 6, "targetRir": 1, "rest": 90, "unitRest": "s", "description": "Partial set to match 6.5 back volume" }
+            ]
+          },
+          {
+            "name": "Overhead Cable Extensions",
+            "description": "Direct long-head triceps work. Priority for stretch-mediated hypertrophy.",
+            "target": ["triceps"],
             "timing": "4-1-2-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 18.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 90, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 18.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 2, "rest": 90, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 18.0, "unitLoad": "kg", "targetReps": 10, "targetRir": 1, "rest": 90, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 40, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 40, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 40, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 4, "targetLoad": 40, "unitLoad": "lbs", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" }
             ]
           },
           {
-            "name": "Face Pulls (Rope)",
-            "description": "Frequency work for rear delts and middle traps.",
-            "timing": "2-2-1-1",
+            "name": "Seated Rear Lateral Raise",
+            "description": "Posterior deltoid isolation. High EMG activation.",
+            "target": ["shoulder"],
+            "timing": "3-1-1-1",
             "sets": [
-              { "setNumber": 1, "targetLoad": 22.5, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" },
-              { "setNumber": 2, "targetLoad": 22.5, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" },
-              { "setNumber": 3, "targetLoad": 22.5, "unitLoad": "kg", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 15, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 15, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 15, "unitLoad": "lbs", "targetReps": 8, "targetRir": 1, "rest": 60, "unitRest": "s", "description": "Partial set for volume target" }
             ]
           },
           {
-            "name": "Hanging Leg Raises",
-            "description": "Core stability for athletic performance.",
+            "name": "Dumbbell Shrugs",
+            "description": "Direct trap work. Control the eccentric.",
+            "target": ["traps"],
             "timing": "2-1-2-1",
             "sets": [
-              { "setNumber": 1, "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
-              { "setNumber": 2, "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
-              { "setNumber": 3, "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" }
+              { "setNumber": 1, "targetLoad": 55, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 55, "unitLoad": "lbs", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 55, "unitLoad": "lbs", "targetReps": 8, "targetRir": 1, "rest": 60, "unitRest": "s", "description": "Partial set for volume target" }
+            ]
+          },
+          {
+            "name": "Hammer Curls",
+            "description": "Targets the brachialis for arm thickness.",
+            "target": ["biceps"],
+            "timing": "3-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 30, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 30, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 30, "unitLoad": "lbs", "targetReps": 6, "targetRir": 1, "rest": 60, "unitRest": "s", "description": "Partial set for volume target" }
             ]
           }
         ]
@@ -200,32 +320,160 @@
     ],
     "saturday": [
       {
-        "title": "Endurance: HIIT 4x4 (Norwegian Protocol)",
-        "description": "Peak aerobic maintenance session at 90-95% HRmax.",
+        "title": "Endurance: AM HIIT Running",
+        "description": "High-intensity interval training designed to maintain a VO2max of 69 ml/kg/min with minimal volume to protect muscle hypertrophy.",
         "type": "ENDURANCE",
         "exercises": [
           {
             "name": "4x4 Intervals",
-            "description": "4 mins high intensity, 3 mins active recovery. Maintain stroke volume.",
-            "targetDuration": 28,
+            "description": "10 min warm-up. 4 intervals of 4 mins at 90-95% HRmax. 3 min active recovery (light jog) between sets. 10 min cool-down.",
+            "targetDuration": 38,
             "unitDuration": "min",
-            "targetRpe": 9.5
+            "targetRpe": 9.0
+          }
+        ]
+      },
+      {
+        "title": "Resistance: Lower B",
+        "description": "Afternoon session focusing on metabolic stress and high-volume hypertrophy for the legs and core.",
+        "type": "RESISTANCE",
+        "exercises": [
+          {
+            "name": "Leg Press",
+            "description": "Primary knee-dominant movement. Place feet shoulder-width apart. (1.0 Quad, 0.5 Hamstring stimulus)",
+            "target": ["quads", "hamstrings", "glutes"],
+            "timing": "3-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 250, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 250, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 90, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 250, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 90, "unitRest": "s" }
+            ]
+          },
+          {
+            "name": "Leg Extensions",
+            "description": "Quad isolation to reach volume targets. Focus on the peak contraction.",
+            "target": ["quads"],
+            "timing": "2-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 100, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 100, "unitLoad": "lbs", "targetReps": 8, "targetRir": 1, "rest": 60, "unitRest": "s", "description": "Partial set to match 4.5 quad volume" }
+            ]
+          },
+          {
+            "name": "Lying Leg Curls",
+            "description": "Hamstring isolation. Slow the eccentric to 4 seconds to maximize muscle damage and growth.",
+            "target": ["hamstrings"],
+            "timing": "4-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 90, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 90, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 90, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 60, "unitRest": "s" }
+            ]
+          },
+          {
+            "name": "Seated Calf Raises",
+            "description": "Focus on the deep stretch at the bottom. Essential for lower-limb durability.",
+            "target": ["calves"],
+            "timing": "2-1-1-2",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 110, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 110, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 110, "unitLoad": "lbs", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" }
+            ]
+          },
+          {
+            "name": "Hanging Leg Raises",
+            "description": "Core stability for high-intensity running.",
+            "target": ["core"],
+            "timing": "2-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" }
+            ]
+          },
+          {
+            "name": "Cable Crunches",
+            "description": "Focus on spinal flexion under load.",
+            "target": ["core"],
+            "timing": "2-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 60, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 60, "unitLoad": "lbs", "targetReps": 15, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 60, "unitLoad": "lbs", "targetReps": 15, "targetRir": 1, "rest": 60, "unitRest": "s" }
+            ]
           }
         ]
       }
     ],
     "sunday": [
       {
-        "title": "Endurance: Zone 2 Active Recovery",
-        "description": "Low-impact cycling to maintain mitochondrial density and aid recovery.",
+        "title": "Endurance: AM Zone 2 Recovery",
+        "description": "Low-intensity aerobic session to maintain mitochondrial density and facilitate recovery without significant structural fatigue.",
         "type": "ENDURANCE",
         "exercises": [
           {
-            "name": "Cycling",
-            "description": "60-70% HRmax. Nasal breathing focus.",
-            "targetDuration": 45,
+            "name": "Low-Impact Cycling or Recovery Run",
+            "description": "Maintain a steady effort where you can hold a full conversation. Focus on 60-70% HRmax.",
+            "targetDuration": 60,
             "unitDuration": "min",
             "targetRpe": 3.0
+          }
+        ]
+      },
+      {
+        "title": "Resistance: PM Target Accessory",
+        "description": "Specialization session using Myoreps to drive sarcoplasmic hypertrophy in priority areas with low systemic fatigue.",
+        "type": "RESISTANCE",
+        "exercises": [
+          {
+            "name": "Seated Rear Lateral Raise (Myoreps)",
+            "description": "Posterior delt isolation. Perform 1 activation set to failure, followed by 5 mini-sets of 3-5 reps with 15s rest.",
+            "target": ["shoulder"],
+            "timing": "2-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 15, "unitLoad": "lbs", "targetReps": 15, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Activation Set" },
+              { "setNumber": 2, "targetLoad": 15, "unitLoad": "lbs", "targetReps": 5, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Mini-set 1" },
+              { "setNumber": 3, "targetLoad": 15, "unitLoad": "lbs", "targetReps": 5, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Mini-set 2" },
+              { "setNumber": 4, "targetLoad": 15, "unitLoad": "lbs", "targetReps": 4, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Mini-set 3" }
+            ]
+          },
+          {
+            "name": "Single-Arm Overhead Cable Extension (Myoreps)",
+            "description": "Focus on the long head of the triceps. Full stretch at the bottom of the movement.",
+            "target": ["triceps"],
+            "timing": "3-1-2-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 30, "unitLoad": "lbs", "targetReps": 15, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Activation Set" },
+              { "setNumber": 2, "targetLoad": 30, "unitLoad": "lbs", "targetReps": 5, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Mini-set 1" },
+              { "setNumber": 3, "targetLoad": 30, "unitLoad": "lbs", "targetReps": 5, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Mini-set 2" },
+              { "setNumber": 4, "targetLoad": 30, "unitLoad": "lbs", "targetReps": 5, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Mini-set 3" }
+            ]
+          },
+          {
+            "name": "Dumbbell Shrugs (Myoreps)",
+            "description": "Maintain upright posture. 2-second squeeze at the top of each rep.",
+            "target": ["traps"],
+            "timing": "1-2-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 50, "unitLoad": "lbs", "targetReps": 15, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Activation Set" },
+              { "setNumber": 2, "targetLoad": 50, "unitLoad": "lbs", "targetReps": 5, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Mini-set 1" },
+              { "setNumber": 3, "targetLoad": 50, "unitLoad": "lbs", "targetReps": 5, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Mini-set 2" },
+              { "setNumber": 4, "targetLoad": 50, "unitLoad": "lbs", "targetReps": 5, "targetRir": 0, "rest": 15, "unitRest": "s", "description": "Mini-set 3" }
+            ]
+          },
+          {
+            "name": "Bayesian Curls (Cable)",
+            "description": "Stand facing away from the cable machine to maximize the stretch on the biceps.",
+            "target": ["biceps"],
+            "timing": "3-1-1-1",
+            "sets": [
+              { "setNumber": 1, "targetLoad": 25, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 2, "targetLoad": 25, "unitLoad": "lbs", "targetReps": 12, "targetRir": 2, "rest": 60, "unitRest": "s" },
+              { "setNumber": 3, "targetLoad": 25, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 60, "unitRest": "s" },
+              { "setNumber": 4, "targetLoad": 25, "unitLoad": "lbs", "targetReps": 12, "targetRir": 1, "rest": 60, "unitRest": "s" },
+              { "setNumber": 5, "targetLoad": 25, "unitLoad": "lbs", "targetReps": 6, "targetRir": 1, "rest": 60, "unitRest": "s", "description": "Partial set for fractional volume" }
+            ]
           }
         ]
       }

@@ -1,36 +1,33 @@
 package com.vm.vector.ui.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.vm.vector.VectorApplication
 import com.vm.vector.data.DayCompletion
 import com.vm.vector.data.HomeRepository
-import com.vm.vector.data.PreferenceManager
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
-/** Day offset for Home tabs: -1 = Yesterday, 0 = Today, 1 = Tomorrow */
-const val DAY_OFFSET_YESTERDAY = -1
-const val DAY_OFFSET_TODAY = 0
-const val DAY_OFFSET_TOMORROW = 1
 
 data class HomeUiState(
+    val selectedDate: String = "",
+    val isPastSelectedDate: Boolean = false,
+    val isFutureSelectedDate: Boolean = false,
+    val homeFieldsEditable: Boolean = true,
+    val pastDayEditingEnabled: Boolean = false,
     val weightKg: String = "",
     val bodyFatPercent: String = "",
     val sleepStartMinutes: Int = 22 * 60,
     val sleepEndMinutes: Int = 6 * 60,
     val actualSleepStartMinutes: Int = 22 * 60,
     val actualSleepEndMinutes: Int = 6 * 60,
-    val dailyPlanText: String = "",
-    val dailyPlanAudioPath: String? = null,
     val dailyPlanCompletionPercent: Int = 0,
     val isSaving: Boolean = false,
     val saveMessage: String? = null,
@@ -38,16 +35,12 @@ data class HomeUiState(
     val dietLast7: List<DayCompletion> = emptyList(),
     val workoutLast7: List<DayCompletion> = emptyList(),
     val diaryLast7: List<DayCompletion> = emptyList(),
-    val selectedDayOffset: Int = DAY_OFFSET_TODAY,
-    val yesterdayDateDisplay: String = "",
-    val todayDateDisplay: String = "",
-    val tomorrowDateDisplay: String = "",
 )
 
 class HomeViewModel(
+    application: Application,
     private val homeRepository: HomeRepository,
-    private val preferenceManager: PreferenceManager,
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _weightKg = MutableStateFlow("")
     private val _bodyFatPercent = MutableStateFlow("")
@@ -55,19 +48,15 @@ class HomeViewModel(
     private val _sleepEndMinutes = MutableStateFlow(6 * 60)
     private val _actualSleepStartMinutes = MutableStateFlow(22 * 60)
     private val _actualSleepEndMinutes = MutableStateFlow(6 * 60)
-    private val _dailyPlanText = MutableStateFlow("")
-    private val _dailyPlanAudioPath = MutableStateFlow<String?>(null)
     private val _dailyPlanCompletionPercent = MutableStateFlow(0)
+    private val _selectedDate = MutableStateFlow(homeRepository.dateForOffset(0))
+    private val _pastDayEditingEnabled = MutableStateFlow(false)
     private val _isSaving = MutableStateFlow(false)
     private val _saveMessage = MutableStateFlow<String?>(null)
     private val _routineLast7 = MutableStateFlow<List<DayCompletion>>(emptyList())
     private val _dietLast7 = MutableStateFlow<List<DayCompletion>>(emptyList())
     private val _workoutLast7 = MutableStateFlow<List<DayCompletion>>(emptyList())
     private val _diaryLast7 = MutableStateFlow<List<DayCompletion>>(emptyList())
-    private val _selectedDayOffset = MutableStateFlow(DAY_OFFSET_TODAY)
-    private val _yesterdayDateDisplay = MutableStateFlow("")
-    private val _todayDateDisplay = MutableStateFlow("")
-    private val _tomorrowDateDisplay = MutableStateFlow("")
 
     val uiState: StateFlow<HomeUiState> = combine(
         _weightKg,
@@ -76,60 +65,80 @@ class HomeViewModel(
         _sleepEndMinutes,
         _actualSleepStartMinutes,
         _actualSleepEndMinutes,
-        _dailyPlanText,
-        _dailyPlanAudioPath,
         _dailyPlanCompletionPercent,
+        _selectedDate,
+        _pastDayEditingEnabled,
         _isSaving,
         _saveMessage,
         _routineLast7,
         _dietLast7,
         _workoutLast7,
-        _diaryLast7,
-        _selectedDayOffset,
-        _yesterdayDateDisplay,
-        _todayDateDisplay,
-        _tomorrowDateDisplay
+        _diaryLast7
     ) { values ->
+        val selected = values[7] as String
+        val pastUnlock = values[8] as Boolean
+        val today = homeRepository.dateForOffset(0)
+        val cmp = selected.compareTo(today)
+        val editable = when {
+            cmp > 0 -> false
+            cmp == 0 -> true
+            else -> pastUnlock
+        }
         HomeUiState(
+            selectedDate = selected,
+            isPastSelectedDate = cmp < 0,
+            isFutureSelectedDate = cmp > 0,
+            homeFieldsEditable = editable,
+            pastDayEditingEnabled = pastUnlock,
             weightKg = values[0] as String,
             bodyFatPercent = values[1] as String,
             sleepStartMinutes = values[2] as Int,
             sleepEndMinutes = values[3] as Int,
             actualSleepStartMinutes = values[4] as Int,
             actualSleepEndMinutes = values[5] as Int,
-            dailyPlanText = values[6] as String,
-            dailyPlanAudioPath = values[7] as String?,
-            dailyPlanCompletionPercent = values[8] as Int,
+            dailyPlanCompletionPercent = values[6] as Int,
             isSaving = values[9] as Boolean,
             saveMessage = values[10] as String?,
             routineLast7 = values[11] as List<DayCompletion>,
             dietLast7 = values[12] as List<DayCompletion>,
             workoutLast7 = values[13] as List<DayCompletion>,
-            diaryLast7 = values[14] as List<DayCompletion>,
-            selectedDayOffset = values[15] as Int,
-            yesterdayDateDisplay = values[16] as String,
-            todayDateDisplay = values[17] as String,
-            tomorrowDateDisplay = values[18] as String
+            diaryLast7 = values[14] as List<DayCompletion>
         )
-    }.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), HomeUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 
     init {
-        _yesterdayDateDisplay.value = formatDateDisplay(homeRepository.dateForOffset(DAY_OFFSET_YESTERDAY))
-        _todayDateDisplay.value = formatDateDisplay(homeRepository.dateForOffset(DAY_OFFSET_TODAY))
-        _tomorrowDateDisplay.value = formatDateDisplay(homeRepository.dateForOffset(DAY_OFFSET_TOMORROW))
-        viewModelScope.launch { loadEntryForOffset(DAY_OFFSET_TODAY) }
-        viewModelScope.launch { loadLast7Completions() }
+        viewModelScope.launch {
+            loadEntryForSelectedDate()
+            loadLast7Completions()
+        }
+        (getApplication() as? VectorApplication)?.let { app ->
+            app.databaseResetEvents.onEach {
+                viewModelScope.launch {
+                    loadEntryForSelectedDate()
+                    loadLast7Completions()
+                }
+            }.launchIn(viewModelScope)
+        }
     }
 
-    /** Switch the active day tab and load that day's entry into the form. */
-    fun setSelectedDayOffset(offset: Int) {
-        if (_selectedDayOffset.value == offset) return
-        _selectedDayOffset.value = offset
-        viewModelScope.launch { loadEntryForOffset(offset) }
+    fun setSelectedDate(isoDate: String) {
+        viewModelScope.launch {
+            _selectedDate.value = isoDate
+            _pastDayEditingEnabled.value = false
+            loadEntryForSelectedDate()
+        }
     }
 
-    private suspend fun loadEntryForOffset(offset: Int) {
-        val date = homeRepository.dateForOffset(offset)
+    fun togglePastDayEditing() {
+        val sel = _selectedDate.value
+        val today = homeRepository.dateForOffset(0)
+        if (sel.compareTo(today) < 0) {
+            _pastDayEditingEnabled.value = !_pastDayEditingEnabled.value
+        }
+    }
+
+    private suspend fun loadEntryForSelectedDate() {
+        val date = _selectedDate.value
         val entry = homeRepository.getEntryForDate(date)
         entry?.let {
             _weightKg.value = it.weightKg?.toString()?.trim() ?: ""
@@ -143,7 +152,6 @@ class HomeViewModel(
             _actualSleepStartMinutes.value = actualStart
             _actualSleepEndMinutes.value = actualEnd
             _dailyPlanCompletionPercent.value = it.dailyPlanCompletionPercent.coerceIn(0, 100)
-            _dailyPlanAudioPath.value = it.dailyPlanAudioPath
         }
         if (entry == null) {
             _weightKg.value = ""
@@ -153,12 +161,6 @@ class HomeViewModel(
             _actualSleepStartMinutes.value = 22 * 60
             _actualSleepEndMinutes.value = 6 * 60
             _dailyPlanCompletionPercent.value = 0
-            _dailyPlanAudioPath.value = null
-        }
-        _dailyPlanText.value = if (offset == DAY_OFFSET_TODAY) {
-            preferenceManager.dailyPlanDraft.first() ?: entry?.dailyPlanText ?: ""
-        } else {
-            entry?.dailyPlanText ?: ""
         }
     }
 
@@ -174,17 +176,19 @@ class HomeViewModel(
     }
     fun setActualSleepStart(minutes: Int) { _actualSleepStartMinutes.value = minutes }
     fun setActualSleepEnd(minutes: Int) { _actualSleepEndMinutes.value = minutes }
-    fun setDailyPlanText(value: String) {
-        _dailyPlanText.value = value
-        if (_selectedDayOffset.value == DAY_OFFSET_TODAY) {
-            viewModelScope.launch { preferenceManager.saveDailyPlanDraft(value) }
-        }
-    }
-    fun setDailyPlanAudioPath(path: String?) { _dailyPlanAudioPath.value = path }
     fun setDailyPlanCompletionPercent(value: Int) { _dailyPlanCompletionPercent.value = value.coerceIn(0, 100) }
 
     fun save() {
         viewModelScope.launch {
+            val today = homeRepository.dateForOffset(0)
+            val sel = _selectedDate.value
+            val cmp = sel.compareTo(today)
+            val editable = when {
+                cmp > 0 -> false
+                cmp == 0 -> true
+                else -> _pastDayEditingEnabled.value
+            }
+            if (!editable) return@launch
             _isSaving.value = true
             _saveMessage.value = null
             try {
@@ -194,7 +198,8 @@ class HomeViewModel(
                 val endStr = minutesToTime(_sleepEndMinutes.value)
                 val actualStartStr = minutesToTime(_actualSleepStartMinutes.value)
                 val actualEndStr = minutesToTime(_actualSleepEndMinutes.value)
-                val date = homeRepository.dateForOffset(_selectedDayOffset.value)
+                val date = _selectedDate.value
+                val existing = homeRepository.getEntryForDate(date)
                 homeRepository.saveForDate(
                     date = date,
                     weightKg = weight,
@@ -203,11 +208,10 @@ class HomeViewModel(
                     sleepEnd = endStr,
                     actualSleepStart = actualStartStr,
                     actualSleepEnd = actualEndStr,
-                    dailyPlanText = _dailyPlanText.value.ifBlank { null },
-                    dailyPlanAudioPath = _dailyPlanAudioPath.value,
+                    dailyPlanText = existing?.dailyPlanText,
+                    dailyPlanAudioPath = existing?.dailyPlanAudioPath,
                     dailyPlanCompletionPercent = _dailyPlanCompletionPercent.value
                 )
-                // Sleep target and alarms are set in Settings
                 _saveMessage.value = "Saved"
                 loadLast7Completions()
             } catch (e: Exception) {
@@ -227,17 +231,12 @@ class HomeViewModel(
         viewModelScope.launch {
             _isRefreshingLast7.value = true
             try {
-                loadDailyInputsFromDb()
+                loadEntryForSelectedDate()
                 loadLast7Completions()
             } finally {
                 _isRefreshingLast7.value = false
             }
         }
-    }
-
-    /** Load Sleep, Body and Daily Plan for the currently selected day (e.g. on pull-to-refresh). */
-    private suspend fun loadDailyInputsFromDb() {
-        loadEntryForOffset(_selectedDayOffset.value)
     }
 
     private suspend fun loadLast7Completions() {
@@ -261,14 +260,5 @@ class HomeViewModel(
         val h = m / 60
         val min = m % 60
         return "%02d:%02d".format(h, min)
-    }
-
-    private fun formatDateDisplay(dateStr: String): String {
-        return try {
-            val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(dateStr)
-            if (parsed != null) SimpleDateFormat("EEE, MMM d", Locale.US).format(parsed) else dateStr
-        } catch (_: Exception) {
-            dateStr
-        }
     }
 }

@@ -59,13 +59,12 @@ class DietRepository(
     }
 
     /**
-     * Deletes all day-entry data from the database (diet, routine, workout, diary, daily home).
-     * Presets and Lists JSON files in Drive are not modified.
+     * Deletes all day-entry data from the database (diet, routine, workout, diary mood/journal/audio row, daily home).
+     * Diary photo album rows (`diary_collection` / `diary_collection_image`) are intentionally not cleared:
+     * they mirror Google Drive and stay available after reset. Presets and Drive files are not modified.
      */
     suspend fun resetDatabase(): Result<Unit> {
         return try {
-            database.diaryCollectionImageDao().deleteAll()
-            database.diaryCollectionDao().deleteAll()
             database.dietEntryDao().deleteAllEntries()
             database.routineEntryDao().deleteAllEntries()
             database.workoutSetDao().deleteAllSets()

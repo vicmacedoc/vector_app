@@ -20,3 +20,11 @@ sealed class DriveResult<out T> {
 
 @Serializable
 data class DriveFileInfo(val id: String, val name: String)
+
+/** File row from Drive list (images / folders) with metadata for diary sync. */
+data class DriveListedFile(
+    val id: String,
+    val name: String,
+    val mimeType: String?,
+    val modifiedTimeRfc3339: String?,
+)

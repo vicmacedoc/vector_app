@@ -83,6 +83,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Plays Daily Plan audio when opened from alarm; uses fixed middle volume (0.5). */
     private fun playDailyPlanAudioIfAvailable() {
         lifecycleScope.launch {
             val path = withContext(Dispatchers.IO) {
@@ -97,7 +98,8 @@ class MainActivity : ComponentActivity() {
                     helper.startPlayback(
                         path,
                         onCompletion = { dailyPlanAudioHelper = null },
-                        onError = { dailyPlanAudioHelper = null }
+                        onError = { dailyPlanAudioHelper = null },
+                        volume = 0.5f  // fixed middle volume when opened from alarm
                     )
                 }
             }

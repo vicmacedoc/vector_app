@@ -14,6 +14,7 @@ import com.vm.vector.data.PresetStorage
 import com.vm.vector.data.RoutineRepository
 import com.vm.vector.data.ValidateConnectionResult
 import com.vm.vector.data.WorkoutRepository
+import com.vm.vector.VectorApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -71,6 +72,7 @@ class SettingsViewModel(
     private val backupManager: DatabaseBackupManager,
     private val homeRepository: HomeRepository,
     private val sleepAlarmScheduler: SleepAlarmScheduler,
+    private val vectorApplication: VectorApplication,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -85,13 +87,23 @@ class SettingsViewModel(
 
     private fun loadSleepAndAlarms() {
         viewModelScope.launch {
+            val bedtimePref = preferenceManager.sleepTargetBedtimeMinutes.first()
+            val wakeupPref = preferenceManager.sleepTargetWakeupMinutes.first()
             val entry = homeRepository.getTodayEntrySync()
-            val start = entry?.sleepStart?.let { parseTimeToMinutes(it) } ?: 22 * 60
-            val end = entry?.sleepEnd?.let { parseTimeToMinutes(it) } ?: 6 * 60
+            val start = bedtimePref ?: entry?.sleepStart?.let { parseTimeToMinutes(it) } ?: 22 * 60
+            val end = wakeupPref ?: entry?.sleepEnd?.let { parseTimeToMinutes(it) } ?: 6 * 60
             _uiState.value = _uiState.value.copy(
                 sleepBedtimeMinutes = start,
                 sleepWakeupMinutes = end,
             )
+            if (bedtimePref == null && wakeupPref == null && entry != null &&
+                (entry.sleepStart != null || entry.sleepEnd != null)
+            ) {
+                preferenceManager.saveSleepTargetMinutes(
+                    entry.sleepStart?.let { parseTimeToMinutes(it) } ?: 22 * 60,
+                    entry.sleepEnd?.let { parseTimeToMinutes(it) } ?: 6 * 60,
+                )
+            }
         }
     }
 
@@ -145,6 +157,7 @@ class SettingsViewModel(
             val bedtimeStr = minutesToTime(bedtime)
             val wakeupStr = minutesToTime(wakeup)
             homeRepository.saveTodaySleepTarget(bedtimeStr, wakeupStr)
+            preferenceManager.saveSleepTargetMinutes(bedtime, wakeup)
             preferenceManager.saveWakeAlarmBaseMinutes(wakeup)
             preferenceManager.saveWakeAlarmOffsets(listOf(0, 5, 10, 15))
             sleepAlarmScheduler.cancelWakeAlarms()
@@ -413,9 +426,10 @@ class SettingsViewModel(
             val result = dietRepository.resetDatabase()
             _uiState.value = _uiState.value.copy(isResetting = false)
             if (result.isSuccess) {
+                vectorApplication.notifyDatabaseReset()
                 _uiState.value = _uiState.value.copy(
                     showSnackbar = true,
-                    snackbarMessage = "Database reset successfully. All daily data (diet, routine, exercise, diary) has been deleted."
+                    snackbarMessage = "Database reset successfully. Diet, routine, workout, and diary mood/journal have been cleared. Photo albums (Drive) are unchanged."
                 )
             } else {
                 _uiState.value = _uiState.value.copy(
@@ -468,58 +482,16 @@ class SettingsViewModel(
         )
     }
 
-    /**
-     * Overwrite today's data with the new preset and save preset as active.
-     */
-    fun applyPresetOverwriteToday() {
-        applyPreset(overwriteToday = true)
-    }
-
-    /**
-     * Keep today's data; save preset as active for future days only.
-     */
-    fun applyPresetNextDaysOnly() {
-        applyPreset(overwriteToday = false)
-    }
-
-    private fun applyPreset(overwriteToday: Boolean) {
+    /** Saves the preset file for future days only; does not change today's category data. */
+    fun applyPresetFromModal() {
         val category = _uiState.value.presetModalCategory ?: return
         val content = _uiState.value.presetModalContent
         val displayName = _uiState.value.presetModalDisplayName
         if (content.isBlank() || displayName.isBlank()) return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isPresetApplying = true)
-            val todayStr = today()
             try {
-                when (category) {
-                    PresetCategory.Workout -> {
-                        if (overwriteToday) {
-                            workoutRepository.getPresetSetsForDateFromContent(content, todayStr).getOrThrow().let { sets ->
-                                workoutRepository.saveWorkoutForDate(todayStr, sets)
-                            }
-                            preferenceManager.setPresetOverwriteDate(PresetCategory.Workout, todayStr)
-                        }
-                        presetStorage.savePreset(PresetCategory.Workout, displayName, content)
-                    }
-                    PresetCategory.Routine -> {
-                        if (overwriteToday) {
-                            routineRepository.parsePresetContentAndGetEntriesForDate(content, todayStr).getOrThrow().let { entries ->
-                                routineRepository.replaceEntriesForDate(todayStr, entries)
-                            }
-                            preferenceManager.setPresetOverwriteDate(PresetCategory.Routine, todayStr)
-                        }
-                        presetStorage.savePreset(PresetCategory.Routine, displayName, content)
-                    }
-                    PresetCategory.Diet -> {
-                        if (overwriteToday) {
-                            dietRepository.parsePresetContentAndGetEntriesForDate(content, todayStr).getOrThrow().let { entries ->
-                                dietRepository.replaceEntriesForDate(todayStr, entries)
-                            }
-                            preferenceManager.setPresetOverwriteDate(PresetCategory.Diet, todayStr)
-                        }
-                        presetStorage.savePreset(PresetCategory.Diet, displayName, content)
-                    }
-                }
+                presetStorage.savePreset(category, displayName, content)
                 _uiState.value = _uiState.value.copy(
                     isPresetApplying = false,
                     showPresetOverwriteModal = false,

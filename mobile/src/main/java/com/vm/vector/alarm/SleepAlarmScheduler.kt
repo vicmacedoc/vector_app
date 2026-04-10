@@ -320,7 +320,12 @@ class SleepAlarmScheduler(private val context: Context) {
         alarmManager.cancel(pi)
     }
 
+    /** Stops the alarm ringtone and foreground notification when user opens the app. */
     fun stopAlarmIfPlaying() {
+        val stopIntent = Intent(context, AlarmRingingService::class.java).apply {
+            action = "STOP"
+        }
+        context.startService(stopIntent)
         context.stopService(Intent(context, AlarmRingingService::class.java))
     }
 }

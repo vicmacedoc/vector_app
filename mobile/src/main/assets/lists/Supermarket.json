@@ -6,120 +6,63 @@
       "isChecked": false,
       "quantity": 5,
       "remaining": 0,
-      "unit": "lbs",
-      "note": "For 10 home/batch meals (~180g cooked each)"
-    },
-    {
-      "title": "Large Eggs (Grade A)",
-      "isChecked": false,
-      "quantity": 2,
-      "remaining": 0,
-      "unit": "dozen",
-      "note": "20 eggs needed for the week"
-    },
-    {
-      "title": "Jasmine Rice",
-      "isChecked": false,
-      "quantity": 5,
-      "remaining": 0,
-      "unit": "lbs",
-      "note": "Easier digestion than brown rice"
-    },
-    {
-      "title": "Fairlife Ultra-Filtered Whole Milk",
-      "isChecked": false,
-      "quantity": 2,
-      "remaining": 0,
-      "unit": "bottles (52oz)",
-      "note": "Lactose-free and high protein"
+      "unit": "lbs"
     },
     {
       "title": "Lactose-Free Greek Yogurt (Plain)",
       "isChecked": false,
       "quantity": 1,
       "remaining": 0,
-      "unit": "tub (32oz)",
-      "note": "Approx 6 servings"
+      "unit": "tub (32oz)"
+    },
+    {
+      "title": "Large Eggs (Grade A)",
+      "isChecked": false,
+      "quantity": 2,
+      "remaining": 0,
+      "unit": "dozen"
+    },
+    {
+      "title": "Fairlife Ultra-Filtered Whole Milk",
+      "isChecked": false,
+      "quantity": 2,
+      "remaining": 0,
+      "unit": "bottles (52oz)"
     },
     {
       "title": "Fresh Zucchini",
       "isChecked": false,
       "quantity": 3,
       "remaining": 0,
-      "unit": "large un",
-      "note": "Low-FODMAP swap for broccoli"
+      "unit": "large un"
     },
     {
       "title": "Fresh Spinach (Large Tub/Bag)",
       "isChecked": false,
       "quantity": 2,
       "remaining": 0,
-      "unit": "bags (10oz)",
-      "note": "For sautéed dinner portions"
-    },
-    {
-      "title": "Bananas",
-      "isChecked": false,
-      "quantity": 7,
-      "remaining": 0,
-      "unit": "un",
-      "note": "One per day for workout fuel"
+      "unit": "bags (10oz)"
     },
     {
       "title": "Frozen Mixed Berries",
       "isChecked": false,
       "quantity": 1,
       "remaining": 0,
-      "unit": "bag (24oz)",
-      "note": "Cheaper than fresh, same nutrition"
+      "unit": "bag (24oz)"
     },
     {
-      "title": "Whole Wheat Bread",
+      "title": "Jasmine Rice",
       "isChecked": false,
-      "quantity": 1,
+      "quantity": 5,
       "remaining": 0,
-      "unit": "loaf",
-      "note": "Approx 19-20 slices needed"
+      "unit": "lbs"
     },
     {
-      "title": "Old Fashioned Rolled Oats",
+      "title": "White Rice Cakes (Plain/Salt-free)",
       "isChecked": false,
-      "quantity": 1,
-      "remaining": 0,
-      "unit": "canister (42oz)",
-      "note": "Complex carbs for evening recovery"
-    },
-    {
-      "title": "Protein Bars (e.g., Quest/Pure Protein)",
-      "isChecked": false,
-      "quantity": 1,
-      "remaining": 0,
-      "unit": "box (6-12 count)",
-      "note": "Cheaper than buying individually"
-    },
-    {
-      "title": "Peanut Butter (Creamy/Crunchy)",
-      "isChecked": false,
-      "quantity": 1,
-      "remaining": 0,
-      "unit": "jar (16oz)",
-      "note": "Daily healthy fats"
-    },
-    {
-      "title": "Strawberry Jelly/Jam",
-      "isChecked": false,
-      "quantity": 1,
-      "remaining": 0,
-      "unit": "jar",
-      "note": "Morning fast carbs"
-    },
-    {
-      "title": "Whey Protein Isolate",
-      "isChecked": false,
-      "quantity": 1,
-      "remaining": 0,
-      "unit": "tub (2lbs)",
-      "note": "Isolate is better for your lactose sensitivity"
+      "quantity": 1.0,
+      "remaining": 0.0,
+      "unit": "pack"
     },
     {
       "title": "Soy Sauce",
@@ -136,39 +79,18 @@
       "remaining": 0
     },
     {
-      "title": "Arm & Hammer Detergent",
+      "title": "Protein Bars (Aloha Bar)",
       "isChecked": false,
       "quantity": 1,
-      "unit": "bottle (77 loads)",
-      "remaining": 0
+      "remaining": 0,
+      "unit": "box (6-12 count)"
     },
     {
-      "title": "Gain Dryer Sheets",
+      "title": "Whey Protein Isolate",
       "isChecked": false,
       "quantity": 1,
-      "unit": "box (240 ct)",
-      "remaining": 0
-    },
-    {
-      "title": "Scotch-Brite Non-Scratch Sponges (Blue)",
-      "isChecked": false,
-      "quantity": 1,
-      "unit": "pack (3 ct)",
-      "remaining": 0
-    },
-    {
-      "title": "Dawn Dish Soap",
-      "isChecked": false,
-      "quantity": 1,
-      "unit": "bottle",
-      "remaining": 0
-    },
-    {
-      "title": "Microfiber Kitchen Towels",
-      "isChecked": false,
-      "quantity": 1,
-      "unit": "pack",
-      "remaining": 0
+      "remaining": 0,
+      "unit": "tub (2lbs)"
     }
   ]
 }

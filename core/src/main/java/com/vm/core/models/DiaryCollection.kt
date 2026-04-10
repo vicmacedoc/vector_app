@@ -6,7 +6,9 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 /**
- * A named photo collection for a given date. Drive folder: collections/{date}_{name}/.
+ * A named photo album for a calendar day. Images are stored in a single shared Drive
+ * `collections` folder; filenames carry datetime + collection id.
+ * [driveFolderId] is legacy (per-folder uploads); new rows leave it null.
  */
 @Entity(tableName = "diary_collection", indices = [Index("date")])
 @Serializable

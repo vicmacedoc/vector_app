@@ -483,7 +483,9 @@ fun SettingsScreen(
                 },
                 text = {
                     Text(
-                        "This will delete all daily data from the database (diet, routine, exercise, diary, and home entries). " +
+                        "This will delete all daily data from the database (diet, routine, exercise, diary text/audio, and home entries). " +
+                        "Diary photo albums and their Drive links are kept so images in Google Drive stay connected. " +
+                        "Sleep targets, notifications, and active presets on this device are not removed. " +
                         "Presets and Lists in Drive will not be affected.\n\n" +
                         "This action cannot be undone.",
                         color = PureBlack
@@ -520,30 +522,31 @@ fun SettingsScreen(
                 title = { Text("Apply preset \"${uiState.presetModalDisplayName}\"", color = PureBlack) },
                 text = {
                     Text(
-                        "Overwrite today's ${uiState.presetModalCategory!!.name} data with the new preset, or keep today and apply for next days only?",
+                        "Save this file as the active ${uiState.presetModalCategory!!.name} preset for future days. " +
+                            "Today's ${uiState.presetModalCategory!!.name} data on the calendar will not be changed.",
                         color = PureBlack
                     )
                 },
                 confirmButton = {
                     TextButton(
-                        onClick = { viewModel.applyPresetOverwriteToday() },
+                        onClick = { viewModel.applyPresetFromModal() },
                         enabled = !uiState.isPresetApplying,
                         colors = ButtonDefaults.textButtonColors(contentColor = NavyDeep)
                     ) {
                         if (uiState.isPresetApplying) {
                             CircularProgressIndicator(Modifier.size(20.dp), color = NavyDeep, strokeWidth = 2.dp)
                         } else {
-                            Text("Overwrite today")
+                            Text("Save preset")
                         }
                     }
                 },
                 dismissButton = {
                     TextButton(
-                        onClick = { viewModel.applyPresetNextDaysOnly() },
+                        onClick = viewModel::dismissPresetModal,
                         enabled = !uiState.isPresetApplying,
-                        colors = ButtonDefaults.textButtonColors(contentColor = ElectricBlue)
+                        colors = ButtonDefaults.textButtonColors(contentColor = PureBlack)
                     ) {
-                        Text("Keep today, apply next days")
+                        Text("Cancel")
                     }
                 },
                 containerColor = PureWhite

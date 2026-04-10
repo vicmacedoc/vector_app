@@ -10,6 +10,14 @@ interface RoutineEntryDao {
     
     @Query("SELECT * FROM routine_logs WHERE date = :date ORDER BY category ASC, title ASC")
     suspend fun getEntriesByDateSync(date: String): List<RoutineEntry>
+
+    @Query(
+        "SELECT * FROM routine_logs WHERE date >= :startDate AND date <= :endDate ORDER BY date ASC, category ASC, title ASC"
+    )
+    suspend fun getEntriesBetweenSync(startDate: String, endDate: String): List<RoutineEntry>
+
+    @Query("SELECT MIN(date) FROM routine_logs")
+    suspend fun getMinDate(): String?
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEntry(entry: RoutineEntry)

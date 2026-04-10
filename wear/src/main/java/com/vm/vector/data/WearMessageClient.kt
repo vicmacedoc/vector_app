@@ -5,6 +5,8 @@ import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.NodeClient
 import com.google.android.gms.wearable.Wearable
+import com.vm.core.wear.RoutineForDatePayload
+import com.vm.core.wear.RoutineCompletedPayload
 import com.vm.core.wear.WearPaths
 import com.vm.core.wear.WorkoutCompletedPayload
 import com.vm.core.wear.WorkoutsForDatePayload
@@ -30,18 +32,30 @@ class WearMessageClient(private val context: Context) {
      */
     var onWorkoutsResponse: ((WorkoutsForDatePayload) -> Unit)? = null
 
+    var onRoutineResponse: ((RoutineForDatePayload) -> Unit)? = null
+
     /**
      * Register to receive WORKOUTS_RESPONSE. Call before requestWorkoutsForDate.
      */
     fun addListener() {
         if (responseListener != null) return
         responseListener = MessageClient.OnMessageReceivedListener { event ->
-            if (event.path == WearPaths.WORKOUTS_RESPONSE) {
-                scope.launch(Dispatchers.IO) {
-                    try {
-                        val payload = decodeWorkoutsResponse(event.data)
-                        onWorkoutsResponse?.invoke(payload)
-                    } catch (_: Exception) { }
+            when (event.path) {
+                WearPaths.WORKOUTS_RESPONSE -> {
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val payload = decodeWorkoutsResponse(event.data)
+                            onWorkoutsResponse?.invoke(payload)
+                        } catch (_: Exception) { }
+                    }
+                }
+                WearPaths.ROUTINE_RESPONSE -> {
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val payload = decodeRoutineResponse(event.data)
+                            onRoutineResponse?.invoke(payload)
+                        } catch (_: Exception) { }
+                    }
                 }
             }
         }
@@ -83,6 +97,36 @@ class WearMessageClient(private val context: Context) {
         for (node in remoteNodes) {
             try {
                 messageClient.sendMessage(node.id, WearPaths.WORKOUT_COMPLETED, bytes).await()
+                return true
+            } catch (_: Exception) { }
+        }
+        return false
+    }
+
+    suspend fun requestRoutineForDate(date: String): Boolean {
+        val nodes = nodeClient.connectedNodes.await()
+        val localNode = nodeClient.localNode.await()
+        val remoteNodes = nodes.filter { it.id != localNode?.id }
+        if (remoteNodes.isEmpty()) return false
+        val payload = encodeRoutineRequest(date)
+        for (node in remoteNodes) {
+            try {
+                messageClient.sendMessage(node.id, WearPaths.ROUTINE_REQUEST, payload).await()
+                return true
+            } catch (_: Exception) { }
+        }
+        return false
+    }
+
+    suspend fun sendRoutineCompleted(payload: RoutineCompletedPayload): Boolean {
+        val nodes = nodeClient.connectedNodes.await()
+        val localNode = nodeClient.localNode.await()
+        val remoteNodes = nodes.filter { it.id != localNode?.id }
+        if (remoteNodes.isEmpty()) return false
+        val bytes = encodeRoutineCompleted(payload)
+        for (node in remoteNodes) {
+            try {
+                messageClient.sendMessage(node.id, WearPaths.ROUTINE_COMPLETED, bytes).await()
                 return true
             } catch (_: Exception) { }
         }

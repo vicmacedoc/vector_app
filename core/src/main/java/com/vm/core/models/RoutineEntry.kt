@@ -1,6 +1,7 @@
 package com.vm.core.models
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
@@ -10,7 +11,10 @@ enum class RoutineType { CATEGORICAL, NUMERICAL }
 @Serializable
 enum class RoutineStatus { NONE, NOT_DONE, PARTIAL, DONE, EXCEEDED, NA }
 
-@Entity(tableName = "routine_logs")
+@Entity(
+    tableName = "routine_logs",
+    indices = [Index(value = ["date"], name = "index_routine_logs_date")]
+)
 @Serializable
 data class RoutineEntry(
     @PrimaryKey val id: String,

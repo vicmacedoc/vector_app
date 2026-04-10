@@ -25,4 +25,7 @@ interface DiaryCollectionImageDao {
 
     @Query("DELETE FROM diary_collection_image")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM diary_collection_image ORDER BY takenAtMillis ASC")
+    suspend fun getAllSync(): List<DiaryCollectionImage>
 }

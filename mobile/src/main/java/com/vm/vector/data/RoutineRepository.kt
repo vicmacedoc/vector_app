@@ -13,7 +13,12 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
-import java.util.*
+import java.nio.charset.StandardCharsets
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
+import kotlin.math.round
 
 @OptIn(ExperimentalSerializationApi::class)
 class RoutineRepository(
@@ -39,6 +44,35 @@ class RoutineRepository(
     fun getEntriesByDate(date: String): Flow<List<RoutineEntry>> = dao.getEntriesByDate(date)
 
     suspend fun getEntriesByDateSync(date: String): List<RoutineEntry> = dao.getEntriesByDateSync(date)
+
+    private val timeUnits = setOf("h", "min", "s")
+
+    /**
+     * Stable id for preset rows without an explicit [RoutinePlanEntry.id], so Wear and Calendar
+     * always agree on the same [RoutineEntry.id] across parses (fixes watch→phone merge).
+     */
+    private fun stableGeneratedPlanId(planEntry: RoutinePlanEntry, dayOfWeek: Int, index: Int): String {
+        val key = "${planEntry.category}\u0000${planEntry.title}\u0000${planEntry.type.name}\u0000$dayOfWeek\u0000$index"
+        val uuid = UUID.nameUUIDFromBytes(key.toByteArray(StandardCharsets.UTF_8))
+        return "gen_$uuid"
+    }
+
+    /**
+     * Entries for the Wear routine timer: saved day if any, otherwise active preset for that weekday.
+     * Only [RoutineType.NUMERICAL] with unit h / min / s.
+     */
+    suspend fun loadRoutineEntriesForWearSync(date: String): List<RoutineEntry> {
+        val existing = getEntriesByDateSync(date)
+        val entries = if (existing.isNotEmpty()) {
+            existing
+        } else {
+            loadPresetEntriesForDate(date).getOrNull() ?: emptyList()
+        }
+        return entries.filter { entry ->
+            entry.type == RoutineType.NUMERICAL &&
+                entry.unit?.lowercase(Locale.US) in timeUnits
+        }
+    }
 
     suspend fun insertEntry(entry: RoutineEntry) = dao.insertEntry(entry)
 
@@ -99,9 +133,8 @@ class RoutineRepository(
             }
             
             // Convert to RoutineEntry with default values (NONE status, null currentValue). Generate id at assignment if not in preset.
-            val baseTime = System.currentTimeMillis()
             val entries = planEntries.mapIndexed { index, planEntry ->
-                val planId = planEntry.id.ifBlank { "gen_${baseTime}_$index" }
+                val planId = planEntry.id.ifBlank { stableGeneratedPlanId(planEntry, dayOfWeek, index) }
                 RoutineEntry(
                     id = "${planId}_${date}",
                     date = date,
@@ -166,23 +199,37 @@ class RoutineRepository(
     }
 
     /**
-     * Computes entry with new value and recalculated status (no DB write). Used for in-memory Calendar edits.
+     * One decimal place, matching [CalendarScreen] numerical slider rounding so the thumb and value stay aligned.
      */
-    fun computeEntryWithNewValue(entry: RoutineEntry, newValue: Double?): RoutineEntry {
-        val shouldKeepNA = entry.status == RoutineStatus.NA
-        val clampedValue = newValue?.coerceIn(
+    private fun normalizeNumericalSliderValue(value: Double): Double =
+        round(value * 10.0) / 10.0
+
+    /**
+     * Computes entry with new value and recalculated status (no DB write). Used for in-memory Calendar edits.
+     *
+     * @param fromWear When true, NA is not preserved (watch completion replaces manual NA) and value is normalized.
+     */
+    fun computeEntryWithNewValue(entry: RoutineEntry, newValue: Double?, fromWear: Boolean = false): RoutineEntry {
+        val shouldKeepNA = entry.status == RoutineStatus.NA && !fromWear
+        val clampedRaw = newValue?.coerceIn(
             entry.minValue ?: 0.0,
             entry.maxValue ?: Double.MAX_VALUE
         )
+        val clampedValue = if (entry.type == RoutineType.NUMERICAL && clampedRaw != null) {
+            normalizeNumericalSliderValue(clampedRaw)
+        } else {
+            clampedRaw
+        }
         val updated = entry.copy(currentValue = clampedValue)
         val newStatus = if (shouldKeepNA) RoutineStatus.NA else calculateGoalStatus(updated)
-        val isGoalMet = when (updated.type) {
-            RoutineType.NUMERICAL -> {
+        val isGoalMet = when {
+            newStatus == RoutineStatus.NA -> false
+            updated.type == RoutineType.NUMERICAL -> {
                 val goalValue = updated.goalValue ?: 0.0
                 val current = updated.currentValue ?: 0.0
                 if (updated.directionBetter == 1) current >= goalValue else current <= goalValue
             }
-            RoutineType.CATEGORICAL -> newStatus == RoutineStatus.DONE || newStatus == RoutineStatus.EXCEEDED
+            else -> newStatus == RoutineStatus.DONE || newStatus == RoutineStatus.EXCEEDED
         }
         return updated.copy(status = newStatus, isGoalMet = isGoalMet)
     }
@@ -240,16 +287,4 @@ class RoutineRepository(
         return updated
     }
 
-    /**
-     * Saves all entries for a date to Room. Backup to Drive is handled separately.
-     */
-    suspend fun saveDay(date: String): Result<Unit> {
-        return try {
-            val entries = dao.getEntriesByDateSync(date)
-            dao.insertEntries(entries)
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
 }

@@ -34,6 +34,8 @@ data class WorkoutDaySession(
 data class WorkoutExercisePlan(
     val name: String = "",
     val type: String = "RESISTANCE",
+    /** Hypertrophy / volume tags from preset JSON, e.g. ["chest","triceps"]. */
+    val target: List<String> = emptyList(),
     val groupingId: String? = null,
     val description: String = "",
     val timing: String? = null,

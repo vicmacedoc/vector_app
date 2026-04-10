@@ -11,6 +11,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.*
 import androidx.compose.material3.TimePicker
@@ -20,26 +24,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import android.content.pm.PackageManager
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.vm.vector.audio.DailyPlanAudioHelper
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.vm.core.ui.theme.NavyDeep
 import com.vm.core.ui.theme.OffWhite
@@ -47,13 +39,14 @@ import com.vm.core.ui.theme.PureBlack
 import com.vm.core.ui.theme.PureWhite
 import com.vm.core.ui.theme.PriorityLow
 import com.vm.core.ui.theme.SlateGray
-import kotlinx.coroutines.delay
 import com.vm.vector.data.DayCompletion
-import com.vm.vector.ui.viewmodel.DAY_OFFSET_TODAY
-import com.vm.vector.ui.viewmodel.DAY_OFFSET_TOMORROW
-import com.vm.vector.ui.viewmodel.DAY_OFFSET_YESTERDAY
+import com.vm.vector.ui.util.isoCalendarDateToUtcPickerMillis
+import com.vm.vector.ui.util.utcPickerMillisToIsoCalendarDate
 import com.vm.vector.ui.viewmodel.HomeViewModel
 import com.vm.vector.ui.viewmodel.HomeViewModelFactory
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
@@ -114,16 +107,18 @@ fun HomeScreen(
                     onNavigateToCalendar = onNavigateToCalendar
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                DayTabsRow(
-                    selectedDayOffset = uiState.selectedDayOffset,
-                    yesterdayDateDisplay = uiState.yesterdayDateDisplay,
-                    todayDateDisplay = uiState.todayDateDisplay,
-                    tomorrowDateDisplay = uiState.tomorrowDateDisplay,
-                    onSelectDay = viewModel::setSelectedDayOffset
+                HomeSelectedDateRow(
+                    selectedDateIso = uiState.selectedDate,
+                    isPastSelectedDate = uiState.isPastSelectedDate,
+                    isFutureSelectedDate = uiState.isFutureSelectedDate,
+                    pastDayEditingEnabled = uiState.pastDayEditingEnabled,
+                    onDatePicked = viewModel::setSelectedDate,
+                    onTogglePastEditing = viewModel::togglePastDayEditing
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 HomeSectionTitle("Sleep")
                 SleepWidget(
+                    enabled = uiState.homeFieldsEditable,
                     actualSleepStartMinutes = uiState.actualSleepStartMinutes,
                     actualSleepEndMinutes = uiState.actualSleepEndMinutes,
                     onActualSleepChange = { start, end ->
@@ -134,6 +129,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 HomeSectionTitle("Body")
                 BodyWidget(
+                    enabled = uiState.homeFieldsEditable,
                     weightKg = uiState.weightKg,
                     bodyFatPercent = uiState.bodyFatPercent,
                     onWeightChange = viewModel::setWeight,
@@ -141,12 +137,9 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 HomeSectionTitle("Daily Plan")
-                DailyPlanWidget(
-                    text = uiState.dailyPlanText,
-                    dailyPlanAudioPath = uiState.dailyPlanAudioPath,
+                DailyPlanCompletionWidget(
+                    enabled = uiState.homeFieldsEditable,
                     completionPercent = uiState.dailyPlanCompletionPercent,
-                    onTextChange = viewModel::setDailyPlanText,
-                    onAudioPathChange = viewModel::setDailyPlanAudioPath,
                     onCompletionChange = viewModel::setDailyPlanCompletionPercent
                 )
                 }
@@ -155,7 +148,7 @@ fun HomeScreen(
             // SAVE (outside scroll)
             Button(
                 onClick = { viewModel.save() },
-                enabled = !uiState.isSaving,
+                enabled = uiState.homeFieldsEditable && !uiState.isSaving,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 0.dp),
@@ -174,6 +167,143 @@ fun HomeScreen(
                     Text("Save Changes")
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeSelectedDateRow(
+    selectedDateIso: String,
+    isPastSelectedDate: Boolean,
+    isFutureSelectedDate: Boolean,
+    pastDayEditingEnabled: Boolean,
+    onDatePicked: (String) -> Unit,
+    onTogglePastEditing: () -> Unit
+) {
+    val displayPattern = remember { DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US) }
+    val displayText = remember(selectedDateIso) {
+        try {
+            LocalDate.parse(selectedDateIso).format(displayPattern)
+        } catch (_: Exception) {
+            selectedDateIso
+        }
+    }
+    val initialPickerMillis = remember(selectedDateIso) {
+        try {
+            isoCalendarDateToUtcPickerMillis(selectedDateIso)
+        } catch (_: Exception) {
+            isoCalendarDateToUtcPickerMillis(LocalDate.now().toString())
+        }
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { showDatePicker = true },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarToday,
+                    contentDescription = "Pick date",
+                    tint = NavyDeep,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Text(
+                text = displayText,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = NavyDeep,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable { showDatePicker = true }
+            )
+            when {
+                isPastSelectedDate -> {
+                    IconButton(
+                        onClick = onTogglePastEditing,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .then(
+                                if (pastDayEditingEnabled) Modifier.background(NavyDeep, CircleShape)
+                                else Modifier
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = if (pastDayEditingEnabled) "Lock editing" else "Enable editing",
+                            tint = if (pastDayEditingEnabled) PureWhite else PureBlack.copy(alpha = 0.6f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                isFutureSelectedDate -> {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Future day — not editable",
+                        tint = PureBlack.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .size(48.dp)
+                            .padding(12.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = initialPickerMillis
+        )
+        val datePickerColors = DatePickerDefaults.colors(
+            containerColor = PureWhite,
+            titleContentColor = PureBlack,
+            headlineContentColor = PureBlack,
+            weekdayContentColor = PureBlack,
+            subheadContentColor = PureBlack,
+            navigationContentColor = PureBlack,
+            selectedDayContainerColor = NavyDeep,
+            selectedDayContentColor = PureWhite,
+            todayDateBorderColor = NavyDeep,
+            todayContentColor = NavyDeep,
+            dayContentColor = PureBlack,
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val millis = datePickerState.selectedDateMillis ?: initialPickerMillis
+                        onDatePicked(utcPickerMillisToIsoCalendarDate(millis))
+                        showDatePicker = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = NavyDeep)
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDatePicker = false },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = PureBlack.copy(alpha = 0.87f)
+                    )
+                ) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                colors = datePickerColors
+            )
         }
     }
 }
@@ -231,56 +361,8 @@ private fun DailyInputsBlock(
 }
 
 @Composable
-private fun DayTabsRow(
-    selectedDayOffset: Int,
-    yesterdayDateDisplay: String,
-    todayDateDisplay: String,
-    tomorrowDateDisplay: String,
-    onSelectDay: (Int) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        listOf(
-            Triple(DAY_OFFSET_YESTERDAY, "Yesterday", yesterdayDateDisplay),
-            Triple(DAY_OFFSET_TODAY, "Today", todayDateDisplay),
-            Triple(DAY_OFFSET_TOMORROW, "Tomorrow", tomorrowDateDisplay)
-        ).forEach { (offset, label, dateDisplay) ->
-            val selected = selectedDayOffset == offset
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onSelectDay(offset) }
-                    .padding(vertical = 8.dp, horizontal = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = NavyDeep
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = dateDisplay,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SlateGray
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                if (selected) {
-                    HorizontalDivider(color = NavyDeep, thickness = 2.dp)
-                } else {
-                    HorizontalDivider(color = Color.Transparent, thickness = 2.dp)
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun BodyWidget(
+    enabled: Boolean,
     weightKg: String,
     bodyFatPercent: String,
     onWeightChange: (String) -> Unit,
@@ -307,6 +389,7 @@ private fun BodyWidget(
                     onValueChange = onWeightChange,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    enabled = enabled,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     suffix = { Text("Kg", color = SlateGray) }
                 )
@@ -319,6 +402,7 @@ private fun BodyWidget(
                 onValueChange = onBodyFatChange,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                enabled = enabled,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 suffix = { Text("%", color = SlateGray) }
             )
@@ -330,6 +414,7 @@ private fun BodyWidget(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SleepWidget(
+    enabled: Boolean,
     actualSleepStartMinutes: Int,
     actualSleepEndMinutes: Int,
     onActualSleepChange: (startMinutes: Int, endMinutes: Int) -> Unit
@@ -358,6 +443,7 @@ private fun SleepWidget(
                 Text("Bedtime", color = SlateGray, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(4.dp))
                 TimeInputChip(
+                    enabled = enabled,
                     timeText = minutesToTimeString(actualSleepStartMinutes),
                     onClick = { showPicker = SleepPickerKind.ActualStart }
                 )
@@ -366,6 +452,7 @@ private fun SleepWidget(
                 Text("Wake-up", color = SlateGray, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(4.dp))
                 TimeInputChip(
+                    enabled = enabled,
                     timeText = minutesToTimeString(actualSleepEndMinutes),
                     onClick = { showPicker = SleepPickerKind.ActualEnd }
                 )
@@ -451,12 +538,14 @@ private fun minutesToTimeString(minutes: Int): String {
 @Composable
 private fun TimeInputChip(
     timeText: String,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .alpha(if (enabled) 1f else 0.5f)
+            .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(4.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         color = MaterialTheme.colorScheme.surface
@@ -472,50 +561,11 @@ private fun TimeInputChip(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DailyPlanWidget(
-    text: String,
-    dailyPlanAudioPath: String?,
+private fun DailyPlanCompletionWidget(
+    enabled: Boolean,
     completionPercent: Int,
-    onTextChange: (String) -> Unit,
-    onAudioPathChange: (String?) -> Unit,
     onCompletionChange: (Int) -> Unit
 ) {
-    val context = LocalContext.current
-    val audioHelper = remember { DailyPlanAudioHelper(context) }
-    var isRecording by remember { mutableStateOf(false) }
-    var isPlaying by remember { mutableStateOf(false) }
-    var isPaused by remember { mutableStateOf(false) }
-    var snackbarMessage by remember { mutableStateOf<String?>(null) }
-    val showError: (String) -> Unit = { snackbarMessage = it }
-    val hasAudio = !dailyPlanAudioPath.isNullOrBlank() && audioHelper.fileExists(dailyPlanAudioPath)
-
-    val recordPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            val path = audioHelper.startRecording(showError)
-            if (path != null) {
-                isRecording = true
-            }
-        } else {
-            showError("Microphone permission required to record")
-        }
-    }
-
-    LaunchedEffect(snackbarMessage) {
-        snackbarMessage?.let {
-            delay(3000)
-            snackbarMessage = null
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            audioHelper.stopRecording()
-            audioHelper.stopPlayback()
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -524,91 +574,6 @@ private fun DailyPlanWidget(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Audio controls
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (isRecording) {
-                IconButton(onClick = {
-                    audioHelper.stopRecording()
-                    val path = DailyPlanAudioHelper.relativePathForToday()
-                    onAudioPathChange(path)
-                    isRecording = false
-                }) {
-                    Icon(Icons.Filled.Stop, contentDescription = "Stop recording", tint = NavyDeep)
-                }
-                Text("Recording...", color = NavyDeep, style = MaterialTheme.typography.bodyMedium)
-            } else {
-                IconButton(
-                    onClick = {
-                        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                            val path = audioHelper.startRecording(showError)
-                            if (path != null) isRecording = true
-                        } else {
-                            recordPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                        }
-                    }
-                ) {
-                    Icon(Icons.Filled.Mic, contentDescription = "Record", tint = NavyDeep)
-                }
-                if (hasAudio) {
-                    if (isPlaying) {
-                        IconButton(onClick = {
-                            audioHelper.pausePlayback()
-                            isPlaying = false
-                            isPaused = true
-                        }) {
-                            Icon(Icons.Filled.Pause, contentDescription = "Pause", tint = NavyDeep)
-                        }
-                    } else {
-                        IconButton(onClick = {
-                            if (isPaused) {
-                                audioHelper.resumePlayback()
-                                isPaused = false
-                            } else {
-                                audioHelper.startPlayback(
-                                    dailyPlanAudioPath!!,
-                                    onCompletion = { isPlaying = false; isPaused = false },
-                                    onError = showError
-                                )
-                            }
-                            isPlaying = true
-                        }) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = "Play", tint = NavyDeep)
-                        }
-                    }
-                    IconButton(onClick = {
-                        audioHelper.stopPlayback()
-                        audioHelper.deleteFile(dailyPlanAudioPath!!)
-                        onAudioPathChange(null)
-                        isPlaying = false
-                        isPaused = false
-                    }) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Remove recording", tint = NavyDeep)
-                    }
-                    if (hasAudio && !isRecording) {
-                        Text("Recording saved", color = SlateGray, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
-        }
-
-        OutlinedTextField(
-            value = text,
-            onValueChange = onTextChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 120.dp),
-            placeholder = { Text("Today's plan", color = SlateGray) },
-            maxLines = 6
-        )
-
-        if (snackbarMessage != null) {
-            Text(snackbarMessage!!, color = androidx.compose.ui.graphics.Color.Red, style = MaterialTheme.typography.bodySmall)
-        }
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -619,6 +584,7 @@ private fun DailyPlanWidget(
                 value = completionPercent.toFloat(),
                 onValueChange = { onCompletionChange(it.toInt()) },
                 valueRange = 0f..100f,
+                enabled = enabled,
                 modifier = Modifier.weight(1f),
                 colors = SliderDefaults.colors(
                     thumbColor = NavyDeep,

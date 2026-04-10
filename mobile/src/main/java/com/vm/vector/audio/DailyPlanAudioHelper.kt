@@ -93,10 +93,15 @@ class DailyPlanAudioHelper(private val context: Context) {
         mediaRecorder = null
     }
 
+    /**
+     * @param volume Optional volume for playback (0.0f to 1.0f). If null, uses system volume.
+     *              Use e.g. 0.5f for fixed middle volume when playing from alarm.
+     */
     fun startPlayback(
         relativePath: String,
         onCompletion: () -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
+        volume: Float? = null
     ) {
         stopPlayback()
         val path = absolutePath(relativePath)
@@ -114,6 +119,10 @@ class DailyPlanAudioHelper(private val context: Context) {
                 setOnErrorListener { _, what, extra ->
                     onError("Playback error: $what")
                     true
+                }
+                if (volume != null) {
+                    val clamped = volume.coerceIn(0f, 1f)
+                    setVolume(clamped, clamped)
                 }
                 prepare()
                 start()

@@ -34,11 +34,11 @@ class SettingsViewModelFactory(
         dietRepository,
         routineRepository,
         workoutRepository,
-        diaryRepository,
-        preferenceManager
+        diaryRepository
     )
     private val backupManager = DatabaseBackupManager(context, database, driveService, preferenceManager)
     private val sleepAlarmScheduler = SleepAlarmScheduler(context)
+    private val vectorApplication = context.applicationContext as VectorApplication
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -52,7 +52,8 @@ class SettingsViewModelFactory(
                 presetStorage,
                 backupManager,
                 homeRepository,
-                sleepAlarmScheduler
+                sleepAlarmScheduler,
+                vectorApplication
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

@@ -1,5 +1,8 @@
 package com.vm.vector.presentation.workout
 
+import android.content.Context
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,6 +35,13 @@ import com.vm.core.models.WorkoutSet
 import kotlinx.coroutines.delay
 
 private val DarkGreen = Color(0xFF1B5E20)
+
+private fun vibrateRestAlmostDone(vibrator: Vibrator?) {
+    if (vibrator == null || !vibrator.hasVibrator()) return
+    vibrator.vibrate(
+        VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE)
+    )
+}
 
 @Composable
 fun ResistanceFlowScreen(
@@ -51,6 +62,15 @@ fun ResistanceFlowScreen(
     var setIndex by remember { mutableStateOf(0) }
     var restCountdownSec by remember { mutableStateOf<Int?>(null) }
     var restStartMs by remember { mutableStateOf<Long?>(null) }
+    var restDeadlineMs by remember { mutableStateOf<Long?>(null) }
+    /** Last set of an exercise: skip rest countdown; Next records planned rest and advances. */
+    var lastSetAwaitingNext by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val vibrator = remember(context) {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    }
 
     fun updateSet(updated: WorkoutSet) {
         val i = mutableSets.indexOfFirst { it.id == updated.id }
@@ -59,10 +79,27 @@ fun ResistanceFlowScreen(
 
     fun findById(id: String): WorkoutSet? = mutableSets.find { it.id == id }
 
-    LaunchedEffect(restCountdownSec) {
-        val r = restCountdownSec ?: return@LaunchedEffect
-        delay(1000)
-        restCountdownSec = r - 1
+    // Wall-clock countdown so pauses in delay() (e.g. process throttling) don't skew the rest timer.
+    LaunchedEffect(restDeadlineMs) {
+        val deadline = restDeadlineMs ?: return@LaunchedEffect
+        val startMs = restStartMs ?: return@LaunchedEffect
+        val totalRestSec = ((deadline - startMs) / 1000L).toInt().coerceAtLeast(0)
+        val warnNearEnd = totalRestSec > 10
+        var warned10Sec = false
+        var prevRemaining = Int.MAX_VALUE
+        while (true) {
+            val now = System.currentTimeMillis()
+            val remaining = ((deadline - now) / 1000L).toInt().coerceAtLeast(0)
+            restCountdownSec = remaining
+            // ~10s left: transition handles first tick skipping exactly "10" due to ms alignment
+            if (warnNearEnd && !warned10Sec && prevRemaining > 10 && remaining <= 10 && remaining > 0) {
+                vibrateRestAlmostDone(vibrator)
+                warned10Sec = true
+            }
+            if (remaining <= 0) break
+            prevRemaining = remaining
+            delay(minOf(1000L, (deadline - now).coerceAtLeast(1L)))
+        }
     }
 
     when (phase) {
@@ -131,20 +168,55 @@ fun ResistanceFlowScreen(
                 set = currentSet,
                 setNumber = setIndex + 1,
                 totalSets = ex.sets.size,
-                isLastSet = isLastSet,
                 restCountdownSec = restCountdownSec,
+                pendingNextWithoutCountdown = lastSetAwaitingNext,
                 onUpdateSet = { updateSet(it) },
                 onStartSet = { },
                 onStopSet = {
-                    restStartMs = System.currentTimeMillis()
-                    val restSec = when (currentSet.restUnit) {
-                        "s" -> currentSet.targetRest ?: 60
-                        "min" -> (currentSet.targetRest ?: 1) * 60
-                        else -> currentSet.targetRest ?: 60
+                    if (isLastSet) {
+                        lastSetAwaitingNext = true
+                        restStartMs = null
+                        restDeadlineMs = null
+                        restCountdownSec = null
+                    } else {
+                        lastSetAwaitingNext = false
+                        val start = System.currentTimeMillis()
+                        restStartMs = start
+                        val restSec = when (currentSet.restUnit) {
+                            "s" -> currentSet.targetRest ?: 60
+                            "min" -> (currentSet.targetRest ?: 1) * 60
+                            else -> currentSet.targetRest ?: 60
+                        }
+                        restDeadlineMs = start + restSec * 1000L
+                        restCountdownSec = restSec
                     }
-                    restCountdownSec = restSec
                 },
                 onSkipRest = label@{
+                    if (lastSetAwaitingNext) {
+                        val plannedSec = when (currentSet.restUnit.lowercase()) {
+                            "min", "minutes", "minute" -> (currentSet.targetRest ?: 1) * 60
+                            else -> currentSet.targetRest ?: 60
+                        }
+                        val restUnit = currentSet.restUnit.lowercase()
+                        val actualRestInUnit = when {
+                            restUnit == "min" || restUnit == "minutes" || restUnit == "minute" -> (plannedSec / 60).toInt()
+                            else -> plannedSec.toInt()
+                        }
+                        val current = findById(set.id) ?: return@label
+                        updateSet(current.copy(actualRest = actualRestInUnit))
+                        lastSetAwaitingNext = false
+                        restStartMs = null
+                        restDeadlineMs = null
+                        restCountdownSec = null
+                        if (setIndex + 1 < ex.sets.size) {
+                            setIndex++
+                        } else {
+                            exerciseIndex++
+                            setIndex = 0
+                            phase = if (exerciseIndex >= exercises.size) "end" else "carousel"
+                        }
+                        return@label
+                    }
                     if (restCountdownSec == null) return@label
                     val endMs = System.currentTimeMillis()
                     val startMs = restStartMs ?: endMs
@@ -157,6 +229,7 @@ fun ResistanceFlowScreen(
                     val current = findById(set.id) ?: return@label
                     updateSet(current.copy(actualRest = actualRestInUnit))
                     restStartMs = null
+                    restDeadlineMs = null
                     restCountdownSec = null
                     if (setIndex + 1 < ex.sets.size) {
                         setIndex++

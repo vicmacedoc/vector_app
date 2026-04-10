@@ -1,10 +1,14 @@
 package com.vm.core.models
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
-@Entity(tableName = "workout_sets")
+@Entity(
+    tableName = "workout_sets",
+    indices = [Index(value = ["date"], name = "index_workout_sets_date")]
+)
 @Serializable
 data class WorkoutSet(
     @PrimaryKey val id: String, // format: "date_exerciseId_setNumber"
@@ -44,5 +48,7 @@ data class WorkoutSet(
     val actualRpe: Double? = null,
     val actualRir: Int? = null,
     val actualRest: Int? = null,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    /** Comma-separated muscle tags from exercise `target` in preset (Training Volume / analysis). */
+    val targetMuscles: String = ""
 )

@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.*
@@ -48,8 +49,10 @@ data class CalendarUiState(
     val diaryJournalText: String = "",
     val diaryAudioPath: String? = null,           // local path for current recording
     val diaryAudioDriveFileId: String? = null,   // Drive file ID for saved audio
+    /** All albums from Drive (subfolders of `collections/`), each with its images. */
     val diaryCollectionsWithImages: List<Pair<DiaryCollection, List<DiaryCollectionImage>>> = emptyList(),
     val isDiarySaving: Boolean = false,
+    val isDiaryRefreshing: Boolean = false,
     val isCreatingCollection: Boolean = false,
     val noPresetForDiet: Boolean = false,
     val noPresetForRoutine: Boolean = false,
@@ -83,6 +86,7 @@ class CalendarViewModel(
     private val _diaryAudioDriveFileId = MutableStateFlow<String?>(null)
     private val _diaryCollectionsWithImages = MutableStateFlow<List<Pair<DiaryCollection, List<DiaryCollectionImage>>>>(emptyList())
     private val _isDiarySaving = MutableStateFlow(false)
+    private val _isDiaryRefreshing = MutableStateFlow(false)
     private val _isCreatingCollection = MutableStateFlow(false)
     private val _noPresetForDiet = MutableStateFlow(false)
     private val _noPresetForRoutine = MutableStateFlow(false)
@@ -109,6 +113,7 @@ class CalendarViewModel(
         _diaryAudioDriveFileId,
         _diaryCollectionsWithImages,
         _isDiarySaving,
+        _isDiaryRefreshing,
         _isCreatingCollection,
         _noPresetForDiet,
         _noPresetForRoutine,
@@ -136,10 +141,11 @@ class CalendarViewModel(
         @Suppress("UNCHECKED_CAST")
         val diaryCollectionsWithImages = (values[15] as? List<Pair<DiaryCollection, List<DiaryCollectionImage>>>) ?: emptyList()
         val isDiarySaving = values[16] as? Boolean ?: false
-        val isCreatingCollection = values[17] as? Boolean ?: false
-        val noPresetForDiet = values[18] as? Boolean ?: false
-        val noPresetForRoutine = values[19] as? Boolean ?: false
-        val noPresetForWorkout = values[20] as? Boolean ?: false
+        val isDiaryRefreshing = values[17] as? Boolean ?: false
+        val isCreatingCollection = values[18] as? Boolean ?: false
+        val noPresetForDiet = values[19] as? Boolean ?: false
+        val noPresetForRoutine = values[20] as? Boolean ?: false
+        val noPresetForWorkout = values[21] as? Boolean ?: false
         CalendarUiState(
             entries = entriesList,
             routineEntries = routineEntriesList,
@@ -158,6 +164,7 @@ class CalendarViewModel(
             diaryAudioDriveFileId = diaryAudioDriveFileId,
             diaryCollectionsWithImages = diaryCollectionsWithImages,
             isDiarySaving = isDiarySaving,
+            isDiaryRefreshing = isDiaryRefreshing,
             isCreatingCollection = isCreatingCollection,
             noPresetForDiet = noPresetForDiet,
             noPresetForRoutine = noPresetForRoutine,
@@ -191,6 +198,40 @@ class CalendarViewModel(
                     }
                 }
             }
+            viewModelScope.launch {
+                app.wearRoutineReceived.collect { (date, entryId, value) ->
+                    if (date == _currentDate.value) {
+                        _routineEntries.value = _routineEntries.value.map { e ->
+                            if (e.id == entryId) {
+                                routineRepository.computeEntryWithNewValue(e, value, fromWear = true)
+                            } else e
+                        }
+                        app.removePendingRoutineWearEntry(date, entryId)
+                    }
+                }
+            }
+            viewModelScope.launch {
+                app.databaseResetEvents.collect {
+                    val d = _currentDate.value
+                    loadEntriesForDate(d)
+                    loadRoutineEntriesForDate(d)
+                    loadWorkoutForDate(d)
+                    loadDatesWithCheckedMeals()
+                    loadDiaryForDate(d)
+                }
+            }
+        }
+    }
+
+    private fun mergeRoutineEntriesWithPendingWear(
+        date: String,
+        entries: List<RoutineEntry>
+    ): List<RoutineEntry> {
+        val app = application as? VectorApplication ?: return entries
+        val pending = app.getAndClearPendingRoutineWearData(date)
+        if (pending.isEmpty()) return entries
+        return entries.map { e ->
+            pending[e.id]?.let { routineRepository.computeEntryWithNewValue(e, it, fromWear = true) } ?: e
         }
     }
 
@@ -295,9 +336,39 @@ class CalendarViewModel(
                 _diaryJournalText.value = entry?.journalText.orEmpty()
                 _diaryAudioPath.value = null
                 _diaryAudioDriveFileId.value = entry?.journalAudioDriveFileId
-                _diaryCollectionsWithImages.value = diaryRepository.getCollectionsWithImagesSync(date)
+                _diaryCollectionsWithImages.value = diaryRepository.getAllCollectionsWithImagesSync()
             } catch (e: Exception) {
                 _diaryCollectionsWithImages.value = emptyList()
+            }
+        }
+    }
+
+    fun refreshDiaryFromDrive() {
+        viewModelScope.launch {
+            _isDiaryRefreshing.value = true
+            try {
+                val result = diaryRepository.syncDiaryPhotosFromDrive()
+                result.fold(
+                    onSuccess = { r ->
+                        loadDiaryForDate(_currentDate.value)
+                        val changed = r.importedCount > 0 || r.removedImagesCount > 0 || r.removedCollectionsCount > 0
+                        val msg = if (!changed) {
+                            "Diary photos up to date"
+                        } else {
+                            buildList {
+                                if (r.importedCount > 0) add("${r.importedCount} added")
+                                if (r.removedImagesCount > 0) add("${r.removedImagesCount} removed")
+                                if (r.removedCollectionsCount > 0) add("${r.removedCollectionsCount} album(s) removed")
+                            }.joinToString(", ")
+                        }
+                        showSuccess(msg)
+                    },
+                    onFailure = { e ->
+                        showError(e.message ?: "Failed to refresh diary photos")
+                    }
+                )
+            } finally {
+                _isDiaryRefreshing.value = false
             }
         }
     }
@@ -363,6 +434,9 @@ class CalendarViewModel(
             val result = diaryRepository.createCollection(_currentDate.value, name)
             if (result.isSuccess) {
                 loadDiaryForDate(_currentDate.value)
+                showSuccess("Collection created")
+            } else {
+                showError(result.exceptionOrNull()?.message ?: "Failed to create collection")
             }
             result
         } finally {
@@ -372,14 +446,16 @@ class CalendarViewModel(
 
     suspend fun addImageToCollection(
         collectionId: String,
-        fileName: String,
         mimeType: String,
         bytes: ByteArray,
         takenAtMillis: Long = System.currentTimeMillis()
     ): Result<DiaryCollectionImage> {
-        val result = diaryRepository.addImageToCollection(collectionId, fileName, mimeType, bytes, takenAtMillis)
+        val result = diaryRepository.addImageToCollection(collectionId, mimeType, bytes, takenAtMillis)
         if (result.isSuccess) {
             loadDiaryForDate(_currentDate.value)
+            showSuccess("Image uploaded")
+        } else {
+            showError(result.exceptionOrNull()?.message ?: "Failed to upload image")
         }
         return result
     }
@@ -397,7 +473,7 @@ class CalendarViewModel(
             val result = diaryRepository.deleteCollection(collection)
             if (result.isSuccess) {
                 loadDiaryForDate(_currentDate.value)
-                showSuccess("Collection deleted")
+                showSuccess("Album removed from app (files stay on Drive until you delete them there)")
             } else {
                 showError("Failed to delete: ${result.exceptionOrNull()?.message}")
             }
@@ -482,7 +558,7 @@ class CalendarViewModel(
                 val existingEntries = routineRepository.getEntriesByDateSync(date)
                 if (existingEntries.isNotEmpty()) {
                     _noPresetForRoutine.value = false
-                    _routineEntries.value = existingEntries
+                    _routineEntries.value = mergeRoutineEntriesWithPendingWear(date, existingEntries)
                     return@launch
                 }
                 val presetResult = routineRepository.loadPresetEntriesForDate(date)
@@ -491,7 +567,7 @@ class CalendarViewModel(
                         _noPresetForRoutine.value = false
                         val presetEntries = presetResult.getOrNull() ?: emptyList()
                         if (presetEntries.isNotEmpty()) {
-                            _routineEntries.value = presetEntries
+                            _routineEntries.value = mergeRoutineEntriesWithPendingWear(date, presetEntries)
                         } else {
                             _routineEntries.value = emptyList()
                             showError("No routine plan found for this day in the preset.")
@@ -810,8 +886,9 @@ class CalendarViewModel(
         viewModelScope.launch {
             _isSaving.value = true
             val date = _currentDate.value
-            routineRepository.replaceEntriesForDate(date, _routineEntries.value)
-            val result = routineRepository.saveDay(date)
+            val result = runCatching {
+                routineRepository.replaceEntriesForDate(date, _routineEntries.value)
+            }
             _isSaving.value = false
             loadDatesWithCheckedMeals()
             if (result.isSuccess) {
@@ -857,6 +934,10 @@ class CalendarViewModel(
 
     fun dismissSnackbar() {
         _showSnackbar.value = false
+    }
+
+    fun notifyDiaryError(message: String) {
+        showError(message)
     }
 
     private fun showError(message: String) {

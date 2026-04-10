@@ -1,54 +1,50 @@
 package com.vm.vector.data
 
 import android.app.Application
-import com.google.android.gms.wearable.MessageClient
+import android.content.Context
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
+import com.vm.core.models.RoutineEntry
+import com.vm.core.wear.RoutineForDatePayload
+import com.vm.core.wear.RoutineWearEntry
 import com.vm.core.wear.WearPaths
 import com.vm.core.wear.WorkoutsForDatePayload
 import com.vm.vector.VectorApplication
-import com.vm.vector.data.decodeWorkoutCompleted
-import com.vm.vector.data.decodeWorkoutsRequest
-import com.vm.vector.data.encodeWorkoutsResponse
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
- * Receives messages from the Wear app: workouts request (reply with workout list)
- * and workout completed (merge into pending wear data for Calendar).
+ * Handles Wear Data Layer messages. Primary entry: [VectorWearableListenerService].
+ * [register] is kept as a no-op for compatibility; GMS delivers inbound messages via the service.
  */
 object WearMessageReceiver {
 
-    private var listener: MessageClient.OnMessageReceivedListener? = null
-
     fun register(application: Application) {
-        if (listener != null) return
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-        listener = MessageClient.OnMessageReceivedListener { messageEvent ->
-            when (messageEvent.path) {
-                WearPaths.WORKOUTS_REQUEST -> {
-                    scope.launch(Dispatchers.IO) {
-                        handleWorkoutsRequest(application, messageEvent)
-                    }
-                }
-                WearPaths.WORKOUT_COMPLETED -> {
-                    scope.launch(Dispatchers.IO) {
-                        handleWorkoutCompleted(application, messageEvent)
-                    }
-                }
-            }
-        }
-        Wearable.getMessageClient(application).addListener(listener!!)
+        // Inbound messages are handled by [com.vm.vector.wear.VectorWearableListenerService].
     }
 
-    private suspend fun handleWorkoutsRequest(application: Application, messageEvent: MessageEvent) {
-        val app = application as? VectorApplication ?: return
+    fun onWorkoutCompletedFromWear(app: VectorApplication, data: ByteArray) {
+        try {
+            val payload = decodeWorkoutCompleted(data)
+            app.addPendingWearData(payload.date, payload.sets)
+            app.persistWearWorkoutCompletion(payload.date, payload.sets)
+            app.setWearWorkoutReceivedMessage("Workout received from watch and saved")
+        } catch (_: Exception) {
+        }
+    }
+
+    fun onRoutineCompletedFromWear(app: VectorApplication, data: ByteArray) {
+        try {
+            val payload = decodeRoutineCompleted(data)
+            app.addPendingRoutineWearData(payload.date, payload.entryId, payload.currentValue)
+            app.setWearRoutineReceivedMessage("Routine data received from watch")
+        } catch (_: Exception) {
+        }
+    }
+
+    suspend fun replyWorkoutsRequest(app: VectorApplication, context: Context, messageEvent: MessageEvent) {
         val date = try {
             decodeWorkoutsRequest(messageEvent.data)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return
         }
         val sets = app.getWorkoutSetsForWearRequest(date)
@@ -57,22 +53,44 @@ object WearMessageReceiver {
         val payload = WorkoutsForDatePayload(date = date, sets = sets)
         val responseBytes = encodeWorkoutsResponse(payload)
         try {
-            Wearable.getMessageClient(application)
+            Wearable.getMessageClient(context)
                 .sendMessage(messageEvent.sourceNodeId, WearPaths.WORKOUTS_RESPONSE, responseBytes)
                 .await()
         } catch (_: Exception) {
-            // Ignore send failures (watch may have disconnected)
         }
     }
 
-    private fun handleWorkoutCompleted(application: Application, messageEvent: MessageEvent) {
-        val app = application as? VectorApplication ?: return
-        try {
-            val payload = decodeWorkoutCompleted(messageEvent.data)
-            app.addPendingWearData(payload.date, payload.sets)
-            app.setWearWorkoutReceivedMessage("Workout data received from watch")
+    suspend fun replyRoutineRequest(app: VectorApplication, context: Context, messageEvent: MessageEvent) {
+        val date = try {
+            messageEvent.data.decodeToString()
         } catch (_: Exception) {
-            // Ignore parse errors
+            return
         }
+        val rows = app.routineRepository.loadRoutineEntriesForWearSync(date)
+        val wearEntries = rows.map { it.toRoutineWearEntry() }
+        val payload = RoutineForDatePayload(date = date, entries = wearEntries)
+        val responseBytes = encodeRoutineResponse(payload)
+        try {
+            Wearable.getMessageClient(context)
+                .sendMessage(messageEvent.sourceNodeId, WearPaths.ROUTINE_RESPONSE, responseBytes)
+                .await()
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun RoutineEntry.toRoutineWearEntry(): RoutineWearEntry {
+        val u = unit ?: "h"
+        return RoutineWearEntry(
+            id = id,
+            title = title,
+            category = category,
+            unit = u,
+            goalValue = goalValue ?: 0.0,
+            partialThreshold = partialThreshold ?: 0.0,
+            currentValue = currentValue,
+            directionBetter = directionBetter,
+            minValue = minValue,
+            maxValue = maxValue
+        )
     }
 }

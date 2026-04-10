@@ -7,6 +7,8 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioManager
+import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
@@ -18,11 +20,11 @@ import com.vm.vector.MainActivity
 /**
  * Foreground service that plays the alarm ringtone and shows a full-screen
  * notification to open the app and stop the alarm.
- * Opening the app stops this service.
+ * Opening the app stops this service; then MainActivity plays Daily Plan audio.
  */
 class AlarmRingingService : Service() {
 
-    private var ringtone: android.media.Ringtone? = null
+    private var alarmPlayer: MediaPlayer? = null
 
     companion object {
         const val CHANNEL_ID = "vector_alarm"
@@ -66,33 +68,58 @@ class AlarmRingingService : Service() {
         wakeLock.acquire(60_000L)  // auto-releases after 1 min
     }
 
+    /**
+     * Plays the alarm ringtone on the alarm stream so it is audible when the alarm fires
+     * (e.g. from doze). Uses MediaPlayer with STREAM_ALARM for reliable playback.
+     */
     private fun playRingtone(uri: Uri) {
+        stopRingtone()
         try {
-            ringtone = RingtoneManager.getRingtone(this, uri).apply {
-                audioAttributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
+            alarmPlayer = MediaPlayer().apply {
+                setDataSource(this@AlarmRingingService, uri)
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+                @Suppress("DEPRECATION")
+                setAudioStreamType(AudioManager.STREAM_ALARM)
                 isLooping = true
-                play()
+                prepare()
+                start()
             }
         } catch (e: Exception) {
-            RingtoneManager.getRingtone(this, android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI)?.apply {
-                audioAttributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-                isLooping = true
-                play()
-            }?.let { ringtone = it }
+            try {
+                val defaultUri = android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI
+                alarmPlayer = MediaPlayer().apply {
+                    setDataSource(this@AlarmRingingService, defaultUri)
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    @Suppress("DEPRECATION")
+                    setAudioStreamType(AudioManager.STREAM_ALARM)
+                    isLooping = true
+                    prepare()
+                    start()
+                }
+            } catch (_: Exception) {
+                alarmPlayer = null
+            }
         }
     }
 
     private fun stopRingtone() {
         try {
-            ringtone?.stop()
+            alarmPlayer?.apply {
+                if (isPlaying) stop()
+                release()
+            }
         } catch (_: Exception) {}
-        ringtone = null
+        alarmPlayer = null
     }
 
     private fun buildNotification(): Notification {

@@ -1,13 +1,17 @@
 package com.vm.core.models
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 @Serializable
 enum class AuditStatus { PLANNED, ADJUSTED, UNPLANNED }
 
-@Entity(tableName = "diet_logs")
+@Entity(
+    tableName = "diet_logs",
+    indices = [Index(value = ["date"], name = "index_diet_logs_date")]
+)
 @Serializable
 data class DietEntry(
     @PrimaryKey val id: String,

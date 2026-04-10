@@ -385,6 +385,42 @@ class DriveService(
     }
 
     /**
+     * Lists direct children with id, name, mimeType, modifiedTime (for diary photo sync).
+     */
+    suspend fun listChildrenWithMetadata(folderId: String): DriveResult<List<DriveListedFile>> = withContext(Dispatchers.IO) {
+        val account = authManager.getLastSignedInAccount()
+        if (account == null) {
+            Log.w(TAG, "listChildrenWithMetadata: No signed-in account")
+            return@withContext DriveResult.Unauthorized
+        }
+        try {
+            val drive = buildDrive(account)
+            val result = drive.files().list()
+                .setQ("'$folderId' in parents and trashed=false")
+                .setSpaces("drive")
+                .setFields("files(id, name, mimeType, modifiedTime)")
+                .setPageSize(1000)
+                .execute()
+            val list = (result.files ?: emptyList()).map { f ->
+                DriveListedFile(
+                    id = f.id,
+                    name = f.name,
+                    mimeType = f.mimeType,
+                    modifiedTimeRfc3339 = f.modifiedTime?.toStringRfc3339()
+                )
+            }
+            return@withContext DriveResult.Success(list)
+        } catch (e: Exception) {
+            val recoverable = e as? UserRecoverableAuthIOException ?: e.cause as? UserRecoverableAuthIOException
+            if (recoverable != null) {
+                Log.w(TAG, "listChildrenWithMetadata: NeedRemoteConsent", e)
+                return@withContext DriveResult.NeedsRemoteConsent(recoverable.intent)
+            }
+            mapDriveException("listChildrenWithMetadata", e)
+        }
+    }
+
+    /**
      * Lists all files (non-folder) in a folder.
      */
     suspend fun listFilesInFolder(folderId: String): DriveResult<List<DriveFileInfo>> = withContext(Dispatchers.IO) {
