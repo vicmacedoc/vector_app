@@ -1,10 +1,10 @@
 package com.vm.vector.data
 
 /**
- * Preset categories for workout, routine, and diet weekly plans.
+ * Preset categories for the weekly workout, food and routine plans.
  */
 enum class PresetCategory(val fileSuffix: String) {
     Workout("workout"),
-    Routine("routine"),
-    Diet("diet")
+    Food("food"),
+    Routine("routine")
 }

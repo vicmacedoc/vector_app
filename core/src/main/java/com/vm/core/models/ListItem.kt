@@ -6,6 +6,8 @@ import kotlinx.serialization.Serializable
 data class VectorList(
     val id: String = "",
     val name: String,
+    /** Aisle / store-route order for supermarket lists. Empty for generic checklists. */
+    val sections: List<String> = emptyList(),
     val items: List<VectorItem>
 )
 
@@ -20,6 +22,9 @@ data class VectorItem(
     val price: Double? = null,
     @Serializable(with = PrioritySerializer::class)
     val priority: String? = null,
+    /** Aisle name for supermarket lists (matches an entry in [VectorList.sections]). */
     val category: String? = null,
+    /** Position within the aisle for supermarket route order. */
+    val order: Int? = null,
     val dueDate: Long? = null
 )

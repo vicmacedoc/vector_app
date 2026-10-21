@@ -1,5 +1,13 @@
 package com.vm.vector.data
 
+import com.vm.core.wear.ActivitiesForWearPayload
+import com.vm.core.wear.ActivityCompletionSetPayload
+import com.vm.core.wear.FoodDayForWearPayload
+import com.vm.core.wear.SupermarketForWearPayload
+import com.vm.core.wear.SupermarketTogglePayload
+import com.vm.core.wear.FoodStatusSetPayload
+import com.vm.core.wear.MotionCompletePayload
+import com.vm.core.wear.MotionForWearPayload
 import com.vm.core.wear.RoutineCompletedPayload
 import com.vm.core.wear.RoutineForDatePayload
 import com.vm.core.wear.WorkoutCompletedPayload
@@ -27,3 +35,31 @@ fun encodeRoutineResponse(payload: RoutineForDatePayload): ByteArray =
 
 fun decodeRoutineCompleted(payload: ByteArray): RoutineCompletedPayload =
     createWearJson().decodeFromString(RoutineCompletedPayload.serializer(), payload.decodeToString())
+
+fun encodeMotionResponse(payload: MotionForWearPayload): ByteArray =
+    createWearJson().encodeToString(MotionForWearPayload.serializer(), payload).encodeToByteArray()
+
+fun decodeMotionComplete(payload: ByteArray): MotionCompletePayload =
+    createWearJson().decodeFromString(MotionCompletePayload.serializer(), payload.decodeToString())
+
+fun decodeFoodRequest(payload: ByteArray): String = payload.decodeToString()
+
+fun encodeFoodResponse(payload: FoodDayForWearPayload): ByteArray =
+    createWearJson().encodeToString(FoodDayForWearPayload.serializer(), payload).encodeToByteArray()
+
+fun decodeFoodStatusSet(payload: ByteArray): FoodStatusSetPayload =
+    createWearJson().decodeFromString(FoodStatusSetPayload.serializer(), payload.decodeToString())
+
+fun decodeActivitiesRequest(payload: ByteArray): String = payload.decodeToString()
+
+fun encodeActivitiesResponse(payload: ActivitiesForWearPayload): ByteArray =
+    createWearJson().encodeToString(ActivitiesForWearPayload.serializer(), payload).encodeToByteArray()
+
+fun decodeActivityCompletionSet(payload: ByteArray): ActivityCompletionSetPayload =
+    createWearJson().decodeFromString(ActivityCompletionSetPayload.serializer(), payload.decodeToString())
+
+fun encodeSupermarketResponse(payload: SupermarketForWearPayload): ByteArray =
+    createWearJson().encodeToString(SupermarketForWearPayload.serializer(), payload).encodeToByteArray()
+
+fun decodeSupermarketToggle(payload: ByteArray): SupermarketTogglePayload =
+    createWearJson().decodeFromString(SupermarketTogglePayload.serializer(), payload.decodeToString())

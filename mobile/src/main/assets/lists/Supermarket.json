@@ -1,96 +1,37 @@
 {
   "name": "Weekly Groceries",
+  "sections": ["Produce", "Meat", "Dairy", "Frozen", "Pantry", "Supplements", "Household"],
   "items": [
-    {
-      "title": "Chicken Breast (Family Pack)",
-      "isChecked": false,
-      "quantity": 5,
-      "remaining": 0,
-      "unit": "lbs"
-    },
-    {
-      "title": "Lactose-Free Greek Yogurt (Plain)",
-      "isChecked": false,
-      "quantity": 1,
-      "remaining": 0,
-      "unit": "tub (32oz)"
-    },
-    {
-      "title": "Large Eggs (Grade A)",
-      "isChecked": false,
-      "quantity": 2,
-      "remaining": 0,
-      "unit": "dozen"
-    },
-    {
-      "title": "Fairlife Ultra-Filtered Whole Milk",
-      "isChecked": false,
-      "quantity": 2,
-      "remaining": 0,
-      "unit": "bottles (52oz)"
-    },
-    {
-      "title": "Fresh Zucchini",
-      "isChecked": false,
-      "quantity": 3,
-      "remaining": 0,
-      "unit": "large un"
-    },
-    {
-      "title": "Fresh Spinach (Large Tub/Bag)",
-      "isChecked": false,
-      "quantity": 2,
-      "remaining": 0,
-      "unit": "bags (10oz)"
-    },
-    {
-      "title": "Frozen Mixed Berries",
-      "isChecked": false,
-      "quantity": 1,
-      "remaining": 0,
-      "unit": "bag (24oz)"
-    },
-    {
-      "title": "Jasmine Rice",
-      "isChecked": false,
-      "quantity": 5,
-      "remaining": 0,
-      "unit": "lbs"
-    },
-    {
-      "title": "White Rice Cakes (Plain/Salt-free)",
-      "isChecked": false,
-      "quantity": 1.0,
-      "remaining": 0.0,
-      "unit": "pack"
-    },
-    {
-      "title": "Soy Sauce",
-      "isChecked": false,
-      "quantity": 1,
-      "unit": "bottle",
-      "remaining": 0
-    },
-    {
-      "title": "Minced Garlic (Water/Oil)",
-      "isChecked": false,
-      "quantity": 1,
-      "unit": "jar (8oz)",
-      "remaining": 0
-    },
-    {
-      "title": "Protein Bars (Aloha Bar)",
-      "isChecked": false,
-      "quantity": 1,
-      "remaining": 0,
-      "unit": "box (6-12 count)"
-    },
-    {
-      "title": "Whey Protein Isolate",
-      "isChecked": false,
-      "quantity": 1,
-      "remaining": 0,
-      "unit": "tub (2lbs)"
-    }
+    { "title": "Fresh Spinach (Large Tub/Bag)", "isChecked": true, "quantity": 2.0, "remaining": 0.0, "unit": "bags (10oz)", "category": "Produce", "order": 0 },
+    { "title": "Carrots", "isChecked": true, "quantity": 2.0, "remaining": 0.0, "unit": "lbs", "category": "Produce", "order": 1 },
+    { "title": "Bananas (firm/yellow)", "isChecked": true, "quantity": 6.0, "remaining": 0.0, "unit": "count", "category": "Produce", "order": 2 },
+    { "title": "Chicken Breast (Family Pack)", "isChecked": true, "quantity": 5.0, "remaining": 0.0, "unit": "lbs", "category": "Meat", "order": 0 },
+    { "title": "Large Eggs (Grade A)", "isChecked": true, "quantity": 2.0, "remaining": 0.5, "unit": "dozen", "category": "Dairy", "order": 0 },
+    { "title": "Fairlife Whole Milk (Lactose-Free)", "isChecked": true, "quantity": 2.0, "remaining": 0.0, "unit": "bottles (52oz)", "category": "Dairy", "order": 1 },
+    { "title": "Frozen Strawberry + Blueberry", "isChecked": true, "quantity": 2.0, "remaining": 1.0, "unit": "bag (24oz)", "category": "Frozen", "order": 0 },
+    { "title": "GF Rolled Oats", "isChecked": true, "quantity": 1.0, "remaining": 0.4, "unit": "canister (42oz)", "category": "Pantry", "order": 0 },
+    { "title": "Jasmine Rice", "isChecked": true, "quantity": 5.0, "remaining": 2.5, "unit": "lbs", "category": "Pantry", "order": 1 },
+    { "title": "White Rice Cakes (Plain/Salt-free)", "isChecked": true, "quantity": 1.0, "remaining": 0.3, "unit": "pack", "category": "Pantry", "order": 2 },
+    { "title": "Soy Sauce (plain / low-FODMAP)", "isChecked": true, "quantity": 1.0, "remaining": 0.5, "unit": "bottle", "category": "Pantry", "order": 3 },
+    { "title": "Garlic-Infused Olive Oil", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "bottle", "category": "Pantry", "order": 4 },
+    { "title": "Protein Bars (Aloha Bar)", "isChecked": true, "quantity": 2.0, "remaining": 1.0, "unit": "box (6 count)", "category": "Pantry", "order": 5 },
+    { "title": "Table Salt + Lite Salt (DIY electrolytes)", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "set", "category": "Pantry", "order": 6 },
+    { "title": "Whey Protein Isolate", "isChecked": true, "quantity": 1.0, "remaining": 0.2, "unit": "tub (5lbs)", "category": "Supplements", "order": 0 },
+    { "title": "Creatine Monohydrate", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "tub (500g)", "category": "Supplements", "order": 1 },
+    { "title": "Omega-3 Fish Oil (2500mg)", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "bottle", "category": "Supplements", "order": 2 },
+    { "title": "Vitamin D3", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "bottle", "category": "Supplements", "order": 3 },
+    { "title": "Magnesium Glycinate", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "bottle", "category": "Supplements", "order": 4 },
+    { "title": "Iron Bisglycinate (chelated)", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "bottle", "category": "Supplements", "order": 5 },
+    { "title": "Hammer Laundry Detergent", "isChecked": true, "quantity": 1.0, "remaining": 0.5, "unit": "bottle", "category": "Household", "order": 0 },
+    { "title": "Dawn Ultra Dish Soap", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "bottle (28oz)", "category": "Household", "order": 1 },
+    { "title": "Arm & Hammer Carpet Odor Eliminator", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "box (30oz)", "category": "Household", "order": 2 },
+    { "title": "Resolve Carpet Spot & Stain Remover", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "bottle", "category": "Household", "order": 3 },
+    { "title": "Scrubbing Bubbles Bathroom Cleaner", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "bottle", "category": "Household", "order": 4 },
+    { "title": "Clorox Toilet Bowl Cleaner", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "bottle", "category": "Household", "order": 5 },
+    { "title": "Windex Glass Cleaner", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "bottle", "category": "Household", "order": 6 },
+    { "title": "Febreze Plug-In (Warmer + Refill)", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "kit", "category": "Household", "order": 7 },
+    { "title": "Disinfecting Wipes", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "tub", "category": "Household", "order": 8 },
+    { "title": "Scrub Sponges", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "pack", "category": "Household", "order": 9 },
+    { "title": "Microfiber Cloths", "isChecked": true, "quantity": 1.0, "remaining": 0.0, "unit": "pack", "category": "Household", "order": 10 }
   ]
 }

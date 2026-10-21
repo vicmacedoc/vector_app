@@ -1,355 +1,960 @@
 {
-  "name": "Routine Plan - Spring 2026",
-  "weekly_plan": {
-    "monday": [
-      {
-        "category": "Development",
-        "title": "Productivity",
-        "type": "NUMERICAL",
-        "goalValue": 4.0,
-        "partialThreshold": 2.0,
-        "minValue": 0.0,
-        "maxValue": 10.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Study",
-        "type": "NUMERICAL",
-        "goalValue": 2.0,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 8.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Learn something new",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Make bed",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Social Media",
-        "type": "NUMERICAL",
-        "goalValue": 0.1,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 6.0,
-        "unit": "h",
-        "directionBetter": -1
-      },
-      {
-        "category": "Life",
-        "title": "Self-control",
-        "type": "CATEGORICAL"
-      }
-    ],
-    "tuesday": [
-      {
-        "category": "Development",
-        "title": "Productivity",
-        "type": "NUMERICAL",
-        "goalValue": 4.0,
-        "partialThreshold": 2.0,
-        "minValue": 0.0,
-        "maxValue": 10.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Study",
-        "type": "NUMERICAL",
-        "goalValue": 2.0,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 8.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Learn something new",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Make bed",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Social Media",
-        "type": "NUMERICAL",
-        "goalValue": 0.1,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 6.0,
-        "unit": "h",
-        "directionBetter": -1
-      },
-      {
-        "category": "Life",
-        "title": "Self-control",
-        "type": "CATEGORICAL"
-      }
-    ],
-    "wednesday": [
-      {
-        "category": "Development",
-        "title": "Productivity",
-        "type": "NUMERICAL",
-        "goalValue": 4.0,
-        "partialThreshold": 2.0,
-        "minValue": 0.0,
-        "maxValue": 10.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Study",
-        "type": "NUMERICAL",
-        "goalValue": 2.0,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 8.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Learn something new",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Make bed",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Social Media",
-        "type": "NUMERICAL",
-        "goalValue": 0.1,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 6.0,
-        "unit": "h",
-        "directionBetter": -1
-      },
-      {
-        "category": "Life",
-        "title": "Self-control",
-        "type": "CATEGORICAL"
-      }
-    ],
-    "thursday": [
-      {
-        "category": "Development",
-        "title": "Productivity",
-        "type": "NUMERICAL",
-        "goalValue": 4.0,
-        "partialThreshold": 2.0,
-        "minValue": 0.0,
-        "maxValue": 10.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Study",
-        "type": "NUMERICAL",
-        "goalValue": 2.0,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 8.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Learn something new",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Make bed",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Social Media",
-        "type": "NUMERICAL",
-        "goalValue": 0.1,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 6.0,
-        "unit": "h",
-        "directionBetter": -1
-      },
-      {
-        "category": "Life",
-        "title": "Self-control",
-        "type": "CATEGORICAL"
-      }
-    ],
-    "friday": [
-      {
-        "category": "Development",
-        "title": "Productivity",
-        "type": "NUMERICAL",
-        "goalValue": 4.0,
-        "partialThreshold": 2.0,
-        "minValue": 0.0,
-        "maxValue": 10.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Study",
-        "type": "NUMERICAL",
-        "goalValue": 2.0,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 8.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Learn something new",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Make bed",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Social Media",
-        "type": "NUMERICAL",
-        "goalValue": 0.1,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 6.0,
-        "unit": "h",
-        "directionBetter": -1
-      },
-      {
-        "category": "Life",
-        "title": "Self-control",
-        "type": "CATEGORICAL"
-      }
-    ],
-    "saturday": [
-      {
-        "category": "Development",
-        "title": "Productivity",
-        "type": "NUMERICAL",
-        "goalValue": 4.0,
-        "partialThreshold": 2.0,
-        "minValue": 0.0,
-        "maxValue": 10.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Study",
-        "type": "NUMERICAL",
-        "goalValue": 2.0,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 8.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Learn something new",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Make bed",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Social Media",
-        "type": "NUMERICAL",
-        "goalValue": 0.1,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 6.0,
-        "unit": "h",
-        "directionBetter": -1
-      },
-      {
-        "category": "Life",
-        "title": "Self-control",
-        "type": "CATEGORICAL"
-      }
-    ],
-    "sunday": [
-      {
-        "category": "Development",
-        "title": "Productivity",
-        "type": "NUMERICAL",
-        "goalValue": 4.0,
-        "partialThreshold": 2.0,
-        "minValue": 0.0,
-        "maxValue": 10.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Study",
-        "type": "NUMERICAL",
-        "goalValue": 2.0,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 8.0,
-        "unit": "h",
-        "directionBetter": 1
-      },
-      {
-        "category": "Learning",
-        "title": "Learn something new",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Make bed",
-        "type": "CATEGORICAL"
-      },
-      {
-        "category": "Life",
-        "title": "Social Media",
-        "type": "NUMERICAL",
-        "goalValue": 0.1,
-        "partialThreshold": 1.0,
-        "minValue": 0.0,
-        "maxValue": 6.0,
-        "unit": "h",
-        "directionBetter": -1
-      },
-      {
-        "category": "Life",
-        "title": "Self-control",
-        "type": "CATEGORICAL"
-      }
-    ]
-  }
+  "monday": [
+    {
+      "title": "Get ready (bag packed)",
+      "startTime": "06:30",
+      "endTime": "07:11",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute to MSU (25)",
+      "startTime": "07:11",
+      "endTime": "07:30",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Workout (PULL) - MSU",
+      "startTime": "07:30",
+      "endTime": "08:30",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shower + breakfast",
+      "startTime": "08:30",
+      "endTime": "09:00",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Deep work",
+      "startTime": "09:00",
+      "endTime": "12:00",
+      "label": "Work",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Lunch",
+      "startTime": "12:00",
+      "endTime": "12:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Post-lunch walk",
+      "startTime": "12:45",
+      "endTime": "13:00",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Admin / email",
+      "startTime": "13:00",
+      "endTime": "14:30",
+      "label": "Work",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Afternoon session",
+      "startTime": "14:30",
+      "endTime": "16:45",
+      "label": "Study",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Walk to class",
+      "startTime": "16:45",
+      "endTime": "17:00",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Class (dinner in class)",
+      "startTime": "17:00",
+      "endTime": "19:50",
+      "label": "Study",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute home (25)",
+      "startTime": "19:50",
+      "endTime": "20:20",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Free time",
+      "startTime": "20:20",
+      "endTime": "21:00",
+      "label": "Leisure",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shake + app checks",
+      "startTime": "21:00",
+      "endTime": "21:15",
+      "label": "Duties",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Hot shower + stretch",
+      "startTime": "21:15",
+      "endTime": "22:00",
+      "label": "Meditative",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Sleep prep",
+      "startTime": "22:00",
+      "endTime": "22:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    }
+  ],
+  "tuesday": [
+    {
+      "title": "Get ready (bag packed)",
+      "startTime": "06:30",
+      "endTime": "07:11",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute to MSU (25)",
+      "startTime": "07:11",
+      "endTime": "07:30",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Workout (LEGS) - MSU",
+      "startTime": "07:30",
+      "endTime": "08:30",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shower + breakfast",
+      "startTime": "08:30",
+      "endTime": "09:00",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Teaching / deep work",
+      "startTime": "09:00",
+      "endTime": "12:00",
+      "label": "Work",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Lunch",
+      "startTime": "12:00",
+      "endTime": "12:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Post-lunch walk",
+      "startTime": "12:45",
+      "endTime": "13:00",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Admin / email",
+      "startTime": "13:00",
+      "endTime": "14:30",
+      "label": "Work",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Afternoon session",
+      "startTime": "14:30",
+      "endTime": "16:00",
+      "label": "Study",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Walk to class",
+      "startTime": "16:00",
+      "endTime": "16:10",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Class (dinner in class)",
+      "startTime": "16:10",
+      "endTime": "19:00",
+      "label": "Study",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute home (25)",
+      "startTime": "19:00",
+      "endTime": "19:30",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Free time",
+      "startTime": "19:30",
+      "endTime": "21:00",
+      "label": "Leisure",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shake + app checks",
+      "startTime": "21:00",
+      "endTime": "21:15",
+      "label": "Duties",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Hot shower + stretch",
+      "startTime": "21:15",
+      "endTime": "22:00",
+      "label": "Meditative",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Sleep prep",
+      "startTime": "22:00",
+      "endTime": "22:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    }
+  ],
+  "wednesday": [
+    {
+      "title": "Get ready (bag packed)",
+      "startTime": "06:30",
+      "endTime": "07:11",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute to MSU (25)",
+      "startTime": "07:11",
+      "endTime": "07:30",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Early work block",
+      "startTime": "07:30",
+      "endTime": "08:30",
+      "label": "Work",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Breakfast",
+      "startTime": "08:30",
+      "endTime": "09:00",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Deep work",
+      "startTime": "09:00",
+      "endTime": "10:45",
+      "label": "Work",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Walk to pool + change",
+      "startTime": "10:45",
+      "endTime": "11:00",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Swim (IM Circle)",
+      "startTime": "11:00",
+      "endTime": "11:45",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shower + change",
+      "startTime": "11:45",
+      "endTime": "12:00",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Lunch",
+      "startTime": "12:00",
+      "endTime": "12:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Post-lunch walk",
+      "startTime": "12:45",
+      "endTime": "13:00",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Admin / email",
+      "startTime": "13:00",
+      "endTime": "14:30",
+      "label": "Work",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Afternoon session",
+      "startTime": "14:30",
+      "endTime": "17:15",
+      "label": "Study",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute home (25)",
+      "startTime": "17:15",
+      "endTime": "17:32",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Change",
+      "startTime": "17:32",
+      "endTime": "17:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Z2 bike (home)",
+      "startTime": "17:45",
+      "endTime": "18:30",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Quick shower",
+      "startTime": "18:30",
+      "endTime": "18:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Dinner",
+      "startTime": "18:45",
+      "endTime": "19:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Personal projects",
+      "startTime": "19:30",
+      "endTime": "21:00",
+      "label": "Project",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shake + app checks",
+      "startTime": "21:00",
+      "endTime": "21:15",
+      "label": "Duties",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Hot shower + stretch",
+      "startTime": "21:15",
+      "endTime": "22:00",
+      "label": "Meditative",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Sleep prep",
+      "startTime": "22:00",
+      "endTime": "22:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    }
+  ],
+  "thursday": [
+    {
+      "title": "Get ready (bag packed)",
+      "startTime": "06:30",
+      "endTime": "07:11",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute to MSU (25)",
+      "startTime": "07:11",
+      "endTime": "07:30",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Workout (PUSH) - MSU",
+      "startTime": "07:30",
+      "endTime": "08:30",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shower + breakfast",
+      "startTime": "08:30",
+      "endTime": "09:00",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Class",
+      "startTime": "09:00",
+      "endTime": "12:00",
+      "label": "Study",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Lunch",
+      "startTime": "12:00",
+      "endTime": "12:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Post-lunch walk",
+      "startTime": "12:45",
+      "endTime": "13:00",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Admin / email",
+      "startTime": "13:00",
+      "endTime": "14:30",
+      "label": "Work",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Afternoon session",
+      "startTime": "14:30",
+      "endTime": "17:15",
+      "label": "Study",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute home (25)",
+      "startTime": "17:15",
+      "endTime": "17:32",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Personal projects",
+      "startTime": "17:32",
+      "endTime": "18:30",
+      "label": "Project",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Dinner",
+      "startTime": "18:30",
+      "endTime": "19:15",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Free time",
+      "startTime": "19:15",
+      "endTime": "21:00",
+      "label": "Leisure",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shake + app checks",
+      "startTime": "21:00",
+      "endTime": "21:15",
+      "label": "Duties",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Hot shower + stretch",
+      "startTime": "21:15",
+      "endTime": "22:00",
+      "label": "Meditative",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Sleep prep",
+      "startTime": "22:00",
+      "endTime": "22:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    }
+  ],
+  "friday": [
+    {
+      "title": "Get ready (bag packed)",
+      "startTime": "06:30",
+      "endTime": "07:11",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute to MSU (25)",
+      "startTime": "07:11",
+      "endTime": "07:30",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Run - MSU",
+      "startTime": "07:30",
+      "endTime": "08:30",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shower + breakfast",
+      "startTime": "08:30",
+      "endTime": "09:00",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Deep work",
+      "startTime": "09:00",
+      "endTime": "12:00",
+      "label": "Work",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Lunch",
+      "startTime": "12:00",
+      "endTime": "12:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Post-lunch walk",
+      "startTime": "12:45",
+      "endTime": "13:00",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Admin / email",
+      "startTime": "13:00",
+      "endTime": "14:30",
+      "label": "Work",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Afternoon session",
+      "startTime": "14:30",
+      "endTime": "16:50",
+      "label": "Study",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Walk to climbing gym",
+      "startTime": "16:50",
+      "endTime": "17:00",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Climbing",
+      "startTime": "17:00",
+      "endTime": "18:00",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute home (25)",
+      "startTime": "18:00",
+      "endTime": "18:30",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Dinner",
+      "startTime": "18:30",
+      "endTime": "19:15",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Personal projects",
+      "startTime": "19:15",
+      "endTime": "21:00",
+      "label": "Project",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shake + app checks",
+      "startTime": "21:00",
+      "endTime": "21:15",
+      "label": "Duties",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Hot shower + stretch",
+      "startTime": "21:15",
+      "endTime": "22:00",
+      "label": "Meditative",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Sleep prep",
+      "startTime": "22:00",
+      "endTime": "22:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    }
+  ],
+  "saturday": [
+    {
+      "title": "Wake + get ready",
+      "startTime": "06:30",
+      "endTime": "07:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Z2 bike",
+      "startTime": "07:30",
+      "endTime": "08:30",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shower + breakfast",
+      "startTime": "08:30",
+      "endTime": "09:00",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "House cleaning + laundry",
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "label": "Duties",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Personal projects",
+      "startTime": "10:30",
+      "endTime": "12:00",
+      "label": "Project",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Lunch",
+      "startTime": "12:00",
+      "endTime": "12:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Personal projects",
+      "startTime": "12:45",
+      "endTime": "14:15",
+      "label": "Project",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute to MSU (26)",
+      "startTime": "14:15",
+      "endTime": "15:00",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Tennis (MSU)",
+      "startTime": "15:00",
+      "endTime": "16:30",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Prep to leave",
+      "startTime": "16:30",
+      "endTime": "16:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Commute home (25)",
+      "startTime": "16:45",
+      "endTime": "17:15",
+      "label": "Reflective",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Personal projects",
+      "startTime": "17:15",
+      "endTime": "18:30",
+      "label": "Project",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Dinner",
+      "startTime": "18:30",
+      "endTime": "19:15",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Free time",
+      "startTime": "19:15",
+      "endTime": "21:00",
+      "label": "Leisure",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shake + app checks",
+      "startTime": "21:00",
+      "endTime": "21:15",
+      "label": "Duties",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Hot shower + stretch",
+      "startTime": "21:15",
+      "endTime": "22:00",
+      "label": "Meditative",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Sleep prep",
+      "startTime": "22:00",
+      "endTime": "22:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    }
+  ],
+  "sunday": [
+    {
+      "title": "Wake + get ready",
+      "startTime": "06:30",
+      "endTime": "07:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Run - Home <-> Meijer",
+      "startTime": "07:30",
+      "endTime": "08:30",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shower + breakfast",
+      "startTime": "08:30",
+      "endTime": "09:00",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Meijer grocery run",
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "label": "Duties",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Meal prep",
+      "startTime": "10:00",
+      "endTime": "12:00",
+      "label": "Duties",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Lunch",
+      "startTime": "12:00",
+      "endTime": "12:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Personal projects",
+      "startTime": "12:45",
+      "endTime": "17:30",
+      "label": "Project",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Change",
+      "startTime": "17:30",
+      "endTime": "17:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Swim (home pool)",
+      "startTime": "17:45",
+      "endTime": "18:30",
+      "label": "Exercise",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Quick shower",
+      "startTime": "18:30",
+      "endTime": "18:45",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Dinner",
+      "startTime": "18:45",
+      "endTime": "19:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Free time",
+      "startTime": "19:30",
+      "endTime": "21:00",
+      "label": "Leisure",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Shake + app checks",
+      "startTime": "21:00",
+      "endTime": "21:15",
+      "label": "Duties",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Hot shower + stretch",
+      "startTime": "21:15",
+      "endTime": "22:00",
+      "label": "Meditative",
+      "type": "PLANNED",
+      "description": ""
+    },
+    {
+      "title": "Sleep prep",
+      "startTime": "22:00",
+      "endTime": "22:30",
+      "label": "Self-care",
+      "type": "PLANNED",
+      "description": ""
+    }
+  ]
 }

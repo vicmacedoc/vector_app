@@ -15,13 +15,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Button
+import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
-import androidx.compose.foundation.clickable
 
+/**
+ * Session intro. Plain scroll (not ScalingLazyColumn) so content stays top-aligned with
+ * modest bottom inset — ScalingLazyColumn was leaving a large empty gap under Back.
+ */
 @Composable
 fun ResistanceStartScreen(
     workoutTitle: String,
@@ -36,54 +39,65 @@ fun ResistanceStartScreen(
             .fillMaxSize()
             .background(MaterialTheme.colors.background)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 18.dp)
+            .padding(top = 32.dp, bottom = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = workoutTitle,
             style = MaterialTheme.typography.title3,
             color = MaterialTheme.colors.onBackground,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+            softWrap = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp)
         )
-        if (workoutDescription != null) {
+        if (!workoutDescription.isNullOrBlank()) {
             Text(
                 text = workoutDescription,
                 style = MaterialTheme.typography.body2,
                 color = MaterialTheme.colors.onBackground.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center,
+                softWrap = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp)
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            )
+        }
+        if (!sessionDescription.isNullOrBlank()) {
+            Text(
+                text = sessionDescription,
+                style = MaterialTheme.typography.caption2,
+                color = MaterialTheme.colors.onBackground.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                softWrap = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 2.dp)
             )
         }
         Button(
             onClick = onStart,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(top = 10.dp, start = 8.dp, end = 8.dp)
         ) {
             Text("Start Workout")
         }
-        if (sessionDescription != null) {
-            Text(
-                text = sessionDescription,
-                style = MaterialTheme.typography.body2,
-                color = MaterialTheme.colors.onBackground.copy(alpha = 0.8f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-            )
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "Back",
-            style = MaterialTheme.typography.body2.copy(textDecoration = TextDecoration.Underline),
-            color = Color.White,
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = onBack,
+            colors = ButtonDefaults.buttonColors(
+                backgroundColor = Color.DarkGray,
+                contentColor = Color.White
+            ),
             modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .clickable(onClick = onBack)
-        )
-        Spacer(modifier = Modifier.height(24.dp))
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        ) {
+            Text("Back")
+        }
     }
 }

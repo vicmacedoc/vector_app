@@ -3,18 +3,22 @@ package com.vm.vector.ui.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.vm.vector.VectorApplication
 import com.vm.vector.alarm.SleepAlarmScheduler
+import com.vm.vector.data.ActivityRepository
+import com.vm.vector.data.CalendarDraftRepository
 import com.vm.vector.data.DatabaseBackupManager
-import com.vm.vector.data.DietRepository
-import com.vm.vector.data.DiaryRepository
 import com.vm.vector.data.DriveService
+import com.vm.vector.data.FoodRepository
+import com.vm.vector.data.GeminiApiKeyStore
 import com.vm.vector.data.GoogleDriveAuthManager
+import com.vm.vector.data.HabitRepository
 import com.vm.vector.data.HomeRepository
 import com.vm.vector.data.PreferenceManager
 import com.vm.vector.data.PresetStorage
-import com.vm.vector.data.RoutineRepository
+import com.vm.vector.data.SelfRepository
+import com.vm.vector.data.SleepRepository
 import com.vm.vector.data.WorkoutRepository
-import com.vm.vector.VectorApplication
 
 class SettingsViewModelFactory(
     private val context: Context,
@@ -22,19 +26,24 @@ class SettingsViewModelFactory(
 
     private val database = (context.applicationContext as VectorApplication).database
     private val preferenceManager = PreferenceManager(context)
+    private val geminiApiKeyStore = GeminiApiKeyStore(context)
     private val authManager = GoogleDriveAuthManager(context)
     private val driveService = DriveService(context, authManager)
     private val presetStorage = PresetStorage(context, preferenceManager)
-    private val dietRepository = DietRepository(database, preferenceManager, driveService, presetStorage)
-    private val routineRepository = RoutineRepository(database, preferenceManager, driveService, presetStorage)
-    private val workoutRepository = WorkoutRepository(context, database, preferenceManager, driveService, presetStorage)
-    private val diaryRepository = DiaryRepository(context, database, preferenceManager, driveService)
+    private val foodRepository = FoodRepository(database, preferenceManager, presetStorage)
+    private val habitRepository = HabitRepository(database)
+    private val activityRepository = ActivityRepository(database, presetStorage)
+    private val workoutRepository = WorkoutRepository(context, database, preferenceManager, presetStorage)
+    private val selfRepository = SelfRepository(context, database, preferenceManager, driveService)
+    private val sleepRepository = SleepRepository(database)
     private val homeRepository = HomeRepository(
         database,
-        dietRepository,
-        routineRepository,
+        foodRepository,
+        activityRepository,
         workoutRepository,
-        diaryRepository
+        selfRepository,
+        sleepRepository,
+        CalendarDraftRepository(database),
     )
     private val backupManager = DatabaseBackupManager(context, database, driveService, preferenceManager)
     private val sleepAlarmScheduler = SleepAlarmScheduler(context)
@@ -46,14 +55,16 @@ class SettingsViewModelFactory(
             return SettingsViewModel(
                 preferenceManager,
                 driveService,
-                dietRepository,
-                routineRepository,
+                foodRepository,
                 workoutRepository,
                 presetStorage,
                 backupManager,
                 homeRepository,
+                sleepRepository,
                 sleepAlarmScheduler,
-                vectorApplication
+                vectorApplication,
+                geminiApiKeyStore,
+                activityRepository,
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

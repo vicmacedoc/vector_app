@@ -1,5 +1,18 @@
 package com.vm.vector.ui.screens
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.vm.vector.R
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Add
+import com.vm.core.models.ActivityLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -61,9 +74,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.VisualTransformation
 import com.vm.core.ui.theme.DeleteRed
 import com.vm.core.ui.theme.ElectricBlue
 import com.vm.core.ui.theme.NavyDeep
@@ -74,8 +90,18 @@ import com.vm.core.ui.theme.SlateGray
 import com.vm.core.ui.theme.VectorTheme
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.HorizontalDivider
+import com.vm.vector.data.GeminiApiKeySource
+import com.vm.vector.data.LearningSettings
+import com.vm.vector.data.MotionSettings
+import java.time.DayOfWeek
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.vm.vector.ui.viewmodel.SettingsViewModel
 import com.vm.vector.ui.viewmodel.SettingsViewModelFactory
+import com.vm.vector.ui.screens.routine.CreateActivityLabelDialog
+import com.vm.vector.data.backup.BackupSnapshotInfo
+import com.vm.vector.ui.backup.RestorePickerDialog
+import com.vm.vector.ui.backup.formatBackupTime
 
 @Composable
 fun SettingsScreen(
@@ -87,6 +113,12 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     var pendingPresetCategory by remember { mutableStateOf<PresetCategory?>(null) }
+    var geminiKeyVisible by remember { mutableStateOf(false) }
+    var showCreateActivityLabel by remember { mutableStateOf(false) }
+    var newActivityLabelName by remember { mutableStateOf("") }
+    var newActivityLabelColor by remember { mutableStateOf(0xFF1565C0.toInt()) }
+    var pendingDeleteActivityLabel by remember { mutableStateOf<ActivityLabel?>(null) }
+    var pendingRestore by remember { mutableStateOf<BackupSnapshotInfo?>(null) }
 
     val openDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -145,8 +177,11 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // ——— About ———
+                    AboutVectorCard()
+
                     // ——— Sleep Settings ———
-                    SettingsSectionTitle("Sleep Settings", isFirstSection = true)
+                    SettingsSectionTitle("Sleep Settings")
                     Card(
                         colors = CardDefaults.cardColors(containerColor = OffWhite),
                         modifier = Modifier.fillMaxWidth(),
@@ -260,18 +295,120 @@ fun SettingsScreen(
                         onRemove = { viewModel.removePreset(PresetCategory.Workout) },
                     )
                     PresetTile(
+                        label = "Food",
+                        activeFileName = uiState.foodPresetName,
+                        presetJsonName = uiState.foodPresetJsonName,
+                        onBrowse = { launchPresetPicker(PresetCategory.Food) },
+                        onRemove = { viewModel.removePreset(PresetCategory.Food) },
+                    )
+                    PresetTile(
                         label = "Routine",
                         activeFileName = uiState.routinePresetName,
                         presetJsonName = uiState.routinePresetJsonName,
                         onBrowse = { launchPresetPicker(PresetCategory.Routine) },
                         onRemove = { viewModel.removePreset(PresetCategory.Routine) },
                     )
-                    PresetTile(
-                        label = "Diet",
-                        activeFileName = uiState.dietPresetName,
-                        presetJsonName = uiState.dietPresetJsonName,
-                        onBrowse = { launchPresetPicker(PresetCategory.Diet) },
-                        onRemove = { viewModel.removePreset(PresetCategory.Diet) },
+                    RoutineLabelsSettingsSection(
+                        labels = uiState.activityLabels,
+                        onAddClick = {
+                            newActivityLabelName = ""
+                            newActivityLabelColor = 0xFF1565C0.toInt()
+                            showCreateActivityLabel = true
+                        },
+                        onDeleteLabel = { label -> pendingDeleteActivityLabel = label },
+                    )
+
+                    // ——— AI Settings ———
+                    SettingsSectionTitle("AI Settings")
+                    Text(
+                        text = uiState.geminiKeyStatus,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = when (uiState.geminiKeySource) {
+                            GeminiApiKeySource.None -> SlateGray
+                            else -> PureBlack
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = uiState.geminiApiKey,
+                        onValueChange = viewModel::updateGeminiApiKey,
+                        label = { Text("Gemini API key", color = PureBlack) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        visualTransformation = if (geminiKeyVisible) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { geminiKeyVisible = !geminiKeyVisible }) {
+                                Icon(
+                                    imageVector = if (geminiKeyVisible) {
+                                        Icons.Filled.VisibilityOff
+                                    } else {
+                                        Icons.Filled.Visibility
+                                    },
+                                    contentDescription = if (geminiKeyVisible) {
+                                        "Hide API key"
+                                    } else {
+                                        "Show API key"
+                                    },
+                                    tint = PureBlack,
+                                )
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = PureBlack,
+                            unfocusedTextColor = PureBlack,
+                            focusedLabelColor = PureBlack,
+                            unfocusedLabelColor = PureBlack,
+                            focusedBorderColor = NavyDeep,
+                            unfocusedBorderColor = PureBlack,
+                        ),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Button(
+                            onClick = viewModel::saveGeminiApiKey,
+                            enabled = uiState.geminiApiKey.isNotBlank(),
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NavyDeep,
+                                contentColor = PureWhite,
+                            ),
+                        ) {
+                            Text("Save Key", color = PureWhite)
+                        }
+                        Button(
+                            onClick = viewModel::clearGeminiApiKey,
+                            enabled = uiState.geminiKeySource == GeminiApiKeySource.Custom ||
+                                uiState.geminiApiKey.isNotBlank(),
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = DeleteRed,
+                                contentColor = PureWhite,
+                            ),
+                        ) {
+                            Text("Clear", color = PureWhite)
+                        }
+                    }
+
+                    // ——— Learning Settings ———
+                    SettingsSectionTitle("Learning Settings")
+                    val learningSettings by viewModel.learningSettings.collectAsState()
+                    LearningSettingsCard(
+                        settings = learningSettings,
+                        onSave = viewModel::saveLearningSettings,
+                    )
+
+                    // ——— Motion Settings ———
+                    SettingsSectionTitle("Motion Settings")
+                    val motionSettings by viewModel.motionSettings.collectAsState()
+                    MotionSettingsCard(
+                        settings = motionSettings,
+                        onSave = viewModel::saveMotionSettings,
                     )
 
                     // ——— Storage Settings ———
@@ -372,7 +509,7 @@ fun SettingsScreen(
                     }
 
                     Button(
-                        onClick = viewModel::restoreFromDrive,
+                        onClick = viewModel::openRestorePicker,
                         enabled = !uiState.isLoading && !uiState.isValidating && !uiState.isResetting && !uiState.isBackingUp,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite),
@@ -387,6 +524,29 @@ fun SettingsScreen(
                         }
                         Text(if (uiState.isRestoring) "Restoring…" else "Restore from Drive", color = PureWhite)
                     }
+
+                    val lastBrainSync by viewModel.lastBrainSyncAt.collectAsState()
+                    Button(
+                        onClick = viewModel::syncBrainNow,
+                        enabled = !uiState.isSyncingBrain && !uiState.isRestoring && !uiState.isResetting,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite),
+                    ) {
+                        if (uiState.isSyncingBrain) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = PureWhite,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text(if (uiState.isSyncingBrain) "Syncing Brain…" else "Sync Brain now", color = PureWhite)
+                    }
+                    Text(
+                        text = if (lastBrainSync > 0) "Brain last synced ${formatBackupTime(lastBrainSync)}" else "Brain not synced yet",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SlateGray,
+                    )
 
                     Button(
                         onClick = viewModel::showPasswordDialog,
@@ -483,9 +643,9 @@ fun SettingsScreen(
                 },
                 text = {
                     Text(
-                        "This will delete all daily data from the database (diet, routine, exercise, diary text/audio, and home entries). " +
-                        "Diary photo albums and their Drive links are kept so images in Google Drive stay connected. " +
-                        "Sleep targets, notifications, and active presets on this device are not removed. " +
+                        "This will delete all daily data from the database (food, habits, activities, exercise, self text/audio, and home entries). " +
+                        "Self photo albums and their Drive links are kept so images in Google Drive stay connected. " +
+                        "Sleep targets, notifications, activity labels, and active presets on this device are not removed. " +
                         "Presets and Lists in Drive will not be affected.\n\n" +
                         "This action cannot be undone.",
                         color = PureBlack
@@ -515,15 +675,65 @@ fun SettingsScreen(
             )
         }
 
+        if (uiState.showRestorePicker) {
+            RestorePickerDialog(
+                isLoading = uiState.isLoadingSnapshots,
+                snapshots = uiState.backupSnapshots,
+                onPick = { pendingRestore = it },
+                onDismiss = viewModel::dismissRestorePicker,
+            )
+        }
+
+        pendingRestore?.let { snapshot ->
+            AlertDialog(
+                onDismissRequest = { pendingRestore = null },
+                title = { Text("Restore \"${snapshot.name}\"?", color = PureBlack) },
+                text = {
+                    Text(
+                        "This replaces all data on this device with the backup from ${formatBackupTime(snapshot.createdAt)}. " +
+                            "Anything logged since then will be lost, and the app restarts.\n\n" +
+                            "Dated backups on Drive are kept, so you can restore a different one later.",
+                        color = PureBlack
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            pendingRestore = null
+                            viewModel.restoreFromDrive(snapshot)
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = DeleteRed)
+                    ) {
+                        Text("Restore")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { pendingRestore = null },
+                        colors = ButtonDefaults.textButtonColors(contentColor = PureBlack)
+                    ) {
+                        Text("Cancel")
+                    }
+                },
+                containerColor = PureWhite
+            )
+        }
+
         // Preset overwrite modal
         if (uiState.showPresetOverwriteModal && uiState.presetModalCategory != null) {
             AlertDialog(
                 onDismissRequest = viewModel::dismissPresetModal,
                 title = { Text("Apply preset \"${uiState.presetModalDisplayName}\"", color = PureBlack) },
                 text = {
+                    val categoryName = uiState.presetModalCategory!!.name
+                    val newLabelsNote = if (uiState.presetModalNewLabels.isNotEmpty()) {
+                        "\n\nNew activity labels will be created: ${uiState.presetModalNewLabels.joinToString(", ")}."
+                    } else {
+                        ""
+                    }
                     Text(
-                        "Save this file as the active ${uiState.presetModalCategory!!.name} preset for future days. " +
-                            "Today's ${uiState.presetModalCategory!!.name} data on the calendar will not be changed.",
+                        "Save this file as the active $categoryName preset. Days without saved " +
+                            "$categoryName data will use it; saved days are not changed.$newLabelsNote",
                         color = PureBlack
                     )
                 },
@@ -550,6 +760,49 @@ fun SettingsScreen(
                     }
                 },
                 containerColor = PureWhite
+            )
+        }
+
+        if (showCreateActivityLabel) {
+            CreateActivityLabelDialog(
+                name = newActivityLabelName,
+                colorArgb = newActivityLabelColor,
+                onNameChange = { newActivityLabelName = it },
+                onColorChange = { newActivityLabelColor = it },
+                onDismiss = { showCreateActivityLabel = false },
+                onSave = {
+                    val trimmed = newActivityLabelName.trim()
+                    if (trimmed.isBlank()) return@CreateActivityLabelDialog
+                    viewModel.createActivityLabel(trimmed, newActivityLabelColor) {
+                        showCreateActivityLabel = false
+                        newActivityLabelName = ""
+                    }
+                },
+            )
+        }
+
+        pendingDeleteActivityLabel?.let { label ->
+            AlertDialog(
+                onDismissRequest = { pendingDeleteActivityLabel = null },
+                containerColor = PureWhite,
+                title = { Text("Delete label?", color = PureBlack) },
+                text = {
+                    Text(
+                        "Remove \"${label.name}\"? Activities using it will also be removed.",
+                        color = PureBlack,
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.deleteActivityLabel(label.id)
+                        pendingDeleteActivityLabel = null
+                    }) { Text("Delete", color = DeleteRed) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDeleteActivityLabel = null }) {
+                        Text("Cancel", color = PureBlack)
+                    }
+                },
             )
         }
 
@@ -596,6 +849,248 @@ private fun SettingsSectionTitle(title: String, isFirstSection: Boolean = false)
             color = NavyDeep
         )
         HorizontalDivider(color = NavyDeep, thickness = 2.dp)
+    }
+}
+
+@Composable
+private fun LearningSettingsCard(
+    settings: LearningSettings,
+    onSave: (LearningSettings) -> Unit,
+) {
+    var onHoldDays by remember(settings) { mutableStateOf(settings.onHoldDays.toString()) }
+    var intervals by remember(settings) { mutableStateOf(settings.reviewIntervalsDays.joinToString(", ")) }
+    var quizSize by remember(settings) { mutableStateOf(settings.quizSize.toString()) }
+    var passPercent by remember(settings) { mutableStateOf(settings.passPercent.toString()) }
+    val parsedIntervals = intervals.split(",").mapNotNull { it.trim().toIntOrNull() }
+    val valid = onHoldDays.toIntOrNull() != null && parsedIntervals.isNotEmpty() &&
+        quizSize.toIntOrNull() != null && passPercent.toIntOrNull() != null
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = PureBlack,
+        unfocusedTextColor = PureBlack,
+        focusedLabelColor = PureBlack,
+        unfocusedLabelColor = PureBlack,
+        focusedBorderColor = NavyDeep,
+        unfocusedBorderColor = PureBlack,
+    )
+    val numberKeyboard = KeyboardOptions(keyboardType = KeyboardType.Number)
+    Card(
+        colors = CardDefaults.cardColors(containerColor = OffWhite),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                "In Progress tiles with no activity go On Hold; Learned tiles come back for review on an expanding schedule. " +
+                    "After the last interval a tile is mastered.",
+                style = MaterialTheme.typography.bodySmall,
+                color = SlateGray,
+            )
+            OutlinedTextField(
+                value = onHoldDays,
+                onValueChange = { onHoldDays = it.filter(Char::isDigit).take(3) },
+                label = { Text("On Hold after (days)") },
+                singleLine = true,
+                keyboardOptions = numberKeyboard,
+                colors = fieldColors,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = intervals,
+                onValueChange = { intervals = it.filter { c -> c.isDigit() || c == ',' || c == ' ' } },
+                label = { Text("Review intervals (days)") },
+                singleLine = true,
+                colors = fieldColors,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = quizSize,
+                    onValueChange = { quizSize = it.filter(Char::isDigit).take(2) },
+                    label = { Text("Quiz questions") },
+                    singleLine = true,
+                    keyboardOptions = numberKeyboard,
+                    colors = fieldColors,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = passPercent,
+                    onValueChange = { passPercent = it.filter(Char::isDigit).take(3) },
+                    label = { Text("Pass (%)") },
+                    singleLine = true,
+                    keyboardOptions = numberKeyboard,
+                    colors = fieldColors,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        onSave(
+                            LearningSettings(
+                                onHoldDays = onHoldDays.toInt(),
+                                reviewIntervalsDays = parsedIntervals,
+                                quizSize = quizSize.toInt(),
+                                passPercent = passPercent.toInt(),
+                            )
+                        )
+                    },
+                    enabled = valid,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite),
+                ) { Text("Save", color = PureWhite) }
+                TextButton(
+                    onClick = { onSave(LearningSettings()) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Reset defaults", color = NavyDeep) }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MotionSettingsCard(
+    settings: MotionSettings,
+    onSave: (MotionSettings) -> Unit,
+) {
+    var dailyTarget by remember(settings) { mutableStateOf(settings.dailyTarget.toString()) }
+    var supermarketDay by remember(settings) { mutableStateOf(settings.supermarketDay) }
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = PureBlack,
+        unfocusedTextColor = PureBlack,
+        focusedLabelColor = PureBlack,
+        unfocusedLabelColor = PureBlack,
+        focusedBorderColor = NavyDeep,
+        unfocusedBorderColor = PureBlack,
+    )
+    Card(
+        colors = CardDefaults.cardColors(containerColor = OffWhite),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                "Points you aim for each day, and the day the weekly supermarket trip is due " +
+                    "(20 pts on time, 5 fewer for each day late).",
+                style = MaterialTheme.typography.bodySmall,
+                color = SlateGray,
+            )
+            OutlinedTextField(
+                value = dailyTarget,
+                onValueChange = { dailyTarget = it.filter(Char::isDigit).take(4) },
+                label = { Text("Daily target (points)") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                colors = fieldColors,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text("Supermarket day", style = MaterialTheme.typography.labelLarge, color = PureBlack)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                DayOfWeek.entries.forEach { day ->
+                    val selected = day == supermarketDay
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (selected) NavyDeep else PureWhite)
+                            .clickable { supermarketDay = day }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                    ) {
+                        Text(
+                            day.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.US),
+                            color = if (selected) PureWhite else PureBlack,
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        onSave(MotionSettings(dailyTarget = dailyTarget.toInt(), supermarketDay = supermarketDay))
+                    },
+                    enabled = dailyTarget.toIntOrNull() != null,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = NavyDeep, contentColor = PureWhite),
+                ) { Text("Save", color = PureWhite) }
+                TextButton(
+                    onClick = { onSave(MotionSettings()) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Reset defaults", color = NavyDeep) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AboutVectorCard() {
+    val context = LocalContext.current
+    val versionName = remember {
+        runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrNull()
+    }
+    Card(
+        colors = CardDefaults.cardColors(containerColor = OffWhite),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(PureWhite),
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.dark_logo),
+                        contentDescription = "Vector logo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .scale(1.6f),
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Vector",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = NavyDeep,
+                    )
+                    if (versionName != null) {
+                        Text(
+                            text = "Version $versionName",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlateGray,
+                        )
+                    }
+                }
+            }
+            Text(
+                text = "Vector is a personal life-tracking app for logging routines, food, exercise, " +
+                    "sleep, habits, and self-reflection in one place — with a Brain for notes and tasks, " +
+                    "a WearOS companion for workouts, and Google Drive sync to keep your data yours.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = PureBlack,
+            )
+            Text(
+                text = "Created by Victor Macedo",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = NavyDeep,
+            )
+        }
     }
 }
 
@@ -714,6 +1209,72 @@ private fun PresetTile(
                         colors = ButtonDefaults.buttonColors(containerColor = DeleteRed, contentColor = PureWhite),
                     ) {
                         Text("Remove", color = PureWhite)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@Composable
+private fun RoutineLabelsSettingsSection(
+    labels: List<ActivityLabel>,
+    onAddClick: () -> Unit,
+    onDeleteLabel: (ActivityLabel) -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = OffWhite),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Routine labels",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = PureBlack,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onAddClick) {
+                    Icon(Icons.Default.Add, contentDescription = "Add label", tint = NavyDeep)
+                }
+            }
+            Text(
+                text = "Labels for routine activities. Long-press to delete. Kept when resetting the database.",
+                style = MaterialTheme.typography.bodySmall,
+                color = SlateGray,
+            )
+            if (labels.isEmpty()) {
+                Text("No labels yet", color = SlateGray, style = MaterialTheme.typography.bodyMedium)
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    labels.forEach { label ->
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(label.colorArgb),
+                            border = BorderStroke(1.dp, PureBlack.copy(alpha = 0.25f)),
+                            modifier = Modifier.combinedClickable(
+                                onClick = {},
+                                onLongClick = {
+                                    if (!label.isSystem) onDeleteLabel(label)
+                                },
+                            ),
+                        ) {
+                            Text(
+                                text = label.name,
+                                color = PureWhite,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            )
+                        }
                     }
                 }
             }

@@ -9,7 +9,8 @@ This document describes Room tables used by the Analysis feature, how rows are p
 | `routine_logs` | `RoutineEntry` | `id` | Calendar → Routine → Save Changes (`replaceEntriesForDate`) |
 | `diet_logs` | `DietEntry` | `id` | Calendar → Nutrition → Save Changes |
 | `workout_sets` | `WorkoutSet` | `id` | Calendar → Save; Wear merge (`mergeWearCompletionAndSave`) |
-| `daily_home` | `DailyHomeEntry` | `date` | Home → Save; Settings sleep target |
+| `daily_home` | `DailyHomeEntry` | `date` | Home → Save (weight, body fat, daily plan) |
+| `sleep_entry` | `SleepEntry` | `date` (night you went to bed) | Calendar → Routine → Sleep section (immediate save); Settings planned target for tonight |
 | `diary_entry` | `DiaryEntry` | `date` | Calendar → Diary → Save |
 | `diary_collection` | `DiaryCollection` | `id` | Diary albums (Drive-backed) |
 | `diary_collection_image` | `DiaryCollectionImage` | `id` | Photo sync |
@@ -24,7 +25,8 @@ Date columns use `yyyy-MM-dd` strings; range filters use `WHERE date BETWEEN :st
   - **Nutrition**: `completed = count(isChecked && !notEaten)`, same total/%.
   - **Workout**: `completed = count(isCompleted)`, `total = count(sets)`, `% = 100 * completed / total`.
 - **Diet macros**: **N/A** if no `diet_logs` rows that day; else sum `kcal`, `protein`, `carbs`, `fats` (post-save scaled values).
-- **Daily Info** (`daily_home`): **N/A** if no row or missing fields (e.g. sleep times absent for duration).
+- **Daily Info** (`daily_home`): **N/A** if no row or missing composition fields.
+- **Sleep** (`sleep_entry`): Duration for calendar day D uses night `D−1` (bedtime that night → wake the following morning). **N/A** if that night has no actual wake. Stages and latency are optional (null = unset).
 - **Diary mood**: **N/A** if no `diary_entry` row or `mood == null`.
 - **Training volume**: Uses `WorkoutSet.targetMuscles` (comma-separated tags from preset `target` arrays). Empty `targetMuscles` = legacy row; excluded from muscle dropdown unless you add backfill.
 
@@ -38,6 +40,7 @@ routineEntryDao().getEntriesBetweenSync(start, end)
 dietEntryDao().getEntriesBetweenSync(start, end)
 workoutSetDao().getSetsBetweenSync(start, end)
 dailyHomeEntryDao().getEntriesBetweenSync(start, end)
+sleepEntryDao().getBetweenSync(start, end)
 diaryEntryDao().getEntriesBetweenSync(start, end)
 ```
 

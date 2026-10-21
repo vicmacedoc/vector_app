@@ -47,7 +47,8 @@ private const val SWIPE_THRESHOLD_DP = 40f
 @Composable
 fun ResistanceWorkoutScreen(
     exerciseName: String,
-    setCount: Int,
+    subtitle: String,
+    exerciseDescription: String? = null,
     exerciseIndex: Int,
     totalItems: Int,
     isEndWorkoutItem: Boolean,
@@ -55,7 +56,9 @@ fun ResistanceWorkoutScreen(
     onEndWorkout: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Optional override for the primary action label (default "Start Exercise"). */
+    startLabel: String = "Start Exercise",
 ) {
     val density = LocalDensity.current
     var dragAccum by remember { mutableFloatStateOf(0f) }
@@ -84,7 +87,8 @@ fun ResistanceWorkoutScreen(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp)
+                .padding(top = 32.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
@@ -114,38 +118,52 @@ fun ResistanceWorkoutScreen(
                         }
                     }
                 } else {
-                    Spacer(modifier = Modifier.height(20.dp))
                     Text(
                         text = exerciseName,
                         style = MaterialTheme.typography.title3,
                         color = MaterialTheme.colors.onBackground,
                         textAlign = TextAlign.Center,
+                        softWrap = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        maxLines = 2
+                            .padding(horizontal = 14.dp, vertical = 2.dp)
                     )
-                    Text(
-                        text = "$setCount set${if (setCount != 1) "s" else ""}",
-                        style = MaterialTheme.typography.body2,
-                        color = MaterialTheme.colors.onBackground,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    )
+                    if (!exerciseDescription.isNullOrBlank()) {
+                        Text(
+                            text = exerciseDescription,
+                            style = MaterialTheme.typography.caption2,
+                            color = MaterialTheme.colors.onBackground.copy(alpha = 0.75f),
+                            textAlign = TextAlign.Center,
+                            softWrap = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 2.dp)
+                        )
+                    }
+                    if (subtitle.isNotBlank()) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.body2,
+                            color = MaterialTheme.colors.onBackground,
+                            textAlign = TextAlign.Center,
+                            softWrap = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 2.dp)
+                        )
+                    }
                     Button(
                         onClick = onStartExercise,
                         modifier = Modifier
                             .fillMaxWidth(0.85f)
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                         colors = ButtonDefaults.buttonColors(
                             backgroundColor = DarkGreen,
                             contentColor = Color.White
                         ),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
                     ) {
-                        Text("Start Exercise", color = Color.White)
+                        Text(startLabel, color = Color.White)
                     }
                 }
             }

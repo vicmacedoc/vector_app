@@ -1,0 +1,34 @@
+{
+  "description": "Both sides edit the same non-text food fields; the newer side (remote) wins the multiplier silently; isChecked (local only) and notEaten (remote only) merge.",
+  "stamps": { "local": 1000, "remote": 2000 },
+  "base": {
+    "food": {
+      "f1": { "id": "f1", "date": "2026-10-21", "name": "Oats", "isChecked": false, "notEaten": false, "quantityMultiplier": 1.0, "unit": "g" }
+    }
+  },
+  "local": {
+    "food": {
+      "f1": { "id": "f1", "date": "2026-10-21", "name": "Oats", "isChecked": true, "notEaten": false, "quantityMultiplier": 1.5, "unit": "g" }
+    }
+  },
+  "remote": {
+    "food": {
+      "f1": { "id": "f1", "date": "2026-10-21", "name": "Oats", "isChecked": false, "notEaten": true, "quantityMultiplier": 1.2, "unit": "g" }
+    }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [],
+    "resolvedLocal": {
+      "food": {
+        "f1": { "id": "f1", "date": "2026-10-21", "name": "Oats", "isChecked": true, "notEaten": true, "quantityMultiplier": 1.2, "unit": "g" }
+      }
+    },
+    "resolvedRemote": {
+      "food": {
+        "f1": { "id": "f1", "date": "2026-10-21", "name": "Oats", "isChecked": true, "notEaten": true, "quantityMultiplier": 1.2, "unit": "g" }
+      }
+    }
+  }
+}

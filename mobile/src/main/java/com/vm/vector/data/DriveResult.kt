@@ -27,4 +27,14 @@ data class DriveListedFile(
     val name: String,
     val mimeType: String?,
     val modifiedTimeRfc3339: String?,
+    val sizeBytes: Long? = null,
+)
+
+/** Drive file metadata; [version] increases on every content or metadata change. */
+data class DriveFileMeta(
+    val id: String,
+    val name: String,
+    val version: Long,
+    val modifiedTimeMillis: Long,
+    val sizeBytes: Long?,
 )

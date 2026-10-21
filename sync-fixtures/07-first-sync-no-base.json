@@ -1,0 +1,47 @@
+{
+  "description": "First sync with no base: identical records merge, records added differently on both sides are ADD_ADD",
+  "base": {},
+  "local": {
+    "meta": {
+      "settings": { "motionDailyTarget": 50, "supermarketDay": "SUNDAY" }
+    },
+    "tags": {
+      "tag_1": { "id": "tag_1", "name": "books" },
+      "tag_2": { "id": "tag_2", "name": "rust" }
+    }
+  },
+  "remote": {
+    "meta": {
+      "settings": { "motionDailyTarget": 60, "supermarketDay": "SUNDAY" }
+    },
+    "tags": {
+      "tag_1": { "id": "tag_1", "name": "books" },
+      "tag_3": { "id": "tag_3", "name": "go" }
+    }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [ { "id": "meta/settings", "kind": "ADD_ADD", "fields": ["motionDailyTarget"] } ],
+    "resolvedLocal": {
+      "meta": {
+        "settings": { "motionDailyTarget": 50, "supermarketDay": "SUNDAY" }
+      },
+      "tags": {
+        "tag_1": { "id": "tag_1", "name": "books" },
+        "tag_2": { "id": "tag_2", "name": "rust" },
+        "tag_3": { "id": "tag_3", "name": "go" }
+      }
+    },
+    "resolvedRemote": {
+      "meta": {
+        "settings": { "motionDailyTarget": 60, "supermarketDay": "SUNDAY" }
+      },
+      "tags": {
+        "tag_1": { "id": "tag_1", "name": "books" },
+        "tag_2": { "id": "tag_2", "name": "rust" },
+        "tag_3": { "id": "tag_3", "name": "go" }
+      }
+    }
+  }
+}

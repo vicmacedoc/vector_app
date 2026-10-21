@@ -23,3 +23,6 @@ val PriorityHold = Color(0xFF757575)
 val PriorityNone = Color(0xFF1976D2)
 val DeleteRed = Color(0xFFB71C1C)
 val IconGray = Color(0xFF9E9E9E)
+
+// Exercise accents
+val DropSetOrange = Color(0xFFEF6C00)

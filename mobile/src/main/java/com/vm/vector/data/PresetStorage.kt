@@ -3,7 +3,6 @@ package com.vm.vector.data
 import android.content.Context
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import org.json.JSONObject
 import java.io.File
 
@@ -19,18 +18,31 @@ class PresetStorage(
     private fun presetFile(category: PresetCategory): File =
         File(context.filesDir, "preset_${category.fileSuffix}.json")
 
-    fun hasPreset(category: PresetCategory): Boolean =
-        presetFile(category).exists()
+    fun hasPreset(category: PresetCategory): Boolean {
+        val primary = presetFile(category)
+        if (primary.exists()) return true
+        // Migrate legacy diet preset file name
+        if (category == PresetCategory.Food) {
+            val legacy = File(context.filesDir, "preset_diet.json")
+            if (legacy.exists()) {
+                legacy.copyTo(primary, overwrite = true)
+                legacy.delete()
+                return true
+            }
+        }
+        return false
+    }
 
     suspend fun getPresetContent(category: PresetCategory): String? {
+        hasPreset(category) // trigger legacy migrate
         val file = presetFile(category)
         return if (file.exists()) file.readText() else null
     }
 
     fun getPresetDisplayNameFlow(category: PresetCategory): Flow<String?> = when (category) {
         PresetCategory.Workout -> preferenceManager.workoutPresetDisplayName
+        PresetCategory.Food -> preferenceManager.foodPresetDisplayName
         PresetCategory.Routine -> preferenceManager.routinePresetDisplayName
-        PresetCategory.Diet -> preferenceManager.dietPresetDisplayName
     }
 
     suspend fun getPresetDisplayName(category: PresetCategory): String? =
@@ -45,6 +57,9 @@ class PresetStorage(
 
     suspend fun clearPreset(category: PresetCategory) {
         presetFile(category).delete()
+        if (category == PresetCategory.Food) {
+            File(context.filesDir, "preset_diet.json").delete()
+        }
         preferenceManager.savePresetDisplayName(category, null)
         preferenceManager.savePresetJsonName(category, null)
     }

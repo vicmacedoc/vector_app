@@ -26,6 +26,7 @@ Vector is a personal project designed to optimize the "Victor System". A highly 
 - `:app`: The mobile command center.
 - `:wear`: The companion watch app (coming soon!).
 - `:core`: The shared brain containing our data models and nested JSON logic.
+- `desktop/`: Vector Brain for Windows (Tauri + React). Mirrors Memory, Model and Motion and syncs with the phone through Drive. See [desktop/README.md](desktop/README.md).
 - `:python`: The place for python scripts to access the generated data and provide in-depth analysis.
 
 ## License

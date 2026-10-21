@@ -1,0 +1,23 @@
+{
+  "description": "Numerically equal values and missing-vs-null fields are not changes",
+  "base": {
+    "supermarketItems": { "milk": { "id": "", "title": "Milk", "quantity": 2, "remaining": null } }
+  },
+  "local": {
+    "supermarketItems": { "milk": { "id": "", "title": "Milk", "quantity": 2.0 } }
+  },
+  "remote": {
+    "supermarketItems": { "milk": { "id": "", "title": "Milk", "quantity": 2, "remaining": null } }
+  },
+  "expect": {
+    "localChanged": false,
+    "remoteChanged": false,
+    "conflicts": [],
+    "resolvedLocal": {
+      "supermarketItems": { "milk": { "id": "", "title": "Milk", "quantity": 2, "remaining": null } }
+    },
+    "resolvedRemote": {
+      "supermarketItems": { "milk": { "id": "", "title": "Milk", "quantity": 2, "remaining": null } }
+    }
+  }
+}

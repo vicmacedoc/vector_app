@@ -1,0 +1,42 @@
+{
+  "description": "Edits to different records on each side merge without conflicts",
+  "base": {
+    "nodes": { "node_a": { "id": "node_a", "type": "MEMORY", "name": "Books", "updatedAt": 100 } },
+    "notes": { "note_1": { "id": "note_1", "nodeId": "node_a", "title": "Dune", "body": null, "updatedAt": 100 } },
+    "tasks": { "task_1": { "id": "task_1", "title": "Call mom", "status": "OPEN", "points": 2 } }
+  },
+  "local": {
+    "nodes": { "node_a": { "id": "node_a", "type": "MEMORY", "name": "Books", "updatedAt": 100 } },
+    "notes": { "note_1": { "id": "note_1", "nodeId": "node_a", "title": "Dune (1965)", "body": null, "updatedAt": 200 } },
+    "tasks": { "task_1": { "id": "task_1", "title": "Call mom", "status": "OPEN", "points": 2 } }
+  },
+  "remote": {
+    "nodes": {
+      "node_a": { "id": "node_a", "type": "MEMORY", "name": "Books", "updatedAt": 100 },
+      "node_b": { "id": "node_b", "type": "MODEL", "name": "Rust", "updatedAt": 300 }
+    },
+    "notes": { "note_1": { "id": "note_1", "nodeId": "node_a", "title": "Dune", "body": null, "updatedAt": 100 } },
+    "tasks": { "task_1": { "id": "task_1", "title": "Call mom", "status": "DONE", "points": 2.0 } }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [],
+    "resolvedLocal": {
+      "nodes": {
+        "node_a": { "id": "node_a", "type": "MEMORY", "name": "Books", "updatedAt": 100 },
+        "node_b": { "id": "node_b", "type": "MODEL", "name": "Rust", "updatedAt": 300 }
+      },
+      "notes": { "note_1": { "id": "note_1", "nodeId": "node_a", "title": "Dune (1965)", "body": null, "updatedAt": 200 } },
+      "tasks": { "task_1": { "id": "task_1", "title": "Call mom", "status": "DONE", "points": 2 } }
+    },
+    "resolvedRemote": {
+      "nodes": {
+        "node_a": { "id": "node_a", "type": "MEMORY", "name": "Books", "updatedAt": 100 },
+        "node_b": { "id": "node_b", "type": "MODEL", "name": "Rust", "updatedAt": 300 }
+      },
+      "notes": { "note_1": { "id": "note_1", "nodeId": "node_a", "title": "Dune (1965)", "body": null, "updatedAt": 200 } },
+      "tasks": { "task_1": { "id": "task_1", "title": "Call mom", "status": "DONE", "points": 2 } }
+    }
+  }
+}

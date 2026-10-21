@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,13 +18,20 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.vm.vector.data.DailySyncWorker
+import com.vm.vector.ui.sync.DailyMergeHost
+import kotlinx.coroutines.delay
 import com.vm.core.ui.theme.VectorTheme
 import com.vm.core.ui.theme.PureBlack
 import com.vm.vector.alarm.SleepAlarmScheduler
 import com.vm.vector.audio.DailyPlanAudioHelper
 import com.vm.vector.ui.DriveConsentLauncher
 import com.vm.vector.ui.MainScreen
+import com.vm.vector.ui.backup.BackupConflictHost
+import com.vm.vector.ui.sync.BrainMergeHost
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,6 +43,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_FROM_ALARM = "from_alarm"
+        private const val DAILY_POLL_MS = 60_000L
     }
 
     private var dailyPlanAudioHelper: DailyPlanAudioHelper? = null
@@ -57,6 +66,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         WindowCompat.setDecorFitsSystemWindows(window, true)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             SideEffect {
                 window.statusBarColor = PureBlack.toArgb()
@@ -68,6 +78,17 @@ class MainActivity : ComponentActivity() {
                 Box(Modifier.fillMaxSize()) {
                     MainScreen()
                     DriveConsentLauncher()
+                    BackupConflictHost()
+                    BrainMergeHost()
+                    DailyMergeHost()
+                }
+            }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    delay(DAILY_POLL_MS)
+                    DailySyncWorker.enqueue(this@MainActivity)
                 }
             }
         }

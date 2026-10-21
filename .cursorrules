@@ -18,12 +18,12 @@
    - The Status Bar must always use dark icons (isAppearanceLightStatusBars = true) to remain visible against the PureWhite background.
 2. DATA MODELS: 
    - All shared JSON/Room models MUST live in the :core module.
-   - FILE NAMING: Always name model files exactly as the primary @Entity or @Serializable class (e.g., DietEntry.kt).
+   - FILE NAMING: Always name model files exactly as the primary @Entity or @Serializable class (e.g., FoodEntry.kt).
 3. ARCHITECTURE: Follow MVVM + Clean Architecture. Use Repository pattern for Drive sync.
 4. DATA: 
    - Use Room with TypeConverters for nested JSON. Reference `.cursor/rules/data-schemas.md`.
    - All Calendar logs must calculate an AuditStatus. PLANNED if preset matches exactly; ADJUSTED if quantity slider != 1.0; UNPLANNED for manual entries.
-   - Calendar Diet entries must be grouped by plannedTime. UI should render a sticky header or divider for each unique time slot.
+   - Calendar Food entries must be grouped by plannedTime. UI should render a sticky header or divider for each unique time slot.
 
 ## Coding Standards
 - Kotlin Coroutines/Flow for async operations.

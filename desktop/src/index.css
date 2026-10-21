@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+/* Same palette as core/src/main/java/com/vm/core/ui/theme/Color.kt */
+@theme {
+  --color-navy: #001f3f;
+  --color-navy-light: #003366;
+  --color-electric: #0074d9;
+  --color-offwhite: #f8f9fa;
+  --color-muted: #4a4a4a;
+  --color-item: #757575;
+  --color-hairline: #e5e7eb;
+  --color-danger: #b71c1c;
+  --color-prio-high: #d32f2f;
+  --color-prio-mid: #ff9800;
+  --color-prio-low: #388e3c;
+  --color-prio-none: #1976d2;
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", Inter, system-ui, sans-serif;
+  --font-mono: "Cascadia Code", Consolas, ui-monospace, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #000000;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+.selectable {
+  user-select: text;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-electric) 25%, transparent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+/* Slider: NavyDeep 4px track on OffWhite, 20px NavyDeep thumb with a black border. */
+input[type="range"].vector-slider {
+  appearance: none;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"].vector-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--color-navy) 0%,
+    var(--color-navy) var(--fill, 0%),
+    var(--color-offwhite) var(--fill, 0%),
+    var(--color-offwhite) 100%
+  );
+  box-shadow: inset 0 0 0 1px #e5e7eb;
+}
+input[type="range"].vector-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border-radius: 9999px;
+  background: var(--color-navy);
+  border: 2px solid #000000;
+}
+
+/* Rendered Markdown (note previews, AI drafts). */
+.markdown {
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.markdown > * + * {
+  margin-top: 0.75em;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.2em;
+}
+.markdown h1 {
+  font-size: 1.5em;
+}
+.markdown h2 {
+  font-size: 1.25em;
+}
+.markdown h3 {
+  font-size: 1.08em;
+}
+.markdown > :first-child {
+  margin-top: 0;
+}
+.markdown ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.markdown ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.markdown li + li {
+  margin-top: 0.2em;
+}
+.markdown a {
+  color: var(--color-electric);
+  text-decoration: underline;
+}
+.markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--color-offwhite);
+  border: 1px solid var(--color-hairline);
+  border-radius: 4px;
+  padding: 0 0.3em;
+}
+.markdown pre {
+  background: var(--color-offwhite);
+  border: 1px solid var(--color-hairline);
+  border-radius: 8px;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+}
+.markdown pre code {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+.markdown blockquote {
+  border-left: 3px solid var(--color-electric);
+  padding-left: 0.9em;
+  color: var(--color-muted);
+}
+.markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.93em;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid var(--color-hairline);
+  padding: 0.35em 0.6em;
+  text-align: left;
+}
+.markdown th {
+  background: var(--color-offwhite);
+  font-weight: 600;
+}
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--color-hairline);
+}
+.markdown input[type="checkbox"] {
+  margin-right: 0.4em;
+  accent-color: var(--color-navy);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-fade-up {
+  animation: fade-up 160ms ease-out;
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 1.2s linear infinite;
+}

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -7,12 +9,15 @@ plugins {
 
 android {
     namespace = "com.vm.vector"
+    // shared/ai/*.md prompts ship as assets/ai/*.md (the desktop app imports the same files).
+    sourceSets.getByName("main").assets.srcDir("../shared")
     compileSdk {
         version = release(36)
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     defaultConfig {
@@ -23,6 +28,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val localProperties = Properties()
+        val localFile = rootProject.file("local.properties")
+        if (localFile.exists()) {
+            localFile.inputStream().use { localProperties.load(it) }
+        }
+        val geminiKey = localProperties.getProperty("GEMINI_API_KEY", "")
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
     }
 
     buildTypes {
@@ -62,17 +77,19 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     
-    // Compose
-    implementation(platform(libs.androidx.compose.bom))
+    // Compose (enforced BOM — prevents compile/runtime skew that breaks FlowRow, etc.)
+    implementation(enforcedPlatform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation("androidx.compose.foundation:foundation")
     implementation(libs.androidx.activity.compose)
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material")
     implementation("androidx.compose.material:material-icons-extended")
     
     // Compose Testing (use BOM version)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(enforcedPlatform(libs.androidx.compose.bom))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     
     // Navigation
@@ -80,7 +97,12 @@ dependencies {
     
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Encrypted prefs for secrets (Gemini API key)
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
     
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
+
     // ViewModel & Lifecycle
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
@@ -89,24 +111,33 @@ dependencies {
     // Coroutines for Wear message Task.await()
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     
-    // Google Sign-In & Drive API
+    // Google Sign-In, Drive & Calendar APIs
     implementation("com.google.android.gms:play-services-auth:21.2.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20230822-2.0.0")
+    implementation("com.google.apis:google-api-services-calendar:v3-rev20220715-2.0.0")
     implementation("com.google.api-client:google-api-client-android:2.2.0")
-    
-    // SwipeRefresh (Material Compose)
-    implementation("androidx.compose.material:material:1.7.5")
     
     // JSON parsing for VectorList
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     
+    val cameraxVersion = "1.4.0"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+
     // Room
     implementation("androidx.room:room-runtime:2.7.0")
     implementation("androidx.room:room-ktx:2.7.0")
     ksp("androidx.room:room-compiler:2.7.0")
+
+    implementation("androidx.media3:media3-exoplayer:1.5.1")
+    implementation("androidx.media3:media3-session:1.5.1")
+    implementation("androidx.media3:media3-ui:1.5.1")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    debugImplementation(enforcedPlatform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
