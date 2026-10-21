@@ -5,6 +5,7 @@ package com.vm.vector.presentation.workout
  */
 sealed class WearNavTarget {
     data object List : WearNavTarget()
-    data class EnduranceSession(val session: SessionItem) : WearNavTarget()
+    /** ENDURANCE and OTHER sessions. */
+    data class IntervalSession(val session: SessionItem) : WearNavTarget()
     data class ResistanceSession(val session: SessionItem) : WearNavTarget()
 }

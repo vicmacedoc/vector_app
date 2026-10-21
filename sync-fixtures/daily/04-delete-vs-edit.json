@@ -1,0 +1,27 @@
+{
+  "description": "An activity removed on this device but completed on the other one always asks.",
+  "stamps": { "local": 9, "remote": 1 },
+  "base": {
+    "activities": { "a1": { "id": "a1", "date": "2026-10-21", "title": "Gym", "completion": "NONE" } },
+    "habitLogs": { "h1": { "id": "h1", "date": "2026-10-21", "habitId": "x", "status": "NONE" } }
+  },
+  "local": {
+    "habitLogs": { "h1": { "id": "h1", "date": "2026-10-21", "habitId": "x", "status": "DONE" } }
+  },
+  "remote": {
+    "activities": { "a1": { "id": "a1", "date": "2026-10-21", "title": "Gym", "completion": "DONE" } },
+    "habitLogs": { "h1": { "id": "h1", "date": "2026-10-21", "habitId": "x", "status": "PARTIAL" } }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [{ "id": "activities/a1", "kind": "DELETE_EDIT", "fields": [] }],
+    "resolvedLocal": {
+      "habitLogs": { "h1": { "id": "h1", "date": "2026-10-21", "habitId": "x", "status": "DONE" } }
+    },
+    "resolvedRemote": {
+      "activities": { "a1": { "id": "a1", "date": "2026-10-21", "title": "Gym", "completion": "DONE" } },
+      "habitLogs": { "h1": { "id": "h1", "date": "2026-10-21", "habitId": "x", "status": "DONE" } }
+    }
+  }
+}

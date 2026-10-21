@@ -2,33 +2,40 @@ package com.vm.core.models
 
 import kotlinx.serialization.Serializable
 
+/**
+ * Weekly Routine preset: timed activities per weekday.
+ *
+ * Accepted on disk either wrapped (`{ "name", "weekly_plan": { "monday": [...] } }`, same shape as
+ * the Food/Workout presets) or bare (`{ "monday": [...], ... }`).
+ */
 @Serializable
 data class WeeklyRoutinePlan(
-    val id: String = "",
-    val weekly_plan: WeeklyRoutinePlanDays
+    val name: String = "",
+    val weekly_plan: WeeklyRoutinePlanDays = WeeklyRoutinePlanDays()
 )
 
 @Serializable
 data class WeeklyRoutinePlanDays(
-    val monday: List<RoutinePlanEntry> = emptyList(),
-    val tuesday: List<RoutinePlanEntry> = emptyList(),
-    val wednesday: List<RoutinePlanEntry> = emptyList(),
-    val thursday: List<RoutinePlanEntry> = emptyList(),
-    val friday: List<RoutinePlanEntry> = emptyList(),
-    val saturday: List<RoutinePlanEntry> = emptyList(),
-    val sunday: List<RoutinePlanEntry> = emptyList()
-)
+    val monday: List<RoutinePlanActivity> = emptyList(),
+    val tuesday: List<RoutinePlanActivity> = emptyList(),
+    val wednesday: List<RoutinePlanActivity> = emptyList(),
+    val thursday: List<RoutinePlanActivity> = emptyList(),
+    val friday: List<RoutinePlanActivity> = emptyList(),
+    val saturday: List<RoutinePlanActivity> = emptyList(),
+    val sunday: List<RoutinePlanActivity> = emptyList()
+) {
+    fun all(): List<RoutinePlanActivity> =
+        monday + tuesday + wednesday + thursday + friday + saturday + sunday
+}
 
 @Serializable
-data class RoutinePlanEntry(
-    val id: String = "",
-    val category: String,
+data class RoutinePlanActivity(
     val title: String,
-    val type: RoutineType,
-    val unit: String? = null,
-    val goalValue: Double? = null,
-    val partialThreshold: Double? = null,  // The "floor" for Orange status
-    val minValue: Double? = null,
-    val maxValue: Double? = null,
-    val directionBetter: Int = 1  // 1: Higher is better, -1: Lower is better
+    val startTime: String,
+    val endTime: String,
+    /** Activity label name, matched case-insensitively against `activity_labels`. */
+    val label: String = "",
+    /** "PLANNED" or "NEW"; presets default to PLANNED. */
+    val type: String = "PLANNED",
+    val description: String = ""
 )

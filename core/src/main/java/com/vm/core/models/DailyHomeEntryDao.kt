@@ -24,4 +24,13 @@ interface DailyHomeEntryDao {
 
     @Query("DELETE FROM daily_home")
     suspend fun deleteAll()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entries: List<DailyHomeEntry>)
+
+    @Query("DELETE FROM daily_home WHERE date >= :startDate AND date <= :endDate")
+    suspend fun deleteBetween(startDate: String, endDate: String)
+
+    @Query("SELECT DISTINCT substr(date, 1, 7) FROM daily_home")
+    suspend fun getMonths(): List<String>
 }

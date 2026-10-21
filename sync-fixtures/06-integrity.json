@@ -1,0 +1,41 @@
+{
+  "description": "Remote deletes a node while local adds content to it: notes and tasks fall back to the Inbox, tiles and links go",
+  "base": {
+    "nodes": {
+      "node_m": { "id": "node_m", "type": "MODEL", "name": "Kotlin" },
+      "node_n": { "id": "node_n", "type": "MODEL", "name": "Coroutines" }
+    },
+    "learningTiles": { "node_n": { "id": "node_n", "status": "LEARNING" } },
+    "learningLinks": { "node_n|node_m": { "fromNodeId": "node_n", "toNodeId": "node_m" } }
+  },
+  "local": {
+    "nodes": {
+      "node_m": { "id": "node_m", "type": "MODEL", "name": "Kotlin" },
+      "node_n": { "id": "node_n", "type": "MODEL", "name": "Coroutines" }
+    },
+    "learningTiles": { "node_n": { "id": "node_n", "status": "LEARNING" } },
+    "learningLinks": { "node_n|node_m": { "fromNodeId": "node_n", "toNodeId": "node_m" } },
+    "notes": { "note_9": { "id": "note_9", "nodeId": "node_n", "title": "Flows talk" } },
+    "tasks": { "task_9": { "id": "task_9", "nodeId": null, "linkedTileId": "node_n", "title": "Watch Flows talk" } }
+  },
+  "remote": {
+    "nodes": {
+      "node_m": { "id": "node_m", "type": "MODEL", "name": "Kotlin" }
+    }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [],
+    "resolvedLocal": {
+      "nodes": { "node_m": { "id": "node_m", "type": "MODEL", "name": "Kotlin" } },
+      "notes": { "note_9": { "id": "note_9", "nodeId": null, "title": "Flows talk" } },
+      "tasks": { "task_9": { "id": "task_9", "nodeId": null, "linkedTileId": null, "title": "Watch Flows talk" } }
+    },
+    "resolvedRemote": {
+      "nodes": { "node_m": { "id": "node_m", "type": "MODEL", "name": "Kotlin" } },
+      "notes": { "note_9": { "id": "note_9", "nodeId": null, "title": "Flows talk" } },
+      "tasks": { "task_9": { "id": "task_9", "nodeId": null, "linkedTileId": null, "title": "Watch Flows talk" } }
+    }
+  }
+}

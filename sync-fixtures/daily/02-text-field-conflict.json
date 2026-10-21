@@ -1,0 +1,24 @@
+{
+  "description": "Journal text edited on both sides conflicts; the mood scale (auto field) goes to the newer side (local).",
+  "stamps": { "local": 5000, "remote": 4000 },
+  "base": {
+    "self": { "2026-10-21": { "date": "2026-10-21", "mood": 3, "journalText": "draft" } }
+  },
+  "local": {
+    "self": { "2026-10-21": { "date": "2026-10-21", "mood": 4, "journalText": "phone words" } }
+  },
+  "remote": {
+    "self": { "2026-10-21": { "date": "2026-10-21", "mood": 2, "journalText": "desktop words" } }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [{ "id": "self/2026-10-21", "kind": "EDIT_EDIT", "fields": ["journalText"] }],
+    "resolvedLocal": {
+      "self": { "2026-10-21": { "date": "2026-10-21", "mood": 4, "journalText": "phone words" } }
+    },
+    "resolvedRemote": {
+      "self": { "2026-10-21": { "date": "2026-10-21", "mood": 4, "journalText": "desktop words" } }
+    }
+  }
+}

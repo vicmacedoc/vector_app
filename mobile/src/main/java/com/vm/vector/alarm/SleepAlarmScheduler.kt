@@ -322,10 +322,9 @@ class SleepAlarmScheduler(private val context: Context) {
 
     /** Stops the alarm ringtone and foreground notification when user opens the app. */
     fun stopAlarmIfPlaying() {
-        val stopIntent = Intent(context, AlarmRingingService::class.java).apply {
-            action = "STOP"
-        }
-        context.startService(stopIntent)
+        // Prefer stopService only — startService(STOP) throws
+        // BackgroundServiceStartNotAllowedException when the process is still
+        // backgrounded during cold start / activity launch.
         context.stopService(Intent(context, AlarmRingingService::class.java))
     }
 }

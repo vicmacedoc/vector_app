@@ -1,0 +1,29 @@
+{
+  "description": "The same field changed differently on both sides is an EDIT_EDIT conflict; the other fields still merge",
+  "base": {
+    "notes": { "note_1": { "id": "note_1", "title": "Dune", "body": "Spice", "updatedAt": 100 } }
+  },
+  "local": {
+    "notes": { "note_1": { "id": "note_1", "title": "Dune (phone)", "body": "Spice", "updatedAt": 200 } }
+  },
+  "remote": {
+    "notes": { "note_1": { "id": "note_1", "title": "Dune (desktop)", "body": "Arrakis", "updatedAt": 300 } }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [ { "id": "notes/note_1", "kind": "EDIT_EDIT", "fields": ["title", "updatedAt"] } ],
+    "resolvedLocal": {
+      "notes": { "note_1": { "id": "note_1", "title": "Dune (phone)", "body": "Arrakis", "updatedAt": 200 } }
+    },
+    "resolvedRemote": {
+      "notes": { "note_1": { "id": "note_1", "title": "Dune (desktop)", "body": "Arrakis", "updatedAt": 300 } }
+    },
+    "resolvedBoth": {
+      "notes": {
+        "note_1": { "id": "note_1", "title": "Dune (phone)", "body": "Arrakis", "updatedAt": 200 },
+        "note_1_copy": { "id": "note_1_copy", "title": "Dune (desktop)", "body": "Arrakis", "updatedAt": 300 }
+      }
+    }
+  }
+}

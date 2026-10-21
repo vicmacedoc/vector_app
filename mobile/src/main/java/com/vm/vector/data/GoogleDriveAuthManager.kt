@@ -6,17 +6,21 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.Scope
+import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.drive.DriveScopes
 
 /**
- * Handles Google Sign-In for Drive access. Broad Drive scope enabled for discovery.
+ * Handles Google Sign-In for Drive + Calendar (readonly) access.
  */
 class GoogleDriveAuthManager(private val context: Context) {
+
+    val calendarScope: Scope = Scope(CalendarScopes.CALENDAR_READONLY)
 
     private val signInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestEmail()
         .requestScopes(
             Scope(DriveScopes.DRIVE),
+            calendarScope,
         )
         .build()
 
@@ -25,6 +29,11 @@ class GoogleDriveAuthManager(private val context: Context) {
     fun getSignInIntent(): Intent = googleSignInClient.signInIntent
 
     fun getLastSignedInAccount(): GoogleSignInAccount? = GoogleSignIn.getLastSignedInAccount(context)
+
+    fun hasCalendarPermission(account: GoogleSignInAccount?): Boolean {
+        if (account == null) return false
+        return GoogleSignIn.hasPermissions(account, calendarScope)
+    }
 
     /**
      * Handles the sign-in result from Activity result intent.

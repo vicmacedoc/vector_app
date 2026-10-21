@@ -4,7 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import com.vm.vector.VectorApplication
 import com.vm.vector.data.PreferenceManager
+import com.vm.vector.motion.MotionReminderScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -33,6 +35,10 @@ class BootReceiver : BroadcastReceiver() {
             prefManager.filloutReminderMinutes.first()?.let { minutes ->
                 scheduler.scheduleFilloutReminder(minutes)
             }
+
+            val app = context.applicationContext as VectorApplication
+            val openTasks = app.database.motionTaskDao().getOpenSync()
+            MotionReminderScheduler.rescheduleAll(context, openTasks)
         }
     }
 }

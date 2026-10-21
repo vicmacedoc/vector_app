@@ -1,0 +1,25 @@
+{
+  "description": "Both sides imported the same Drive file: one asset and one note survive, preferring the remote ones",
+  "base": {},
+  "local": {
+    "assets": { "asset_l": { "id": "asset_l", "driveFileId": "drv_1", "fileName": "talk.mp3" } },
+    "notes": { "note_l": { "id": "note_l", "nodeId": null, "kind": "AUDIO", "assetId": "asset_l", "title": "talk" } }
+  },
+  "remote": {
+    "assets": { "asset_r": { "id": "asset_r", "driveFileId": "drv_1", "fileName": "talk.mp3" } },
+    "notes": { "note_r": { "id": "note_r", "nodeId": null, "kind": "AUDIO", "assetId": "asset_r", "title": "talk" } }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [],
+    "resolvedLocal": {
+      "assets": { "asset_r": { "id": "asset_r", "driveFileId": "drv_1", "fileName": "talk.mp3" } },
+      "notes": { "note_r": { "id": "note_r", "nodeId": null, "kind": "AUDIO", "assetId": "asset_r", "title": "talk" } }
+    },
+    "resolvedRemote": {
+      "assets": { "asset_r": { "id": "asset_r", "driveFileId": "drv_1", "fileName": "talk.mp3" } },
+      "notes": { "note_r": { "id": "note_r", "nodeId": null, "kind": "AUDIO", "assetId": "asset_r", "title": "talk" } }
+    }
+  }
+}

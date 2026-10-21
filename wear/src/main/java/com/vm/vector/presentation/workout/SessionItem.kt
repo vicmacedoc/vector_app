@@ -10,6 +10,7 @@ data class SessionItem(
     val sets: List<WorkoutSet>,
     val description: String? = null
 ) {
+    /** RESISTANCE runs the set flow; ENDURANCE and OTHER run the interval flow. */
     val isResistance: Boolean =
         sets.any { it.exerciseType.equals("RESISTANCE", ignoreCase = true) }
 }

@@ -213,10 +213,59 @@
     ],
     "thursday": [
       {
-        "title": "Other: Full Rest (PhD Noon Class)",
-        "description": "Strategic rest day to dissipate CNS fatigue and allow for muscle protein synthesis.",
+        "title": "Other: Volleyball Training",
+        "description": "Amateur tournament prep focusing on ball control, out-of-system setting, attack-dig transitions, serve-receive accuracy, and 1v1 conditioning. Wear runs work→rest countdowns per drill.",
         "type": "OTHER",
-        "exercises": []
+        "exercises": [
+          {
+            "name": "Dynamic movement & progressive peppering warm-up",
+            "description": "Raise heart rate and ball feel with progressive peppering before skill blocks.",
+            "targetDuration": 12,
+            "unitDuration": "min",
+            "rest": 120,
+            "unitRest": "s"
+          },
+          {
+            "name": "Out-of-system pursuit & high-ball setting drill",
+            "description": "Chase imperfect passes; set high balls under fatigue with platform discipline.",
+            "targetDuration": 15,
+            "unitDuration": "min",
+            "rest": 120,
+            "unitRest": "s"
+          },
+          {
+            "name": "Self-set attack, dig & under-net transition drill",
+            "description": "Attack-dig transitions and quick under-net switches for beach 2-player game speed.",
+            "targetDuration": 18,
+            "unitDuration": "min",
+            "rest": 120,
+            "unitRest": "s"
+          },
+          {
+            "name": "Target serve vs. receive platform control progression",
+            "description": "Serve to zones; receiver builds a quiet, accurate platform under pressure.",
+            "targetDuration": 15,
+            "unitDuration": "min",
+            "rest": 120,
+            "unitRest": "s"
+          },
+          {
+            "name": "Competitive 1v1 narrow court wash game",
+            "description": "Narrow-court wash scoring; 3 touches to self before sending. High intensity.",
+            "targetDuration": 20,
+            "unitDuration": "min",
+            "rest": 60,
+            "unitRest": "s"
+          },
+          {
+            "name": "Cool-down mobility, stretching & technical debrief",
+            "description": "Down-regulate, stretch hips/shoulders, and note 1–2 technical cues for next session.",
+            "targetDuration": 10,
+            "unitDuration": "min",
+            "rest": 0,
+            "unitRest": "s"
+          }
+        ]
       }
     ],
     "friday": [

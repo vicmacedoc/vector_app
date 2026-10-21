@@ -1,8 +1,11 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.vm.vector.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
@@ -16,11 +19,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -29,6 +32,8 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
@@ -36,6 +41,9 @@ import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -51,10 +59,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.ui.text.font.FontFamily
@@ -65,6 +76,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -91,17 +103,24 @@ import java.io.File
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.Image
 import com.vm.core.models.AuditStatus
-import com.vm.core.models.DiaryCollection
-import com.vm.core.models.DiaryCollectionImage
-import com.vm.core.models.DietEntry
-import com.vm.core.models.RoutineEntry
-import com.vm.core.models.RoutineStatus
-import com.vm.core.models.RoutineType
+import com.vm.core.models.FoodEntry
+import com.vm.core.models.SelfCollection
+import com.vm.core.models.SelfCollectionImage
+import com.vm.core.models.SelfScale
 import com.vm.core.models.WorkoutSet
+import com.vm.core.models.WorkoutSetType
+import com.vm.core.models.durationToMinutes
+import com.vm.core.models.isDropRow
+import com.vm.core.models.isInterval
+import com.vm.vector.data.analysis.ExerciseDayMath
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.vm.core.ui.theme.DeleteRed
+import com.vm.core.ui.theme.DropSetOrange
 import com.vm.core.ui.theme.ElectricBlue
+import com.vm.core.ui.theme.MoodColor1
+import com.vm.core.ui.theme.MoodPalette
 import com.vm.core.ui.theme.NavyDeep
 import com.vm.core.ui.theme.moodColorForLevel
 import com.vm.core.ui.theme.OffWhite
@@ -109,25 +128,187 @@ import com.vm.core.ui.theme.PureBlack
 import com.vm.core.ui.theme.PureWhite
 import com.vm.core.ui.theme.SlateGray
 import com.vm.core.ui.theme.VectorTheme
+import com.vm.vector.data.analysis.AnalysisStats
+import com.vm.vector.ui.screens.routine.ActivitiesSection
+import com.vm.vector.ui.screens.routine.BehaviorDonutSection
+import com.vm.vector.ui.screens.routine.SleepSection
+import com.vm.vector.ui.screens.routine.sleepArcsForCalendarDay
 import com.vm.vector.VectorApplication
 import com.vm.vector.audio.DailyPlanAudioHelper
-import com.vm.vector.data.DiaryPhotoSummary
+import com.vm.vector.data.SelfPhotoSummary
+import com.vm.vector.data.toImportDraft
+import com.vm.vector.ui.screens.exercise.ExerciseDaySummarySection
+import com.vm.vector.data.CalendarAiMode
+import com.vm.vector.data.MealImportDraft
+import com.vm.vector.data.parseMealClipboardText
+import com.vm.vector.ui.screens.calendar.CalendarAddFlowHost
+import com.vm.vector.ui.screens.calendar.CalendarPullToRefresh
+import com.vm.vector.ui.screens.calendar.DiscardChangesDialog
+import com.vm.vector.ui.screens.calendar.FillMealFromAiDialog
+import com.vm.vector.ui.screens.calendar.readClipboardText
+import androidx.compose.material3.FloatingActionButton
 import com.vm.vector.ui.util.isoCalendarDateToUtcPickerMillis
+import com.vm.vector.ui.components.DialogMultilineFieldDefaults
+import com.vm.vector.ui.components.KeyboardAwareDialogColumn
+import com.vm.vector.ui.components.WorkoutNumberStepper
+import com.vm.vector.ui.components.WorkoutNumberStepperDouble
 import com.vm.vector.ui.util.utcPickerMillisToIsoCalendarDate
 import com.vm.vector.ui.viewmodel.CalendarUiState
 import com.vm.vector.ui.viewmodel.CalendarViewModel
 import com.vm.vector.ui.viewmodel.CalendarViewModelFactory
 import com.vm.vector.util.applyExifOrientationToJpegBytes
+import androidx.compose.material.icons.filled.AutoAwesome
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 enum class CalendarCategory(val displayName: String) {
     Routine("Routine"),
-    Diet("Diet"),
-    Workout("Workout"),
-    Diary("Diary"),
+    Food("Food"),
+    Exercise("Exercise"),
+    Self("Self"),
+}
+
+private val calendarClipboardJson = Json {
+    prettyPrint = true
+    ignoreUnknownKeys = true
+    isLenient = true
+    encodeDefaults = true
+}
+
+@Serializable
+private data class FoodMealClipboardJson(
+    val name: String = "",
+    val time: String? = null,
+    val amount: Double? = null,
+    val plannedTime: String? = null,
+    val plannedAmount: Double? = null,
+    val unit: String = "g",
+    val kcal: Double = 0.0,
+    val protein: Double = 0.0,
+    val carbs: Double = 0.0,
+    val fats: Double = 0.0,
+)
+
+private fun copyPlainTextToClipboard(context: Context, label: String, text: String) {
+    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+    cm?.setPrimaryClip(ClipData.newPlainText(label, text))
+}
+
+private fun foodEntryToClipboardJson(entry: FoodEntry): String =
+    calendarClipboardJson.encodeToString(
+        FoodMealClipboardJson(
+            name = entry.name,
+            time = entry.effectiveTime(),
+            amount = entry.effectiveAmount(),
+            plannedTime = entry.plannedTime,
+            plannedAmount = entry.plannedAmount,
+            unit = entry.unit,
+            kcal = entry.kcal,
+            protein = entry.protein,
+            carbs = entry.carbs,
+            fats = entry.fats,
+        )
+    )
+
+private sealed interface CalendarTileActionSheet {
+    data class Food(val entry: FoodEntry) : CalendarTileActionSheet
+    data class Workout(val sessionSets: List<WorkoutSet>, val displayTitle: String) : CalendarTileActionSheet
+}
+
+@Composable
+private fun TileActionsDialog(
+    target: CalendarTileActionSheet,
+    isEditingEnabled: Boolean,
+    onDismiss: () -> Unit,
+    onCopy: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val (title, subtitle) = when (target) {
+        is CalendarTileActionSheet.Food -> "Meal" to target.entry.name
+        is CalendarTileActionSheet.Workout -> "Workout session" to target.displayTitle
+    }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = PureWhite,
+            tonalElevation = 2.dp
+        ) {
+            Column(Modifier.padding(20.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = PureBlack
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = PureBlack
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = PureBlack
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Removing marks this day as having unsaved changes. Tap the Save icon to keep it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = PureBlack.copy(alpha = 0.65f)
+                )
+                if (!isEditingEnabled) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Unlock editing (lock icon) to remove this tile.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DeleteRed
+                    )
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            onCopy()
+                            onDismiss()
+                        }
+                    ) {
+                        Text("Copy", color = NavyDeep)
+                    }
+                    Button(
+                        onClick = {
+                            onRemove()
+                            onDismiss()
+                        },
+                        enabled = isEditingEnabled,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = DeleteRed,
+                            contentColor = PureWhite,
+                            disabledContainerColor = PureBlack.copy(alpha = 0.12f),
+                            disabledContentColor = PureBlack.copy(alpha = 0.38f),
+                        )
+                    ) {
+                        Text("Remove")
+                    }
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -146,9 +327,9 @@ fun CalendarScreen(
 
     val initialCat = when (initialCategory) {
         "Routine" -> CalendarCategory.Routine
-        "Workout" -> CalendarCategory.Workout
-        "Diet" -> CalendarCategory.Diet
-        "Diary" -> CalendarCategory.Diary
+        "Exercise", "Workout" -> CalendarCategory.Exercise
+        "Food", "Diet" -> CalendarCategory.Food
+        "Self", "Diary" -> CalendarCategory.Self
         else -> CalendarCategory.Routine
     }
     var selectedCategory by rememberSaveable(initialCategory) { mutableStateOf(initialCat) }
@@ -168,11 +349,28 @@ fun CalendarScreen(
         }
     }
 
+    var showAddFlow by remember { mutableStateOf(false) }
+    val addFlowAvailable = uiState.isEditingEnabled && selectedCategory != CalendarCategory.Self
+    LaunchedEffect(addFlowAvailable) {
+        if (!addFlowAvailable) showAddFlow = false
+    }
+
     VectorTheme {
         Scaffold(
             containerColor = PureWhite,
             snackbarHost = {
                 SnackbarHost(hostState = snackbarHostState)
+            },
+            floatingActionButton = {
+                if (addFlowAvailable) {
+                    FloatingActionButton(
+                        onClick = { showAddFlow = true },
+                        containerColor = NavyDeep,
+                        contentColor = PureWhite,
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = "Add or plan ${selectedCategory.displayName}")
+                    }
+                }
             },
             modifier = Modifier.fillMaxSize()
         ) { paddingValues ->
@@ -187,12 +385,12 @@ fun CalendarScreen(
                         bottom = paddingValues.calculateBottomPadding()
                     )
             ) {
-                var showAddMealDialog by remember { mutableStateOf(false) }
-                var showAddRoutineDialog by remember { mutableStateOf(false) }
-                var showAddWorkoutDialog by remember { mutableStateOf(false) }
-                var showActivateEditingAlert by remember { mutableStateOf(false) }
-                var showRefreshFromDriveModal by remember { mutableStateOf(false) }
-                var showRefreshDiaryModal by remember { mutableStateOf(false) }
+                var pendingDiscardCategory by remember { mutableStateOf<CalendarCategory?>(null) }
+                var tileActionSheet by remember { mutableStateOf<CalendarTileActionSheet?>(null) }
+
+                LaunchedEffect(uiState.currentDate, selectedCategory) {
+                    tileActionSheet = null
+                }
 
                 CategorySwitch(
                     selectedCategory = selectedCategory,
@@ -201,172 +399,100 @@ fun CalendarScreen(
 
                 WeekScroller(
                     selectedDate = uiState.currentDate,
-                    datesWithCheckedMeals = uiState.datesWithCheckedMeals,
+                    markedDates = if (selectedCategory == CalendarCategory.Self) {
+                        uiState.datesWithSelfEntries
+                    } else {
+                        uiState.datesWithCheckedMeals
+                    },
                     isEditingEnabled = uiState.isEditingEnabled,
-                    showRefreshButton = selectedCategory == CalendarCategory.Diet ||
-                        selectedCategory == CalendarCategory.Routine ||
-                        selectedCategory == CalendarCategory.Workout ||
-                        selectedCategory == CalendarCategory.Diary,
-                    showAddButton = selectedCategory == CalendarCategory.Diet ||
-                        selectedCategory == CalendarCategory.Routine ||
-                        selectedCategory == CalendarCategory.Workout,
+                    hasUnsavedChanges = selectedCategory.displayName in uiState.dirtyCategories,
+                    isSaving = when (selectedCategory) {
+                        CalendarCategory.Routine -> uiState.isRoutineSaving
+                        CalendarCategory.Food -> uiState.isSaving
+                        CalendarCategory.Exercise -> uiState.isWorkoutSaving
+                        CalendarCategory.Self -> uiState.isSelfSaving
+                    },
                     onDateSelected = { date ->
                         viewModel.selectDate(date)
                     },
-                    onRefreshFromDriveClick = {
-                        if (selectedCategory == CalendarCategory.Diary) {
-                            showRefreshDiaryModal = true
-                        } else {
-                            showRefreshFromDriveModal = true
+                    onToggleLock = {
+                        viewModel.toggleEditingEnabled()
+                    },
+                    onSave = {
+                        when (selectedCategory) {
+                            CalendarCategory.Routine -> viewModel.saveRoutineDay()
+                            CalendarCategory.Food -> viewModel.saveFoodDay()
+                            CalendarCategory.Exercise -> viewModel.saveWorkout()
+                            CalendarCategory.Self -> viewModel.saveSelf()
                         }
                     },
-                    onAddMealClick = {
-                        if (uiState.isEditingEnabled) {
-                            when (selectedCategory) {
-                                CalendarCategory.Diet -> showAddMealDialog = true
-                                CalendarCategory.Routine -> showAddRoutineDialog = true
-                                CalendarCategory.Workout -> showAddWorkoutDialog = true
-                                else -> {}
-                            }
-                        } else {
-                            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                            val today = dateFormat.format(Date())
-                            if (uiState.currentDate < today) {
-                                showActivateEditingAlert = true
-                            }
-                        }
-                    },
-                    onEditClick = {
-                        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                        val today = dateFormat.format(Date())
-                        val isPastDay = uiState.currentDate < today
-                        if (isPastDay) {
-                            viewModel.toggleEditingEnabled()
-                        }
-                    },
-                    isPastDay = {
-                        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                        val today = dateFormat.format(Date())
-                        uiState.currentDate < today
-                    },
-                    isFutureDay = {
-                        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                        val today = dateFormat.format(Date())
-                        uiState.currentDate > today
-                    }
                 )
 
-                if (showAddMealDialog) {
-                    AddMealDialog(
-                        onDismiss = { showAddMealDialog = false },
-                        onConfirm = { name, time, amount, unit, kcal, protein, carbs, fats ->
-                            viewModel.addManualEntry(name, time, amount, unit, kcal, protein, carbs, fats)
-                            showAddMealDialog = false
-                        }
+                val requestRefresh: (CalendarCategory) -> Unit = { category ->
+                    if (category.displayName in uiState.dirtyCategories) {
+                        pendingDiscardCategory = category
+                    } else {
+                        viewModel.discardAndReload(category.displayName)
+                    }
+                }
+                pendingDiscardCategory?.let { category ->
+                    DiscardChangesDialog(
+                        categoryName = category.displayName,
+                        onConfirm = {
+                            viewModel.discardAndReload(category.displayName)
+                            pendingDiscardCategory = null
+                        },
+                        onDismiss = { pendingDiscardCategory = null },
                     )
                 }
 
-                if (showAddRoutineDialog) {
-                    AddRoutineDialog(
-                        onDismiss = { showAddRoutineDialog = false },
-                        onConfirm = { title, category, type, goalValue, partialThreshold, minValue, maxValue, unit, directionBetter ->
-                            viewModel.addManualRoutineEntry(
-                                title = title,
-                                category = category,
-                                type = type,
-                                goalValue = goalValue,
-                                partialThreshold = partialThreshold,
-                                minValue = minValue,
-                                maxValue = maxValue,
-                                unit = unit,
-                                directionBetter = directionBetter
-                            )
-                            showAddRoutineDialog = false
-                        }
-                    )
-                }
-
-                if (showAddWorkoutDialog) {
-                    AddWorkoutFromClipboardDialog(
+                if (showAddFlow) {
+                    CalendarAddFlowHost(
+                        category = selectedCategory,
                         viewModel = viewModel,
-                        onDismiss = { showAddWorkoutDialog = false },
-                        onAdded = { showAddWorkoutDialog = false }
+                        uiState = uiState,
+                        onClose = { showAddFlow = false },
                     )
                 }
 
-                if (showActivateEditingAlert) {
-                    AlertDialog(
-                        onDismissRequest = { showActivateEditingAlert = false },
-                        title = { Text("Editing locked", color = PureBlack) },
-                        text = { Text("Tap the edit icon to enable editing for this date.", color = PureBlack) },
-                        confirmButton = {
-                            TextButton(onClick = { showActivateEditingAlert = false }) {
-                                Text("OK", color = NavyDeep)
+                tileActionSheet?.let { sheet ->
+                    TileActionsDialog(
+                        target = sheet,
+                        isEditingEnabled = uiState.isEditingEnabled,
+                        onDismiss = { tileActionSheet = null },
+                        onCopy = {
+                            when (sheet) {
+                                is CalendarTileActionSheet.Food ->
+                                    copyPlainTextToClipboard(context, "Meal", foodEntryToClipboardJson(sheet.entry))
+                                is CalendarTileActionSheet.Workout ->
+                                    copyPlainTextToClipboard(
+                                        context,
+                                        "Workout session",
+                                        viewModel.encodeWorkoutSessionForClipboard(sheet.sessionSets)
+                                    )
                             }
+                            viewModel.notifyClipboardCopied()
                         },
-                        containerColor = PureWhite,
+                        onRemove = {
+                            when (sheet) {
+                                is CalendarTileActionSheet.Food -> viewModel.deleteEntry(sheet.entry.id)
+                                is CalendarTileActionSheet.Workout -> viewModel.removeWorkoutSession(sheet.sessionSets)
+                            }
+                            viewModel.notifyTileRemovedFromDay()
+                        },
                     )
                 }
 
-                if (showRefreshFromDriveModal) {
-                    AlertDialog(
-                        onDismissRequest = { showRefreshFromDriveModal = false },
-                        title = { Text("Reload preset", color = PureBlack) },
-                        text = { Text("Reload the active preset for this day and replace current content?", color = PureBlack) },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                when (selectedCategory) {
-                                    CalendarCategory.Diet -> viewModel.refreshFromDriveForDiet()
-                                    CalendarCategory.Routine -> viewModel.refreshFromDriveForRoutine()
-                                    CalendarCategory.Workout -> viewModel.refreshFromDriveForWorkout()
-                                    else -> {}
-                                }
-                                showRefreshFromDriveModal = false
-                            }) {
-                                Text("Yes", color = NavyDeep)
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showRefreshFromDriveModal = false }) {
-                                Text("No", color = NavyDeep)
-                            }
-                        },
-                        containerColor = PureWhite
-                    )
-                }
-
-                if (showRefreshDiaryModal) {
-                    AlertDialog(
-                        onDismissRequest = { showRefreshDiaryModal = false },
-                        title = { Text("Refresh diary photos", color = PureBlack) },
-                        text = {
-                            Text(
-                                "Fetch images from your Google Drive collections folder and update the list on this device?",
-                                color = PureBlack
-                            )
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                viewModel.refreshDiaryFromDrive()
-                                showRefreshDiaryModal = false
-                            }) {
-                                Text("Refresh", color = NavyDeep)
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showRefreshDiaryModal = false }) {
-                                Text("Cancel", color = NavyDeep)
-                            }
-                        },
-                        containerColor = PureWhite
-                    )
-                }
-
-                if (selectedCategory == CalendarCategory.Diet) {
-                    val groupedEntries = uiState.entries.groupBy { it.plannedTime }
+                if (selectedCategory == CalendarCategory.Food) {
+                    var foodTimeEditTarget by remember { mutableStateOf<FoodEntry?>(null) }
+                    val groupedEntries = uiState.entries.groupBy { it.effectiveTime() }
                         .toSortedMap()
 
-                    Box(modifier = Modifier.weight(1f)) {
+                    CalendarPullToRefresh(
+                        isRefreshing = uiState.isLoading,
+                        onRefresh = { requestRefresh(CalendarCategory.Food) },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -384,9 +510,9 @@ fun CalendarScreen(
                                     )
                                 }
                             } else {
-                                if (groupedEntries.isEmpty() && uiState.noPresetForDiet) {
+                                if (groupedEntries.isEmpty() && uiState.noPresetForFood) {
                                     NoPresetPlaceholder(
-                                        categoryName = "Diet",
+                                        categoryName = "Food",
                                         onLoadPreset = onNavigateToSettings
                                     )
                                 } else if (groupedEntries.isEmpty()) {
@@ -399,9 +525,11 @@ fun CalendarScreen(
                                 } else {
                                     val dietExpandedByTime = remember(uiState.currentDate) { mutableStateMapOf<String, Boolean>() }
                                     Column(modifier = Modifier.fillMaxWidth()) {
+                                        FoodDayMacrosSummary(entries = uiState.entries)
+                                        Spacer(modifier = Modifier.height(8.dp))
                                         groupedEntries.forEach { (time, entries) ->
                                             val isExpanded = dietExpandedByTime.getOrElse(time) { false }
-                                            CollapsibleDietTimeSection(
+                                            CollapsibleFoodTimeSection(
                                                 time = time,
                                                 entries = entries,
                                                 isExpanded = isExpanded,
@@ -409,89 +537,116 @@ fun CalendarScreen(
                                                     dietExpandedByTime[time] = !isExpanded
                                                 },
                                                 isEditingEnabled = uiState.isEditingEnabled,
-                                                viewModel = viewModel
+                                                viewModel = viewModel,
+                                                onEditEntryTime = { foodTimeEditTarget = it },
+                                                onOpenFoodTileActions = { entry ->
+                                                    tileActionSheet = CalendarTileActionSheet.Food(entry)
+                                                },
                                             )
                                         }
                                     }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(88.dp))
+                        }
+                        foodTimeEditTarget?.let { target ->
+                            FoodPlannedTimePickerDialog(
+                                initialMinutes = foodPlannedTimeToMinutes(target.effectiveTime()),
+                                onDismiss = { foodTimeEditTarget = null },
+                                onConfirm = { minutes ->
+                                    viewModel.updateEntryPlannedTime(
+                                        target.id,
+                                        dietMinutesToPlannedTime(minutes)
+                                    )
+                                    foodTimeEditTarget = null
+                                }
+                            )
                         }
                     }
                 } else if (selectedCategory == CalendarCategory.Routine) {
-                    val groupedEntries = uiState.routineEntries.groupBy { it.category }
-                        .toSortedMap()
-
-                    Box(modifier = Modifier.weight(1f)) {
+                    CalendarPullToRefresh(
+                        isRefreshing = false,
+                        onRefresh = { requestRefresh(CalendarCategory.Routine) },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
                                 .padding(horizontal = 16.dp)
                         ) {
-                            if (uiState.isLoading) {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.padding(16.dp),
-                                        color = NavyDeep
-                                    )
-                                }
-                            } else {
-                                if (groupedEntries.isEmpty() && uiState.noPresetForRoutine) {
-                                    NoPresetPlaceholder(
-                                        categoryName = "Routine",
-                                        onLoadPreset = onNavigateToSettings
-                                    )
-                                } else if (groupedEntries.isEmpty()) {
-                                    Text(
-                                        text = "No routine for this day.",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = PureBlack.copy(alpha = 0.7f),
-                                        modifier = Modifier.padding(vertical = 24.dp)
-                                    )
-                                } else {
-                                    groupedEntries.forEach { (category, entries) ->
-                                        CategoryHeader(category = category)
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        entries.forEach { entry ->
-                                            RoutineEntryCard(
-                                                entry = entry,
-                                                isEditingEnabled = uiState.isEditingEnabled,
-                                                onValueChange = { newValue ->
-                                                    viewModel.updateRoutineValue(entry.id, newValue)
-                                                },
-                                                onStatusChange = { newStatus ->
-                                                    viewModel.updateRoutineStatus(entry.id, newStatus)
-                                                },
-                                                onToggleNA = {
-                                                    viewModel.toggleNumericalStatus(entry.id)
-                                                }
-                                            )
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                        }
-                                    }
-                                }
-                            }
+                            val plannedArcs = sleepArcsForCalendarDay(
+                                previousNight = uiState.previousNight,
+                                tonight = uiState.tonight,
+                                defaultBedMinutes = uiState.defaultBedMinutes,
+                                defaultWakeMinutes = uiState.defaultWakeMinutes,
+                                useActual = false,
+                            )
+                            val doneArcs = sleepArcsForCalendarDay(
+                                previousNight = uiState.previousNight,
+                                tonight = uiState.tonight,
+                                defaultBedMinutes = uiState.defaultBedMinutes,
+                                defaultWakeMinutes = uiState.defaultWakeMinutes,
+                                useActual = true,
+                            )
+                            SleepSection(
+                                enabled = uiState.isEditingEnabled,
+                                previousNight = uiState.previousNight,
+                                tonight = uiState.tonight,
+                                defaultBedMinutes = uiState.defaultBedMinutes,
+                                defaultWakeMinutes = uiState.defaultWakeMinutes,
+                                onSetPlannedBedtime = viewModel::setPlannedBedtime,
+                                onSetPlannedWakeUp = viewModel::setPlannedWakeUp,
+                                onSetActualBedtime = viewModel::setActualBedtime,
+                                onSetActualWakeUp = viewModel::setActualWakeUp,
+                                onSetFellAsleep = viewModel::setFellAsleep,
+                                onSetLatency = viewModel::setLatency,
+                                onSetStageMinutes = viewModel::setStageMinutes,
+                                onSetStagePercent = viewModel::setStagePercent,
+                                onApplyAi = viewModel::applySleepAiEstimate,
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            BehaviorDonutSection(
+                                activities = uiState.activityEntries,
+                                labels = uiState.activityLabels,
+                                plannedSleepArcs = plannedArcs,
+                                doneSleepArcs = doneArcs,
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            ActivitiesSection(
+                                activities = uiState.activityEntries,
+                                labels = uiState.activityLabels,
+                                isEditingEnabled = uiState.isEditingEnabled,
+                                onUpsert = viewModel::upsertActivity,
+                                onDelete = viewModel::deleteActivity,
+                                onCompletion = viewModel::updateActivityCompletion,
+                                onToggleType = viewModel::toggleActivityType,
+                            )
+                            Spacer(modifier = Modifier.height(88.dp))
                         }
                     }
-                } else if (selectedCategory == CalendarCategory.Workout) {
+                } else if (selectedCategory == CalendarCategory.Exercise) {
                     var exerciseModalExerciseId by remember { mutableStateOf<String?>(null) }
                     val modalSets = remember(exerciseModalExerciseId, uiState.workoutSets) {
                         exerciseModalExerciseId?.let { id ->
                             uiState.workoutSets.filter { it.exerciseId == id }
                         }.orEmpty()
                     }
-                    Box(modifier = Modifier.weight(1f)) {
+                    CalendarPullToRefresh(
+                        isRefreshing = false,
+                        onRefresh = { requestRefresh(CalendarCategory.Exercise) },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         WorkoutContent(
                             sets = uiState.workoutSets,
                             noPreset = uiState.noPresetForWorkout,
                             onLoadPreset = onNavigateToSettings,
                             isEditingEnabled = uiState.isEditingEnabled,
-                            onUpdateActuals = viewModel::updateWorkoutSetInMemory,
                             onUpdateExerciseStatus = viewModel::updateWorkoutExerciseStatus,
-                            onExerciseClick = { exerciseModalExerciseId = it.first().exerciseId }
+                            onExerciseClick = { exerciseModalExerciseId = it.first().exerciseId },
+                            onLongPressWorkoutSessionActions = { sessionSets, displayTitle ->
+                                tileActionSheet = CalendarTileActionSheet.Workout(sessionSets, displayTitle)
+                            },
                         )
                     }
                     if (modalSets.isNotEmpty()) {
@@ -499,26 +654,29 @@ fun CalendarScreen(
                             setsInExercise = modalSets,
                             onDismiss = { exerciseModalExerciseId = null },
                             isEditingEnabled = uiState.isEditingEnabled,
-                            onUpdateActuals = viewModel::updateWorkoutSetInMemory
+                            onUpdateSet = viewModel::updateWorkoutSetInMemory
                         )
                     }
-                } else if (selectedCategory == CalendarCategory.Diary) {
-                    var diaryUnlocked by remember { mutableStateOf(false) }
+                } else if (selectedCategory == CalendarCategory.Self) {
+                    var selfUnlocked by remember { mutableStateOf(false) }
                     LaunchedEffect(selectedCategory) {
-                        if (selectedCategory != CalendarCategory.Diary) diaryUnlocked = false
+                        if (selectedCategory != CalendarCategory.Self) selfUnlocked = false
                     }
                     val keyguardManager = remember(context) {
                         context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
                     }
                     val credentialIntent = remember(keyguardManager) {
-                        keyguardManager?.createConfirmDeviceCredentialIntent("Unlock Diary", "Use your device PIN, pattern or password to view your diary.")
+                        keyguardManager?.createConfirmDeviceCredentialIntent(
+                            "Unlock Self",
+                            "Use your device PIN, pattern or password to view your journal."
+                        )
                     }
                     val credentialLauncher = rememberLauncherForActivityResult(
                         contract = ActivityResultContracts.StartActivityForResult()
                     ) { result ->
-                        if (result.resultCode == Activity.RESULT_OK) diaryUnlocked = true
+                        if (result.resultCode == Activity.RESULT_OK) selfUnlocked = true
                     }
-                    if (!diaryUnlocked && credentialIntent != null) {
+                    if (!selfUnlocked && credentialIntent != null) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -536,7 +694,7 @@ fun CalendarScreen(
                                     tint = NavyDeep
                                 )
                                 Text(
-                                    "Diary is protected",
+                                    "Self is protected",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = NavyDeep
                                 )
@@ -548,21 +706,23 @@ fun CalendarScreen(
                                 }
                             }
                         }
-                    } else if (diaryUnlocked || credentialIntent == null) {
+                    } else if (selfUnlocked || credentialIntent == null) {
                         if (credentialIntent == null) {
-                            diaryUnlocked = true
+                            selfUnlocked = true
                         }
-                        DiaryContent(
+                        CalendarPullToRefresh(
+                            isRefreshing = uiState.isSelfRefreshing,
+                            onRefresh = { requestRefresh(CalendarCategory.Self) },
                             modifier = Modifier.weight(1f),
-                            viewModel = viewModel,
-                            uiState = uiState,
-                            isEditingEnabled = uiState.isEditingEnabled,
-                            isDiaryRefreshing = uiState.isDiaryRefreshing,
-                        )
-                    }
-                } else {
-                    Box(modifier = Modifier.weight(1f)) {
-                        CategoryPlaceholder(category = selectedCategory)
+                        ) {
+                            SelfContent(
+                                modifier = Modifier.fillMaxSize(),
+                                viewModel = viewModel,
+                                uiState = uiState,
+                                isEditingEnabled = uiState.isEditingEnabled,
+                                isSelfRefreshing = uiState.isSelfRefreshing,
+                            )
+                        }
                     }
                 }
 
@@ -571,8 +731,10 @@ fun CalendarScreen(
                     AddMealDialog(
                         entry = editingEntry,
                         onDismiss = { viewModel.clearEditingEntry() },
-                        onConfirm = { name, time, amount, unit, kcal, protein, carbs, fats ->
-                            viewModel.updateManualEntry(editingEntry!!.id, name, time, amount, unit, kcal, protein, carbs, fats)
+                        onConfirm = { name, time, amount, unit, kcal, protein, carbs, fats, asPlanned ->
+                            viewModel.updateManualEntry(
+                                editingEntry!!.id, name, time, amount, unit, kcal, protein, carbs, fats, asPlanned,
+                            )
                             viewModel.clearEditingEntry()
                         },
                         onDelete = {
@@ -580,96 +742,6 @@ fun CalendarScreen(
                             viewModel.clearEditingEntry()
                         }
                     )
-                }
-
-                if (selectedCategory == CalendarCategory.Routine) {
-                    Button(
-                        onClick = { viewModel.saveRoutineDay() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 0.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = NavyDeep,
-                            contentColor = PureWhite
-                        ),
-                        enabled = uiState.isEditingEnabled
-                    ) {
-                        if (uiState.isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = PureWhite,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        Text("Save Changes")
-                    }
-                } else if (selectedCategory == CalendarCategory.Diet) {
-                    Button(
-                        onClick = { viewModel.saveDietDay() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 0.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = NavyDeep,
-                            contentColor = PureWhite
-                        ),
-                        enabled = uiState.isEditingEnabled
-                    ) {
-                        if (uiState.isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = PureWhite,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        Text("Save Changes")
-                    }
-                } else if (selectedCategory == CalendarCategory.Workout) {
-                    Button(
-                        onClick = { viewModel.saveWorkout() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 0.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = NavyDeep,
-                            contentColor = PureWhite
-                        ),
-                        enabled = uiState.isEditingEnabled
-                    ) {
-                        if (uiState.isWorkoutSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = PureWhite,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        Text("Save Changes")
-                    }
-                } else if (selectedCategory == CalendarCategory.Diary) {
-                    Button(
-                        onClick = { viewModel.saveDiary() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 0.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = NavyDeep,
-                            contentColor = PureWhite
-                        ),
-                        enabled = uiState.isEditingEnabled
-                    ) {
-                        if (uiState.isDiarySaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = PureWhite,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        Text("Save Changes")
-                    }
                 }
             }
         }
@@ -692,13 +764,6 @@ fun CalendarScreen(
                     app.clearWearWorkoutReceivedMessage()
                 }
             }
-            val wearRoutineMessage by app.wearRoutineReceivedMessage.collectAsState(initial = null)
-            LaunchedEffect(wearRoutineMessage) {
-                wearRoutineMessage?.let { msg ->
-                    snackbarHostState.showSnackbar(msg)
-                    app.clearWearRoutineReceivedMessage()
-                }
-            }
         }
     }
 }
@@ -716,12 +781,6 @@ private fun CategorySwitch(
     ) {
         CalendarCategory.entries.forEach { category ->
             val selected = selectedCategory == category
-            val icon = when (category) {
-                CalendarCategory.Routine -> Icons.Default.Schedule
-                CalendarCategory.Diet -> Icons.Default.Restaurant
-                CalendarCategory.Workout -> Icons.Default.FitnessCenter
-                CalendarCategory.Diary -> Icons.Default.EditNote
-            }
             Surface(
                 onClick = { onCategorySelected(category) },
                 modifier = Modifier.weight(1f),
@@ -735,12 +794,12 @@ private fun CategorySwitch(
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = category.displayName,
-                        tint = if (selected) PureWhite else NavyDeep,
-                        modifier = Modifier.size(24.dp),
-                    )
+                    when (category) {
+                        CalendarCategory.Routine -> Text(text = "⏰", fontSize = 22.sp)
+                        CalendarCategory.Food -> Text(text = "🍽️", fontSize = 22.sp)
+                        CalendarCategory.Exercise -> Text(text = "🏋️", fontSize = 22.sp)
+                        CalendarCategory.Self -> Text(text = "🧘", fontSize = 22.sp)
+                    }
                 }
             }
         }
@@ -799,7 +858,7 @@ private fun NoPresetPlaceholder(
 }
 
 @Composable
-private fun DiarySectionTitle(title: String) {
+private fun SelfSectionTitle(title: String) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Text(
             text = title,
@@ -812,27 +871,30 @@ private fun DiarySectionTitle(title: String) {
 
 // Scale 1–5: 1 = saddest (orange), 5 = happiest (green). Red and orange emoji faces swapped from original order.
 private val MOOD_EMOJIS = listOf("\uD83D\uDE1E", "\uD83D\uDE14", "\uD83D\uDE41", "\uD83D\uDE0A", "\uD83D\uDE00") // level 1 = orange face, 2 = red face, then neutral → happy
+
 @Composable
-private fun DiaryContent(
+private fun SelfContent(
     modifier: Modifier = Modifier,
     viewModel: CalendarViewModel,
     uiState: CalendarUiState,
     isEditingEnabled: Boolean,
-    isDiaryRefreshing: Boolean,
+    isSelfRefreshing: Boolean,
 ) {
     val scrollState = rememberScrollState()
+    val inputs = uiState.selfInputs
+
     Column(
         modifier = modifier
             .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
-        DiarySectionTitle("MOOD")
+        SelfSectionTitle("HOW I FELT")
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             (1..5).forEach { level ->
-                val selected = uiState.diaryMood == level
+                val selected = inputs.level(SelfScale.MOOD) == level
                 val color = moodColorForLevel(level)
                 Box(
                     modifier = Modifier
@@ -840,51 +902,198 @@ private fun DiaryContent(
                         .clip(CircleShape)
                         .background(if (selected) color else color.copy(alpha = 0.3f))
                         .then(if (selected) Modifier.border(2.dp, NavyDeep, CircleShape) else Modifier)
-                        .clickable(enabled = isEditingEnabled) { viewModel.setDiaryMood(level) },
+                        .clickable(enabled = isEditingEnabled) {
+                            viewModel.setSelfScale(SelfScale.MOOD, level)
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = MOOD_EMOJIS[level - 1], style = MaterialTheme.typography.titleLarge)
                 }
             }
         }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = SelfScale.MOOD.lowLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = SlateGray
+            )
+            Text(
+                text = SelfScale.MOOD.highLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = SlateGray
+            )
+        }
+        SelfScale.secondary.forEach { scale ->
+            Spacer(modifier = Modifier.height(12.dp))
+            SelfLevelScale(
+                scale = scale,
+                value = inputs.level(scale),
+                isEditingEnabled = isEditingEnabled,
+                onSelect = { level -> viewModel.setSelfScale(scale, level) }
+            )
+        }
         Spacer(modifier = Modifier.height(16.dp))
 
-        DiarySectionTitle("JOURNAL")
+        SelfSectionTitle("INTENTION")
+        OutlinedTextField(
+            value = inputs.intention,
+            onValueChange = viewModel::setSelfIntention,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("What mattered most today?", color = SlateGray) },
+            enabled = isEditingEnabled,
+            singleLine = true
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SelfSectionTitle("JOURNAL")
         JournalAudioRow(
             viewModel = viewModel,
             currentDate = uiState.currentDate,
-            diaryAudioPath = uiState.diaryAudioPath,
-            diaryAudioDriveFileId = uiState.diaryAudioDriveFileId,
+            selfAudioPath = uiState.selfAudioPath,
+            selfAudioDriveFileId = uiState.selfAudioDriveFileId,
+            isEditingEnabled = isEditingEnabled
+        )
+        SelfPromptField(
+            value = inputs.highlight,
+            onValueChange = viewModel::setSelfHighlight,
+            placeholder = "What fuelled me",
+            isEditingEnabled = isEditingEnabled
+        )
+        SelfPromptField(
+            value = inputs.lowlight,
+            onValueChange = viewModel::setSelfLowlight,
+            placeholder = "What drained me",
+            isEditingEnabled = isEditingEnabled
+        )
+        SelfPromptField(
+            value = inputs.gratitude,
+            onValueChange = viewModel::setSelfGratitude,
+            placeholder = "Grateful for",
             isEditingEnabled = isEditingEnabled
         )
         OutlinedTextField(
-            value = uiState.diaryJournalText,
-            onValueChange = viewModel::setDiaryJournalText,
+            value = inputs.journalText,
+            onValueChange = viewModel::setSelfJournalText,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 120.dp),
+                .padding(top = 8.dp)
+                .heightIn(
+                    min = DialogMultilineFieldDefaults.LargeMin,
+                    max = DialogMultilineFieldDefaults.LargeMax,
+                ),
             placeholder = { Text("How was your day?", color = SlateGray) },
+            enabled = isEditingEnabled,
             maxLines = 6
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        DiarySectionTitle("COLLECTIONS")
-        DiaryCollectionsSection(
+        SelfSectionTitle("COLLECTIONS")
+        SelfCollectionsSection(
             viewModel = viewModel,
-            collectionsWithImages = uiState.diaryCollectionsWithImages,
-            isDiaryRefreshing = isDiaryRefreshing,
+            collectionsWithImages = uiState.selfCollectionsWithImages,
+            isSelfRefreshing = isSelfRefreshing,
             isCreatingCollection = uiState.isCreatingCollection,
             isEditingEnabled = isEditingEnabled
         )
     }
 }
 
+/**
+ * 1–5 tap scale with the poles named, so the number keeps the same meaning across days.
+ * Circles carry the mood ramp, which lines up because every scale runs worst to best.
+ */
+@Composable
+private fun SelfLevelScale(
+    scale: SelfScale,
+    value: Int?,
+    isEditingEnabled: Boolean,
+    onSelect: (Int) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = scale.label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = PureBlack
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            (1..5).forEach { level ->
+                val selected = value == level
+                val color = moodColorForLevel(level)
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(if (selected) color else color.copy(alpha = 0.3f))
+                        .then(
+                            if (selected) Modifier.border(2.dp, NavyDeep, CircleShape) else Modifier
+                        )
+                        .clickable(enabled = isEditingEnabled) { onSelect(level) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = level.toString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = PureBlack
+                    )
+                }
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = scale.lowLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = SlateGray
+            )
+            Text(
+                text = scale.highLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = SlateGray
+            )
+        }
+    }
+}
+
+@Composable
+private fun SelfPromptField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    isEditingEnabled: Boolean,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        placeholder = { Text(placeholder, color = SlateGray) },
+        enabled = isEditingEnabled,
+        maxLines = 2
+    )
+}
+
+
 @Composable
 private fun JournalAudioRow(
     viewModel: CalendarViewModel,
     currentDate: String,
-    diaryAudioPath: String?,
-    diaryAudioDriveFileId: String?,
+    selfAudioPath: String?,
+    selfAudioDriveFileId: String?,
     isEditingEnabled: Boolean
 ) {
     val context = LocalContext.current
@@ -893,8 +1102,8 @@ private fun JournalAudioRow(
     var isRecording by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(false) }
     var isPaused by remember { mutableStateOf(false) }
-    val hasLocalAudio = !diaryAudioPath.isNullOrBlank() && audioHelper.fileExists(diaryAudioPath)
-    val hasDriveAudio = !diaryAudioDriveFileId.isNullOrBlank()
+    val hasLocalAudio = !selfAudioPath.isNullOrBlank() && audioHelper.fileExists(selfAudioPath)
+    val hasDriveAudio = !selfAudioDriveFileId.isNullOrBlank()
     val hasAudio = hasLocalAudio || hasDriveAudio
 
     val recordPermissionLauncher = rememberLauncherForActivityResult(
@@ -927,7 +1136,7 @@ private fun JournalAudioRow(
                 onClick = {
                     audioHelper.stopRecording()
                     val path = DailyPlanAudioHelper.relativePathForDiaryDate(currentDate)
-                    viewModel.setDiaryAudioPath(path)
+                    viewModel.setSelfAudioPath(path)
                     isRecording = false
                 }
             ) {
@@ -968,7 +1177,7 @@ private fun JournalAudioRow(
                             isPaused = false
                         } else {
                             val pathToPlay = when {
-                                hasLocalAudio -> diaryAudioPath
+                                hasLocalAudio -> selfAudioPath
                                 else -> null
                             }
                             if (pathToPlay != null) {
@@ -978,9 +1187,9 @@ private fun JournalAudioRow(
                                     onError = { }
                                 )
                                 isPlaying = true
-                            } else if (diaryAudioDriveFileId != null) {
+                            } else if (selfAudioDriveFileId != null) {
                                 scope.launch {
-                                    val bytes = viewModel.getDiaryAudioBytes()
+                                    val bytes = viewModel.getSelfAudioBytes()
                                     if (bytes != null) {
                                         val relPath = audioHelper.writeDiaryPlaybackBytes(bytes)
                                         if (relPath != null) {
@@ -1002,11 +1211,11 @@ private fun JournalAudioRow(
                 if (isEditingEnabled) {
                     IconButton(onClick = {
                         audioHelper.stopPlayback()
-                        if (hasLocalAudio && diaryAudioPath != null) {
-                            audioHelper.deleteFile(diaryAudioPath)
+                        if (hasLocalAudio && selfAudioPath != null) {
+                            audioHelper.deleteFile(selfAudioPath)
                         }
-                        viewModel.setDiaryAudioPath(null)
-                        viewModel.setDiaryAudioDriveFileId(null)
+                        viewModel.setSelfAudioPath(null)
+                        viewModel.setSelfAudioDriveFileId(null)
                         isPlaying = false
                         isPaused = false
                     }) {
@@ -1024,7 +1233,7 @@ private fun JournalAudioRow(
 
 private data class PendingPhoto(val collectionId: String, val uri: Uri)
 
-private fun formatDiaryPhotoRange(summary: DiaryPhotoSummary): String {
+private fun formatDiaryPhotoRange(summary: SelfPhotoSummary): String {
     val fmt = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
     return if (summary.rangeStartMillis == summary.rangeEndMillis) {
         fmt.format(Date(summary.rangeStartMillis))
@@ -1033,11 +1242,11 @@ private fun formatDiaryPhotoRange(summary: DiaryPhotoSummary): String {
     }
 }
 
-private fun diaryAlbumSummary(images: List<DiaryCollectionImage>): DiaryPhotoSummary? {
+private fun diaryAlbumSummary(images: List<SelfCollectionImage>): SelfPhotoSummary? {
     if (images.isEmpty()) return null
     val times = images.map { it.takenAtMillis }
     val latest = images.sortedByDescending { it.takenAtMillis }.take(4).map { it.driveFileId }
-    return DiaryPhotoSummary(
+    return SelfPhotoSummary(
         totalCount = images.size,
         rangeStartMillis = times.minOrNull()!!,
         rangeEndMillis = times.maxOrNull()!!,
@@ -1046,20 +1255,20 @@ private fun diaryAlbumSummary(images: List<DiaryCollectionImage>): DiaryPhotoSum
 }
 
 @Composable
-private fun DiaryCollectionsSection(
+private fun SelfCollectionsSection(
     viewModel: CalendarViewModel,
-    collectionsWithImages: List<Pair<DiaryCollection, List<DiaryCollectionImage>>>,
-    isDiaryRefreshing: Boolean,
+    collectionsWithImages: List<Pair<SelfCollection, List<SelfCollectionImage>>>,
+    isSelfRefreshing: Boolean,
     isCreatingCollection: Boolean,
     isEditingEnabled: Boolean
 ) {
     val context = LocalContext.current
     var showNewCollectionDialog by remember { mutableStateOf(false) }
-    var showTimelapseConfig by remember { mutableStateOf<List<DiaryCollectionImage>?>(null) }
-    var showImageViewer by remember { mutableStateOf<DiaryCollectionImage?>(null) }
-    var showImageGallery by remember { mutableStateOf<List<DiaryCollectionImage>?>(null) }
-    var showDeleteCollectionConfirm by remember { mutableStateOf<DiaryCollection?>(null) }
-    var showDeleteImageConfirm by remember { mutableStateOf<DiaryCollectionImage?>(null) }
+    var showTimelapseConfig by remember { mutableStateOf<List<SelfCollectionImage>?>(null) }
+    var showImageViewer by remember { mutableStateOf<SelfCollectionImage?>(null) }
+    var showImageGallery by remember { mutableStateOf<List<SelfCollectionImage>?>(null) }
+    var showDeleteCollectionConfirm by remember { mutableStateOf<SelfCollection?>(null) }
+    var showDeleteImageConfirm by remember { mutableStateOf<SelfCollectionImage?>(null) }
     var pendingPhoto by remember { mutableStateOf<PendingPhoto?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -1072,7 +1281,7 @@ private fun DiaryCollectionsSection(
                     try {
                         val rawBytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                         if (rawBytes == null) {
-                            viewModel.notifyDiaryError("Failed to read captured photo.")
+                            viewModel.notifySelfError("Failed to read captured photo.")
                             return@launch
                         }
                         val bytes = applyExifOrientationToJpegBytes(rawBytes) ?: rawBytes
@@ -1083,7 +1292,7 @@ private fun DiaryCollectionsSection(
                             takenAtMillis = System.currentTimeMillis()
                         )
                     } catch (e: Exception) {
-                        viewModel.notifyDiaryError("Failed to upload photo: ${e.message ?: "Unknown error"}")
+                        viewModel.notifySelfError("Failed to upload photo: ${e.message ?: "Unknown error"}")
                     } finally {
                         pendingPhoto = null
                     }
@@ -1138,7 +1347,7 @@ private fun DiaryCollectionsSection(
                     color = SlateGray
                 )
             }
-            if (isDiaryRefreshing) {
+            if (isSelfRefreshing) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(28.dp),
                     color = NavyDeep,
@@ -1166,7 +1375,7 @@ private fun DiaryCollectionsSection(
         }
 
         collectionsWithImages.forEach { (collection, images) ->
-            DiaryAlbumCard(
+            SelfAlbumCard(
                 collection = collection,
                 images = images,
                 viewModel = viewModel,
@@ -1175,7 +1384,12 @@ private fun DiaryCollectionsSection(
                 onTimelapse = {
                     if (images.isNotEmpty()) showTimelapseConfig = images.sortedBy { it.takenAtMillis }
                 },
-                onRemoveAlbum = { showDeleteCollectionConfirm = collection },
+                onRemoveAlbum = {
+                    if (!collection.isSystem && !SelfCollection.isBodyScanAngleName(collection.name)) {
+                        showDeleteCollectionConfirm = collection
+                    }
+                },
+                canRemoveAlbum = !collection.isSystem && !SelfCollection.isBodyScanAngleName(collection.name),
                 onImageClick = { showImageViewer = it },
                 onViewAll = { showImageGallery = images.sortedBy { it.takenAtMillis } }
             )
@@ -1228,7 +1442,7 @@ private fun DiaryCollectionsSection(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteDiaryCollection(col)
+                    viewModel.deleteSelfCollection(col)
                     showDeleteCollectionConfirm = null
                 }) { Text("Remove", color = DeleteRed) }
             },
@@ -1257,7 +1471,7 @@ private fun DiaryCollectionsSection(
             text = { Text("This will delete the image from the app and from Drive.") },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteDiaryImage(img)
+                    viewModel.deleteSelfImage(img)
                     showDeleteImageConfirm = null
                 }) { Text("Delete", color = DeleteRed) }
             },
@@ -1276,7 +1490,7 @@ private fun DiaryCollectionsSection(
     }
 
     showTimelapseConfig?.let { imgs ->
-        DiaryTimelapseConfigDialog(
+        SelfTimelapseConfigDialog(
             images = imgs,
             viewModel = viewModel,
             onDismiss = { showTimelapseConfig = null }
@@ -1285,15 +1499,16 @@ private fun DiaryCollectionsSection(
 }
 
 @Composable
-private fun DiaryAlbumCard(
-    collection: DiaryCollection,
-    images: List<DiaryCollectionImage>,
+private fun SelfAlbumCard(
+    collection: SelfCollection,
+    images: List<SelfCollectionImage>,
     viewModel: CalendarViewModel,
     isEditingEnabled: Boolean,
     onAddPhoto: () -> Unit,
     onTimelapse: () -> Unit,
     onRemoveAlbum: () -> Unit,
-    onImageClick: (DiaryCollectionImage) -> Unit,
+    canRemoveAlbum: Boolean = true,
+    onImageClick: (SelfCollectionImage) -> Unit,
     onViewAll: () -> Unit,
 ) {
     val summary = diaryAlbumSummary(images)
@@ -1335,7 +1550,7 @@ private fun DiaryAlbumCard(
                         )
                     }
                 }
-                if (isEditingEnabled) {
+                if (isEditingEnabled && canRemoveAlbum) {
                     IconButton(onClick = onRemoveAlbum) {
                         Icon(
                             Icons.Default.Delete,
@@ -1420,7 +1635,7 @@ private fun DiaryDriveThumb(
 
 @Composable
 private fun DiaryImageThumb(
-    image: DiaryCollectionImage,
+    image: SelfCollectionImage,
     viewModel: CalendarViewModel,
     onClick: () -> Unit,
 ) {
@@ -1449,7 +1664,7 @@ private fun DiaryImageThumb(
 
 @Composable
 private fun DiaryImageViewerDialog(
-    image: DiaryCollectionImage,
+    image: SelfCollectionImage,
     viewModel: CalendarViewModel,
     onDismiss: () -> Unit,
     onDelete: () -> Unit
@@ -1497,7 +1712,7 @@ private fun DiaryImageViewerDialog(
 
 @Composable
 private fun DiaryImageGalleryDialog(
-    images: List<DiaryCollectionImage>,
+    images: List<SelfCollectionImage>,
     viewModel: CalendarViewModel,
     onDismiss: () -> Unit
 ) {
@@ -1557,8 +1772,8 @@ private fun DiaryImageGalleryDialog(
 }
 
 @Composable
-private fun DiaryTimelapseConfigDialog(
-    images: List<DiaryCollectionImage>,
+private fun SelfTimelapseConfigDialog(
+    images: List<SelfCollectionImage>,
     viewModel: CalendarViewModel,
     onDismiss: () -> Unit
 ) {
@@ -1570,7 +1785,7 @@ private fun DiaryTimelapseConfigDialog(
     var showMinute by remember { mutableStateOf(false) }
     var started by remember { mutableStateOf(false) }
     if (started) {
-        DiaryTimelapsePlayer(
+        SelfTimelapsePlayer(
             images = images,
             durationSeconds = durationSeconds,
             showDay = showDay,
@@ -1632,8 +1847,8 @@ private fun DiaryTimelapseConfigDialog(
 }
 
 @Composable
-private fun DiaryTimelapsePlayer(
-    images: List<DiaryCollectionImage>,
+private fun SelfTimelapsePlayer(
+    images: List<SelfCollectionImage>,
     durationSeconds: Int,
     showDay: Boolean,
     showMonth: Boolean,
@@ -1746,9 +1961,9 @@ private fun WorkoutContent(
     noPreset: Boolean,
     onLoadPreset: () -> Unit,
     isEditingEnabled: Boolean,
-    onUpdateActuals: (setId: String, actualLoad: Double?, actualReps: Int?, actualVelocity: Double?, actualRpe: Double?, actualRir: Int?, actualDuration: Int?, actualDistance: Double?, actualRest: Int?) -> Unit,
     onUpdateExerciseStatus: (exerciseId: String, status: String?) -> Unit,
-    onExerciseClick: (List<WorkoutSet>) -> Unit
+    onExerciseClick: (List<WorkoutSet>) -> Unit,
+    onLongPressWorkoutSessionActions: (sessionSets: List<WorkoutSet>, displayTitle: String) -> Unit,
 ) {
     val scrollState = rememberScrollState()
     var expandedSessionKeys by remember { mutableStateOf(setOf<String>()) }
@@ -1775,6 +1990,7 @@ private fun WorkoutContent(
             }
             return@Column
         }
+        ExerciseDaySummarySection(sets = sets)
         val sessions = sets.groupBy { it.sessionTitle.ifBlank { "Workout" } }.toList()
             .map { (sessionTitle, sessionSets) ->
                 val orderedByExercise = sessionSets.groupBy { it.exerciseId }
@@ -1797,9 +2013,13 @@ private fun WorkoutContent(
                 exerciseBlocks = orderedByExercise,
                 isEditingEnabled = isEditingEnabled,
                 onStatusChange = onUpdateExerciseStatus,
-                onExerciseClick = onExerciseClick
+                onExerciseClick = onExerciseClick,
+                onLongPressSessionActions = {
+                    onLongPressWorkoutSessionActions(sessionSets, sessionTitle)
+                },
             )
         }
+        Spacer(modifier = Modifier.height(72.dp))
     }
 }
 
@@ -1817,7 +2037,8 @@ private fun WorkoutSessionTile(
     exerciseBlocks: List<List<WorkoutSet>>,
     isEditingEnabled: Boolean,
     onStatusChange: (exerciseId: String, status: String?) -> Unit,
-    onExerciseClick: (List<WorkoutSet>) -> Unit
+    onExerciseClick: (List<WorkoutSet>) -> Unit,
+    onLongPressSessionActions: () -> Unit,
 ) {
     val statuses = exerciseBlocks.map { block -> block.firstOrNull()?.workoutStatus }
     val relevant = statuses.filter { it != "N/A" }
@@ -1835,7 +2056,10 @@ private fun WorkoutSessionTile(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable { onClick() },
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { onLongPressSessionActions() },
+            ),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = tileColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -1874,13 +2098,46 @@ private fun WorkoutSessionTile(
                     modifier = Modifier.padding(start = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    exerciseBlocks.forEach { block ->
-                        SimpleExerciseCard(
-                            setsInExercise = block,
-                            isEditingEnabled = isEditingEnabled,
-                            onStatusChange = { onStatusChange(block.first().exerciseId, it) },
-                            onClick = { onExerciseClick(block) }
-                        )
+                    supersetRuns(exerciseBlocks).forEach { run ->
+                        val letter = run.first().firstOrNull()?.groupingId
+                        if (letter != null && run.size > 1) {
+                            SupersetDivider(label = "${if (run.size > 2) "Tri-set" else "Superset"} $letter")
+                            Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(3.dp)
+                                        .fillMaxHeight()
+                                        .padding(vertical = 4.dp)
+                                        .background(NavyDeep.copy(alpha = 0.5f))
+                                )
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(start = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    run.forEachIndexed { index, block ->
+                                        SimpleExerciseCard(
+                                            setsInExercise = block,
+                                            badge = "$letter${index + 1}",
+                                            isEditingEnabled = isEditingEnabled,
+                                            onStatusChange = { onStatusChange(block.first().exerciseId, it) },
+                                            onClick = { onExerciseClick(block) }
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            run.forEach { block ->
+                                SimpleExerciseCard(
+                                    setsInExercise = block,
+                                    badge = null,
+                                    isEditingEnabled = isEditingEnabled,
+                                    onStatusChange = { onStatusChange(block.first().exerciseId, it) },
+                                    onClick = { onExerciseClick(block) }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1888,43 +2145,28 @@ private fun WorkoutSessionTile(
     }
 }
 
-@Composable
-private fun TypeHeader(title: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(2.dp)
-                .background(NavyDeep)
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = NavyDeep,
-            modifier = Modifier.padding(horizontal = 12.dp)
-        )
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(2.dp)
-                .background(NavyDeep)
-        )
+/** Splits exercise blocks into runs of consecutive exercises that share a superset group. */
+private fun supersetRuns(blocks: List<List<WorkoutSet>>): List<List<List<WorkoutSet>>> {
+    val runs = mutableListOf<MutableList<List<WorkoutSet>>>()
+    blocks.forEach { block ->
+        val group = block.firstOrNull()?.groupingId
+        val last = runs.lastOrNull()
+        val lastGroup = last?.firstOrNull()?.firstOrNull()?.groupingId
+        if (group != null && last != null && group == lastGroup) last.add(block) else runs.add(mutableListOf(block))
     }
+    return runs
 }
 
 @Composable
 private fun SimpleExerciseCard(
     setsInExercise: List<WorkoutSet>,
+    badge: String?,
     isEditingEnabled: Boolean,
     onStatusChange: (String?) -> Unit,
     onClick: () -> Unit
 ) {
     val exerciseName = setsInExercise.firstOrNull()?.exerciseName?.ifBlank { setsInExercise.first().exerciseId } ?: ""
+    val subtitle = remember(setsInExercise) { exerciseCardSubtitle(setsInExercise) }
     val currentStatus = setsInExercise.firstOrNull()?.workoutStatus
     var expanded by remember { mutableStateOf(false) }
     val statusColor = getWorkoutStatusColor(currentStatus)
@@ -1946,12 +2188,24 @@ private fun SimpleExerciseCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = exerciseName,
-                style = MaterialTheme.typography.titleSmall,
-                color = NavyDeep,
-                modifier = Modifier.weight(1f)
-            )
+            if (badge != null) {
+                ExerciseBadge(text = badge, emphasized = true)
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exerciseName,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = NavyDeep
+                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = SlateGray
+                    )
+                }
+            }
             Box {
                 Button(
                     onClick = { if (isEditingEnabled) expanded = true },
@@ -1995,17 +2249,19 @@ private fun WorkoutExerciseDetailModal(
     setsInExercise: List<WorkoutSet>,
     onDismiss: () -> Unit,
     isEditingEnabled: Boolean,
-    onUpdateActuals: (setId: String, actualLoad: Double?, actualReps: Int?, actualVelocity: Double?, actualRpe: Double?, actualRir: Int?, actualDuration: Int?, actualDistance: Double?, actualRest: Int?) -> Unit
+    onUpdateSet: WorkoutRowUpdate,
 ) {
     val monospaceLabel = MaterialTheme.typography.labelMedium.copy(
         fontFamily = FontFamily.Monospace
     )
-    val first = setsInExercise.firstOrNull()
+    val sorted = setsInExercise.sortedWith(compareBy<WorkoutSet> { it.setNumber }.thenBy { it.dropNumber })
+    val mains = sorted.filter { !it.isDropRow }
+    val first = sorted.firstOrNull()
     val exerciseName = first?.exerciseName ?: ""
     val exerciseDescription = first?.exerciseDescription?.takeIf { it.isNotBlank() } ?: ""
     val timing = first?.timing?.takeIf { it.isNotBlank() }
     val exerciseType = first?.exerciseType?.ifBlank { "RESISTANCE" } ?: "RESISTANCE"
-    val showSetLabel = exerciseType == "RESISTANCE"
+    val badges = exerciseBadges(sorted)
     val scrollState = rememberScrollState()
 
     Dialog(onDismissRequest = onDismiss) {
@@ -2024,6 +2280,16 @@ private fun WorkoutExerciseDetailModal(
                     color = PureBlack,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
+                if (badges.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .horizontalScroll(rememberScrollState())
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        badges.forEach { ExerciseBadge(it) }
+                    }
+                }
                 if (exerciseDescription.isNotBlank() || timing != null) {
                     Column(modifier = Modifier.padding(bottom = 12.dp)) {
                         if (exerciseDescription.isNotBlank()) {
@@ -2050,14 +2316,16 @@ private fun WorkoutExerciseDetailModal(
                         .verticalScroll(scrollState),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    setsInExercise.sortedBy { it.setNumber }.forEach { setEntry ->
+                    mains.forEach { main ->
                         WorkoutSetRow(
-                            setEntry = setEntry,
+                            setEntry = main,
+                            drops = sorted.filter { it.isDropRow && it.setNumber == main.setNumber },
+                            rowLabel = workoutRowLabel(main, exerciseType),
                             exerciseDescription = exerciseDescription,
-                            showSetLabel = showSetLabel,
+                            isSingleRow = mains.size == 1,
                             isEditingEnabled = isEditingEnabled,
                             monospaceLabel = monospaceLabel,
-                            onUpdateActuals = onUpdateActuals
+                            onUpdateSet = onUpdateSet
                         )
                     }
                 }
@@ -2075,37 +2343,75 @@ private fun WorkoutExerciseDetailModal(
     }
 }
 
+private typealias WorkoutRowUpdate = (setId: String, transform: (WorkoutSet) -> WorkoutSet) -> Unit
+
+private fun workoutRowLabel(row: WorkoutSet, exerciseType: String): String? = when {
+    row.isInterval -> "Interval ${row.setNumber}"
+    exerciseType.equals("RESISTANCE", ignoreCase = true) ->
+        if (row.setType == WorkoutSetType.DROP) "Set ${row.setNumber} · Drop set" else "Set ${row.setNumber}"
+    else -> null
+}
+
+private fun formatWorkoutNumber(value: Double): String =
+    if (value == value.toLong().toDouble()) value.toLong().toString() else DecimalFormat("#.#").format(value)
+
+private fun strokeLabel(stroke: String): String =
+    stroke.lowercase(Locale.US).replaceFirstChar { it.titlecase(Locale.US) }
+
+/** Superset, drop, stroke and planned-minutes chips for an exercise. */
+private fun exerciseBadges(rows: List<WorkoutSet>): List<String> {
+    val head = rows.firstOrNull() ?: return emptyList()
+    val planned = ExerciseDayMath.plannedMinutes(rows)
+    return buildList {
+        head.groupingId?.let { add("Superset $it") }
+        if (rows.any { it.isDropRow }) add("Drop set")
+        head.stroke?.let { add(strokeLabel(it)) }
+        if (planned > 0.0) add("${formatWorkoutNumber(planned)} min")
+    }
+}
+
+/** One-line plan summary under the exercise name, e.g. "3 sets · drop" or "8 × 100 yd · Z2". */
+private fun exerciseCardSubtitle(rows: List<WorkoutSet>): String {
+    val mains = rows.filter { !it.isDropRow }
+    val head = mains.firstOrNull() ?: return ""
+    val planned = ExerciseDayMath.plannedMinutes(rows)
+    return buildList {
+        when {
+            head.isInterval -> {
+                val work = head.targetDistance?.let { "${formatWorkoutNumber(it)} ${head.unitDistance}" }
+                    ?: head.targetDuration?.let { "$it ${head.unitDuration}" }
+                add(if (work != null) "${mains.size} × $work" else "${mains.size} intervals")
+                mains.mapNotNull { it.targetZone }.distinct().singleOrNull()?.let { add("Z$it") }
+            }
+            head.exerciseType.equals("RESISTANCE", ignoreCase = true) -> {
+                add("${mains.size} set${if (mains.size != 1) "s" else ""}")
+                if (rows.any { it.isDropRow }) add("drop")
+            }
+        }
+        head.stroke?.let { add(strokeLabel(it)) }
+        if (planned > 0.0) add("${formatWorkoutNumber(planned)} min")
+    }.joinToString(" · ")
+}
+
 @Composable
-private fun SessionHeader(title: String) {
-    Row(
+private fun ExerciseBadge(text: String, emphasized: Boolean = false) {
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clip(RoundedCornerShape(4.dp))
+            .background(if (emphasized) NavyDeep else NavyDeep.copy(alpha = 0.08f))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(2.dp)
-                .background(NavyDeep)
-        )
         Text(
-            text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            color = PureBlack,
-            modifier = Modifier.padding(horizontal = 12.dp)
-        )
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(2.dp)
-                .background(NavyDeep)
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (emphasized) PureWhite else NavyDeep,
+            maxLines = 1
         )
     }
 }
 
 @Composable
-private fun SupersetDivider() {
+private fun SupersetDivider(label: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2119,7 +2425,7 @@ private fun SupersetDivider() {
                 .background(NavyDeep.copy(alpha = 0.5f))
         )
         Text(
-            text = "SUPERSET",
+            text = label.uppercase(Locale.US),
             style = MaterialTheme.typography.labelSmall,
             color = NavyDeep,
             modifier = Modifier.padding(horizontal = 8.dp)
@@ -2134,298 +2440,23 @@ private fun SupersetDivider() {
 }
 
 @Composable
-private fun ExerciseBlock(
-    setsInExercise: List<WorkoutSet>,
-    isEditingEnabled: Boolean,
-    monospaceLabel: androidx.compose.ui.text.TextStyle,
-    onUpdateActuals: (setId: String, actualLoad: Double?, actualReps: Int?, actualVelocity: Double?, actualRpe: Double?, actualRir: Int?, actualDuration: Int?, actualDistance: Double?, actualRest: Int?) -> Unit
-) {
-    val exerciseName = setsInExercise.firstOrNull()?.exerciseName?.ifBlank { setsInExercise.first().exerciseId } ?: ""
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = PureWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = BorderStroke(1.dp, NavyDeep.copy(alpha = 0.3f))
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = exerciseName,
-                style = MaterialTheme.typography.titleSmall,
-                color = NavyDeep,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            val exerciseDesc = setsInExercise.firstOrNull()?.exerciseDescription?.takeIf { it.isNotBlank() } ?: ""
-            setsInExercise.sortedBy { it.setNumber }.forEach { setEntry ->
-                WorkoutSetRow(
-                    setEntry = setEntry,
-                    exerciseDescription = exerciseDesc,
-                    showSetLabel = setsInExercise.firstOrNull()?.exerciseType == "RESISTANCE",
-                    isEditingEnabled = isEditingEnabled,
-                    monospaceLabel = monospaceLabel,
-                    onUpdateActuals = onUpdateActuals
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun WorkoutNumberStepper(
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    min: Int,
-    max: Int,
-    enabled: Boolean,
-    label: String,
-    textStyle: androidx.compose.ui.text.TextStyle,
-    modifier: Modifier = Modifier
-) {
-    var showEditDialog by remember { mutableStateOf(false) }
-    var draftText by remember { mutableStateOf("") }
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = textStyle,
-            color = PureBlack.copy(alpha = 0.8f),
-            modifier = Modifier.widthIn(min = 120.dp)
-        )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            IconButton(
-                onClick = { onValueChange((value - 1).coerceIn(min, max)) },
-                enabled = enabled && value > min,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Decrease",
-                    tint = if (enabled && value > min) NavyDeep else PureBlack.copy(alpha = 0.38f)
-                )
-            }
-            Text(
-                text = value.toString(),
-                style = textStyle,
-                color = PureBlack,
-                modifier = Modifier
-                    .widthIn(min = 32.dp)
-                    .clickable(
-                        enabled = enabled,
-                        onClick = {
-                            draftText = value.toString()
-                            showEditDialog = true
-                        }
-                    ),
-                textAlign = TextAlign.Center
-            )
-            IconButton(
-                onClick = { onValueChange((value + 1).coerceIn(min, max)) },
-                enabled = enabled && value < max,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowUp,
-                    contentDescription = "Increase",
-                    tint = if (enabled && value < max) NavyDeep else PureBlack.copy(alpha = 0.38f)
-                )
-            }
-        }
-    }
-    if (showEditDialog) {
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            title = { Text(label, color = PureBlack) },
-            text = {
-                OutlinedTextField(
-                    value = draftText,
-                    onValueChange = { t -> draftText = t.filter { it.isDigit() }.take(6) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            draftText.toIntOrNull()?.let { onValueChange(it.coerceIn(min, max)) }
-                            showEditDialog = false
-                        }
-                    ),
-                    label = { Text("Value ($min–$max)") }
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        draftText.toIntOrNull()?.let { onValueChange(it.coerceIn(min, max)) }
-                        showEditDialog = false
-                    }
-                ) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) { Text("Cancel") }
-            }
-        )
-    }
-}
-
-@Composable
-private fun WorkoutNumberStepperDouble(
-    value: Double,
-    onValueChange: (Double) -> Unit,
-    min: Double,
-    max: Double,
-    step: Double = 0.1,
-    enabled: Boolean,
-    label: String,
-    textStyle: androidx.compose.ui.text.TextStyle,
-    modifier: Modifier = Modifier
-) {
-    val rounded = (value * 10).toInt() / 10.0
-    var showEditDialog by remember { mutableStateOf(false) }
-    var draftText by remember { mutableStateOf("") }
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = textStyle,
-            color = PureBlack.copy(alpha = 0.8f),
-            modifier = Modifier.widthIn(min = 120.dp)
-        )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            IconButton(
-                onClick = { onValueChange(kotlin.math.round((value - step).coerceIn(min, max) * 10) / 10) },
-                enabled = enabled && value > min,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Decrease",
-                    tint = if (enabled && value > min) NavyDeep else PureBlack.copy(alpha = 0.38f)
-                )
-            }
-            Text(
-                text = "%.1f".format(rounded),
-                style = textStyle,
-                color = PureBlack,
-                modifier = Modifier
-                    .widthIn(min = 32.dp)
-                    .clickable(
-                        enabled = enabled,
-                        onClick = {
-                            draftText = "%.1f".format(rounded).trimEnd('0').trimEnd('.').ifEmpty { "0" }
-                            showEditDialog = true
-                        }
-                    ),
-                textAlign = TextAlign.Center
-            )
-            IconButton(
-                onClick = { onValueChange(kotlin.math.round((value + step).coerceIn(min, max) * 10) / 10) },
-                enabled = enabled && value < max,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowUp,
-                    contentDescription = "Increase",
-                    tint = if (enabled && value < max) NavyDeep else PureBlack.copy(alpha = 0.38f)
-                )
-            }
-        }
-    }
-    if (showEditDialog) {
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            title = { Text(label, color = PureBlack) },
-            text = {
-                OutlinedTextField(
-                    value = draftText,
-                    onValueChange = { t ->
-                        val out = StringBuilder()
-                        var dotSeen = false
-                        for (c in t) {
-                            when {
-                                c.isDigit() -> out.append(c)
-                                c == '.' && !dotSeen -> {
-                                    dotSeen = true
-                                    out.append(c)
-                                }
-                            }
-                        }
-                        draftText = out.toString().take(16)
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            draftText.toDoubleOrNull()?.let { onValueChange(it.coerceIn(min, max)) }
-                            showEditDialog = false
-                        }
-                    ),
-                    label = { Text("Value") }
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        draftText.toDoubleOrNull()?.let { onValueChange(it.coerceIn(min, max)) }
-                        showEditDialog = false
-                    }
-                ) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) { Text("Cancel") }
-            }
-        )
-    }
-}
-
-@Composable
 private fun WorkoutSetRow(
     setEntry: WorkoutSet,
+    drops: List<WorkoutSet>,
+    rowLabel: String?,
     exerciseDescription: String,
-    showSetLabel: Boolean,
+    isSingleRow: Boolean,
     isEditingEnabled: Boolean,
     monospaceLabel: androidx.compose.ui.text.TextStyle,
-    onUpdateActuals: (setId: String, actualLoad: Double?, actualReps: Int?, actualVelocity: Double?, actualRpe: Double?, actualRir: Int?, actualDuration: Int?, actualDistance: Double?, actualRest: Int?) -> Unit
+    onUpdateSet: WorkoutRowUpdate
 ) {
-    val currentLoad = (setEntry.actualLoad ?: setEntry.targetLoad ?: 0.0).coerceIn(0.0, 999.9)
-    val currentReps = (setEntry.actualReps ?: setEntry.targetReps ?: 0).coerceIn(0, 999)
-    val currentVelocity = (setEntry.actualVelocity ?: setEntry.targetVelocity ?: 0.0).toInt().coerceIn(0, 99)
-    val currentRpe = (setEntry.actualRpe ?: 0.0).toInt().coerceIn(0, 10)
-    val currentRir = (setEntry.actualRir ?: setEntry.targetRir ?: 0).coerceIn(0, 10)
-    val durationUnitIsMin = (setEntry.unitDuration.lowercase().let { it == "min" || it == "minutes" || it == "minute" })
-    val currentDuration = when {
-        durationUnitIsMin -> (setEntry.actualDuration?.div(60) ?: setEntry.targetDuration ?: 0).coerceIn(0, 9999)
-        else -> (setEntry.actualDuration ?: setEntry.targetDuration ?: 0).coerceIn(0, 9999)
+    val isResistance = setEntry.exerciseType.equals("RESISTANCE", ignoreCase = true)
+    // OTHER exercises carry their work time only as the exercise total.
+    val totalMinutesTarget = if (isSingleRow && !isResistance && !setEntry.isInterval && setEntry.targetDuration == null) {
+        setEntry.totalDuration?.let { durationToMinutes(it, setEntry.unitTotalDuration) }
+    } else {
+        null
     }
-    val currentDistance = (setEntry.actualDistance ?: setEntry.targetDistance ?: 0.0).coerceIn(0.0, 999.9)
-    val currentRest = (setEntry.actualRest ?: setEntry.targetRest ?: 0).coerceIn(0, 9999)
-
-    val showLoad = setEntry.targetLoad != null || setEntry.actualLoad != null
-    val showReps = setEntry.targetReps != null || setEntry.actualReps != null
-    val showRpe = setEntry.actualRpe != null || setEntry.targetRir != null || setEntry.targetDuration != null || setEntry.targetDistance != null
-    val showRir = setEntry.targetRir != null || setEntry.actualRir != null
-    val showVelocity = setEntry.targetVelocity != null || setEntry.actualVelocity != null
-    val showDuration = setEntry.targetDuration != null || setEntry.actualDuration != null
-    val showDistance = setEntry.targetDistance != null || setEntry.actualDistance != null
-    val showRest = setEntry.targetRest != null || setEntry.actualRest != null
-    val hasAnyActual = showLoad || showReps || showRpe || showRir || showVelocity || showDuration || showDistance || showRest
 
     Card(
         modifier = Modifier
@@ -2437,16 +2468,22 @@ private fun WorkoutSetRow(
         border = BorderStroke(1.dp, NavyDeep.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            if (showSetLabel) {
+            if (rowLabel != null) {
                 Text(
-                    text = "Set ${setEntry.setNumber}",
+                    text = rowLabel,
                     style = MaterialTheme.typography.titleSmall,
                     color = NavyDeep,
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
             }
 
-            if (setEntry.description.isNotBlank() && !(setEntry.setNumber == 1 && exerciseDescription.isNotBlank())) {
+            // OTHER: exercise name is the drill title; avoid repeating exerciseDescription as a note.
+            val isOther = setEntry.exerciseType.equals("OTHER", ignoreCase = true)
+            val showDescriptionNote = setEntry.description.isNotBlank() &&
+                !isOther &&
+                setEntry.description != exerciseDescription &&
+                !(setEntry.setNumber == 1 && !setEntry.isInterval && exerciseDescription.isNotBlank())
+            if (showDescriptionNote) {
                 Text(
                     text = setEntry.description,
                     style = MaterialTheme.typography.bodyMedium,
@@ -2464,134 +2501,210 @@ private fun WorkoutSetRow(
                 )
             }
 
-            if (setEntry.targetLoad != null || setEntry.targetReps != null || setEntry.targetVelocity != null ||
-                setEntry.targetDuration != null || setEntry.targetDistance != null || setEntry.targetRir != null || setEntry.targetRest != null) {
-                Text(
-                    text = "Target",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PureBlack.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(bottom = 2.dp)
-                )
-                val targetParts = buildList {
-                    setEntry.targetLoad?.let { add("${it} ${setEntry.unitLoad}") }
-                    setEntry.targetReps?.let { add("$it r") }
-                    setEntry.targetVelocity?.let { add("${it} ${setEntry.unitVelocity}") }
-                    setEntry.targetDuration?.let { add("$it ${setEntry.unitDuration}") }
-                    setEntry.targetDistance?.let { add("$it ${setEntry.unitDistance}") }
-                    setEntry.targetRir?.let { add("RIR $it") }
-                    setEntry.targetRest?.let { add("Rest $it ${setEntry.restUnit}") }
-                }
-                Text(
-                    text = if (targetParts.isEmpty()) "—" else targetParts.joinToString(" · "),
-                    style = monospaceLabel,
-                    color = PureBlack.copy(alpha = 0.85f),
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-            }
+            WorkoutRowTargetLine(setEntry, totalMinutesTarget, monospaceLabel)
+            WorkoutRowActuals(setEntry, totalMinutesTarget, isEditingEnabled, monospaceLabel, onUpdateSet)
 
-            if (hasAnyActual) {
+            drops.forEach { drop ->
+                HorizontalDivider(
+                    modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
+                    color = DropSetOrange.copy(alpha = 0.4f)
+                )
                 Text(
-                    text = "Actual",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PureBlack.copy(alpha = 0.6f),
+                    text = "Drop ${drop.dropNumber}",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = DropSetOrange,
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (showLoad) {
-                        WorkoutNumberStepperDouble(
-                            value = currentLoad,
-                            onValueChange = { onUpdateActuals(setEntry.id, it, null, null, null, null, null, null, null) },
-                            min = 0.0,
-                            max = 999.9,
-                            step = 0.1,
-                            enabled = isEditingEnabled,
-                            label = "Load (${setEntry.unitLoad})",
-                            textStyle = monospaceLabel
-                        )
-                    }
-                    if (showReps) {
-                        WorkoutNumberStepper(
-                            value = currentReps,
-                            onValueChange = { onUpdateActuals(setEntry.id, null, it, null, null, null, null, null, null) },
-                            min = 0,
-                            max = 999,
-                            enabled = isEditingEnabled,
-                            label = "Reps",
-                            textStyle = monospaceLabel
-                        )
-                    }
-                    if (showRpe) {
-                        WorkoutNumberStepper(
-                            value = currentRpe,
-                            onValueChange = { onUpdateActuals(setEntry.id, null, null, null, it.toDouble(), null, null, null, null) },
-                            min = 0,
-                            max = 10,
-                            enabled = isEditingEnabled,
-                            label = "RPE (0–10)",
-                            textStyle = monospaceLabel
-                        )
-                    }
-                    if (showRir) {
-                        WorkoutNumberStepper(
-                            value = currentRir,
-                            onValueChange = { onUpdateActuals(setEntry.id, null, null, null, null, it, null, null, null) },
-                            min = 0,
-                            max = 10,
-                            enabled = isEditingEnabled,
-                            label = "RIR (0–10)",
-                            textStyle = monospaceLabel
-                        )
-                    }
-                    if (showVelocity) {
-                        WorkoutNumberStepper(
-                            value = currentVelocity,
-                            onValueChange = { onUpdateActuals(setEntry.id, null, null, it.toDouble(), null, null, null, null, null) },
-                            min = 0,
-                            max = 99,
-                            enabled = isEditingEnabled,
-                            label = "Velocity (${setEntry.unitVelocity})",
-                            textStyle = monospaceLabel
-                        )
-                    }
-                    if (showDuration) {
-                        WorkoutNumberStepper(
-                            value = currentDuration,
-                            onValueChange = { valueInDisplayUnit ->
-                                val actualDurationSec = if (durationUnitIsMin) valueInDisplayUnit * 60 else valueInDisplayUnit
-                                onUpdateActuals(setEntry.id, null, null, null, null, null, actualDurationSec, null, null)
-                            },
-                            min = 0,
-                            max = if (durationUnitIsMin) 9999 else 99999,
-                            enabled = isEditingEnabled,
-                            label = "Duration (${setEntry.unitDuration})",
-                            textStyle = monospaceLabel
-                        )
-                    }
-                    if (showDistance) {
-                        WorkoutNumberStepperDouble(
-                            value = currentDistance,
-                            onValueChange = { onUpdateActuals(setEntry.id, null, null, null, null, null, null, it, null) },
-                            min = 0.0,
-                            max = 999.9,
-                            step = 0.1,
-                            enabled = isEditingEnabled,
-                            label = "Distance (${setEntry.unitDistance})",
-                            textStyle = monospaceLabel
-                        )
-                    }
-                    if (showRest) {
-                        WorkoutNumberStepper(
-                            value = currentRest,
-                            onValueChange = { onUpdateActuals(setEntry.id, null, null, null, null, null, null, null, it) },
-                            min = 0,
-                            max = 9999,
-                            enabled = isEditingEnabled,
-                            label = "Rest (${setEntry.restUnit})",
-                            textStyle = monospaceLabel
-                        )
-                    }
-                }
+                WorkoutRowTargetLine(drop, null, monospaceLabel)
+                WorkoutRowActuals(drop, null, isEditingEnabled, monospaceLabel, onUpdateSet)
             }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutRowTargetLine(
+    row: WorkoutSet,
+    totalMinutesTarget: Double?,
+    monospaceLabel: androidx.compose.ui.text.TextStyle,
+) {
+    val targetParts = buildList {
+        row.targetLoad?.let { add("${formatWorkoutNumber(it)} ${row.unitLoad}") }
+        row.targetReps?.let { add("$it r") }
+        row.targetVelocity?.let { add("$it ${row.unitVelocity}") }
+        row.targetDuration?.let { add("$it ${row.unitDuration}") }
+        totalMinutesTarget?.let { add("${formatWorkoutNumber(it)} min") }
+        row.targetDistance?.let { add("${formatWorkoutNumber(it)} ${row.unitDistance}") }
+        row.targetZone?.let { add("Z$it") }
+        row.targetRpe?.let { add("RPE ${formatWorkoutNumber(it)}") }
+        row.targetCadence?.let { add("$it ${row.unitCadence}") }
+        row.targetRir?.let { add("RIR $it") }
+        row.targetRest?.takeIf { it > 0 }?.let { add("Rest $it ${row.restUnit}") }
+    }
+    if (targetParts.isEmpty()) return
+    Text(
+        text = "Target",
+        style = MaterialTheme.typography.labelSmall,
+        color = PureBlack.copy(alpha = 0.6f),
+        modifier = Modifier.padding(bottom = 2.dp)
+    )
+    Text(
+        text = targetParts.joinToString(" · "),
+        style = monospaceLabel,
+        color = PureBlack.copy(alpha = 0.85f),
+        modifier = Modifier.padding(bottom = 12.dp)
+    )
+}
+
+@Composable
+private fun WorkoutRowActuals(
+    row: WorkoutSet,
+    totalMinutesTarget: Double?,
+    isEditingEnabled: Boolean,
+    monospaceLabel: androidx.compose.ui.text.TextStyle,
+    onUpdateSet: WorkoutRowUpdate,
+) {
+    val durationUnitIsMin = totalMinutesTarget != null ||
+        row.unitDuration.lowercase().let { it == "min" || it == "minutes" || it == "minute" }
+    val targetDurationInUnit = row.targetDuration ?: totalMinutesTarget?.roundToInt()
+    val currentLoad = (row.actualLoad ?: row.targetLoad ?: 0.0).coerceIn(0.0, 999.9)
+    val currentReps = (row.actualReps ?: row.targetReps ?: 0).coerceIn(0, 999)
+    val currentVelocity = (row.actualVelocity ?: row.targetVelocity ?: 0.0).toInt().coerceIn(0, 99)
+    val currentRpe = (row.actualRpe ?: row.targetRpe ?: 0.0).coerceIn(0.0, 10.0)
+    val currentRir = (row.actualRir ?: row.targetRir ?: 0).coerceIn(0, 10)
+    val currentDuration = when {
+        durationUnitIsMin -> (row.actualDuration?.div(60) ?: targetDurationInUnit ?: 0).coerceIn(0, 9999)
+        else -> (row.actualDuration ?: targetDurationInUnit ?: 0).coerceIn(0, 99999)
+    }
+    val currentDistance = (row.actualDistance ?: row.targetDistance ?: 0.0).coerceIn(0.0, 9999.9)
+    val currentCadence = (row.actualCadence ?: row.targetCadence ?: 0).coerceIn(0, 250)
+    val currentRest = (row.actualRest ?: row.targetRest ?: 0).coerceIn(0, 9999)
+
+    val showLoad = row.targetLoad != null || row.actualLoad != null
+    val showReps = row.targetReps != null || row.actualReps != null
+    val showDuration = targetDurationInUnit != null || row.actualDuration != null
+    val showDistance = row.targetDistance != null || row.actualDistance != null
+    val showRpe = !row.isDropRow && (row.actualRpe != null || row.targetRpe != null || row.targetRir != null ||
+        showDuration || showDistance)
+    val showRir = row.targetRir != null || row.actualRir != null
+    val showVelocity = row.targetVelocity != null || row.actualVelocity != null
+    val showCadence = row.targetCadence != null || row.actualCadence != null
+    val showRest = (row.targetRest ?: 0) > 0 || row.actualRest != null
+    val hasAnyActual = showLoad || showReps || showRpe || showRir || showVelocity || showDuration ||
+        showDistance || showCadence || showRest
+    if (!hasAnyActual) return
+
+    Text(
+        text = "Actual",
+        style = MaterialTheme.typography.labelSmall,
+        color = PureBlack.copy(alpha = 0.6f),
+        modifier = Modifier.padding(bottom = 6.dp)
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (showLoad) {
+            WorkoutNumberStepperDouble(
+                value = currentLoad,
+                onValueChange = { v -> onUpdateSet(row.id) { it.copy(actualLoad = v) } },
+                min = 0.0,
+                max = 999.9,
+                step = 0.1,
+                enabled = isEditingEnabled,
+                label = "Load (${row.unitLoad})",
+                textStyle = monospaceLabel
+            )
+        }
+        if (showReps) {
+            WorkoutNumberStepper(
+                value = currentReps,
+                onValueChange = { v -> onUpdateSet(row.id) { it.copy(actualReps = v) } },
+                min = 0,
+                max = 999,
+                enabled = isEditingEnabled,
+                label = "Reps",
+                textStyle = monospaceLabel
+            )
+        }
+        if (showDuration) {
+            WorkoutNumberStepper(
+                value = currentDuration,
+                onValueChange = { valueInDisplayUnit ->
+                    val seconds = if (durationUnitIsMin) valueInDisplayUnit * 60 else valueInDisplayUnit
+                    onUpdateSet(row.id) { it.copy(actualDuration = seconds) }
+                },
+                min = 0,
+                max = if (durationUnitIsMin) 9999 else 99999,
+                enabled = isEditingEnabled,
+                label = "Duration (${if (durationUnitIsMin) "min" else row.unitDuration})",
+                textStyle = monospaceLabel
+            )
+        }
+        if (showDistance) {
+            WorkoutNumberStepperDouble(
+                value = currentDistance,
+                onValueChange = { v -> onUpdateSet(row.id) { it.copy(actualDistance = v) } },
+                min = 0.0,
+                max = 9999.9,
+                step = if (row.unitDistance.lowercase() in listOf("m", "yd")) 25.0 else 0.1,
+                enabled = isEditingEnabled,
+                label = "Distance (${row.unitDistance})",
+                textStyle = monospaceLabel
+            )
+        }
+        if (showCadence) {
+            WorkoutNumberStepper(
+                value = currentCadence,
+                onValueChange = { v -> onUpdateSet(row.id) { it.copy(actualCadence = v) } },
+                min = 0,
+                max = 250,
+                enabled = isEditingEnabled,
+                label = "Cadence (${row.unitCadence})",
+                textStyle = monospaceLabel
+            )
+        }
+        if (showRpe) {
+            WorkoutNumberStepperDouble(
+                value = currentRpe,
+                onValueChange = { v -> onUpdateSet(row.id) { it.copy(actualRpe = (v * 2).roundToInt() / 2.0) } },
+                min = 0.0,
+                max = 10.0,
+                step = 0.5,
+                enabled = isEditingEnabled,
+                label = "RPE (0–10)",
+                textStyle = monospaceLabel
+            )
+        }
+        if (showRir) {
+            WorkoutNumberStepper(
+                value = currentRir,
+                onValueChange = { v -> onUpdateSet(row.id) { it.copy(actualRir = v) } },
+                min = 0,
+                max = 10,
+                enabled = isEditingEnabled,
+                label = "RIR (0–10)",
+                textStyle = monospaceLabel
+            )
+        }
+        if (showVelocity) {
+            WorkoutNumberStepper(
+                value = currentVelocity,
+                onValueChange = { v -> onUpdateSet(row.id) { it.copy(actualVelocity = v.toDouble()) } },
+                min = 0,
+                max = 99,
+                enabled = isEditingEnabled,
+                label = "Velocity (${row.unitVelocity})",
+                textStyle = monospaceLabel
+            )
+        }
+        if (showRest) {
+            WorkoutNumberStepper(
+                value = currentRest,
+                onValueChange = { v -> onUpdateSet(row.id) { it.copy(actualRest = v) } },
+                min = 0,
+                max = 9999,
+                enabled = isEditingEnabled,
+                label = "Rest (${row.restUnit})",
+                textStyle = monospaceLabel
+            )
         }
     }
 }
@@ -2763,100 +2876,6 @@ private fun HorizontalWheelPicker(
 }
 
 @Composable
-private fun AddWorkoutFromClipboardDialog(
-    viewModel: CalendarViewModel,
-    onDismiss: () -> Unit,
-    onAdded: () -> Unit
-) {
-    var pastedText by remember { mutableStateOf("") }
-    var validationMessage by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
-
-    fun validate() {
-        if (pastedText.isBlank()) {
-            validationMessage = "Paste JSON first"
-            return
-        }
-        validationMessage = viewModel.validateWorkoutJson(pastedText).fold(
-            onSuccess = { "Valid format — ready to add" },
-            onFailure = { it.message ?: "Invalid JSON" }
-        )
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Add exercise from JSON", color = PureBlack)
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                        pastedText = clipboard?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-                        validationMessage = null
-                        if (pastedText.isNotBlank()) validate()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = NavyDeep.copy(alpha = 0.15f),
-                        contentColor = NavyDeep
-                    )
-                ) {
-                    Text("Fill from Clipboard")
-                }
-                OutlinedTextField(
-                    value = pastedText,
-                    onValueChange = { pastedText = it; validationMessage = null },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 120.dp),
-                    placeholder = { Text("Paste JSON: exercise with \"name\", \"sets\", or session with \"title\", \"exercises\"", color = PureBlack.copy(alpha = 0.5f)) },
-                    maxLines = 8,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = NavyDeep,
-                        unfocusedBorderColor = NavyDeep.copy(alpha = 0.6f),
-                        focusedTextColor = PureBlack,
-                        unfocusedTextColor = PureBlack
-                    )
-                )
-                if (validationMessage != null) {
-                    Text(
-                        text = validationMessage!!,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (validationMessage!!.startsWith("Valid")) NavyDeep else DeleteRed
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (pastedText.isBlank()) return@TextButton
-                    viewModel.addWorkoutFromClipboard(pastedText).onSuccess { onAdded() }.onFailure {
-                        validationMessage = it.message ?: "Failed to add"
-                    }
-                },
-                colors = ButtonDefaults.textButtonColors(contentColor = NavyDeep)
-            ) {
-                Text("Confirm add")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = PureBlack)
-            }
-        },
-        containerColor = PureWhite
-    )
-}
-
-@Composable
 private fun TimeHeader(
     time: String,
     isExpanded: Boolean = true,
@@ -2904,14 +2923,274 @@ private fun TimeHeader(
     }
 }
 
+private fun foodPlannedTimeToMinutes(plannedTime: String): Int {
+    val parts = plannedTime.trim().split(":")
+    val h = parts.getOrNull(0)?.toIntOrNull() ?: 12
+    val m = parts.getOrNull(1)?.toIntOrNull() ?: 0
+    return ((h * 60 + m) % (24 * 60) + 24 * 60) % (24 * 60)
+}
+
+private fun dietMinutesToPlannedTime(minutes: Int): String {
+    val m = (minutes % (24 * 60) + 24 * 60) % (24 * 60)
+    return String.format(Locale.US, "%02d:%02d", m / 60, m % 60)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CollapsibleDietTimeSection(
+private fun FoodPlannedTimePickerDialog(
+    initialMinutes: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (minutes: Int) -> Unit,
+) {
+    val totalMinutes = 24 * 60
+    val normalized = (initialMinutes % totalMinutes + totalMinutes) % totalMinutes
+    val state = rememberTimePickerState(
+        initialHour = normalized / 60,
+        initialMinute = normalized % 60,
+        is24Hour = true,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Meal time", color = PureBlack) },
+        confirmButton = {
+            TextButton(onClick = {
+                val minutes = state.hour * 60 + state.minute
+                onConfirm(minutes)
+            }) {
+                Text("OK", color = NavyDeep)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = SlateGray)
+            }
+        },
+        text = {
+            TimePicker(
+                state = state,
+                colors = TimePickerDefaults.colors(
+                    clockDialColor = PureWhite,
+                    clockDialSelectedContentColor = NavyDeep,
+                    clockDialUnselectedContentColor = NavyDeep,
+                    containerColor = PureWhite,
+                    selectorColor = NavyDeep,
+                    timeSelectorSelectedContainerColor = Color(0xFFE0E0E0),
+                    timeSelectorUnselectedContainerColor = PureWhite,
+                    timeSelectorSelectedContentColor = NavyDeep,
+                    timeSelectorUnselectedContentColor = NavyDeep,
+                ),
+            )
+        },
+        containerColor = PureWhite,
+    )
+}
+
+private enum class FoodMacroOverflow { Protein, Penalty }
+
+private fun foodMacroRatio(got: Double, planned: Double): Float =
+    when {
+        planned > 0.0 -> (got / planned).toFloat()
+        got > 0.0 -> 1.01f
+        else -> 0f
+    }
+
+private fun foodMacroBarColor(ratio: Float, overflow: FoodMacroOverflow): Color {
+    if (ratio > 1f) {
+        return when (overflow) {
+            FoodMacroOverflow.Protein -> ElectricBlue
+            FoodMacroOverflow.Penalty -> MoodColor1
+        }
+    }
+    val t = ratio.coerceIn(0f, 1f)
+    val lastIndex = MoodPalette.lastIndex
+    if (lastIndex <= 0) return MoodColor1
+    val scaled = t * lastIndex
+    val i = scaled.toInt().coerceIn(0, lastIndex - 1)
+    val frac = scaled - i
+    return lerp(MoodPalette[i], MoodPalette[i + 1], frac)
+}
+
+private fun leftoverLabel(leftover: Double, unit: String? = null, format: (Double) -> String): String {
+    val magnitude = abs(leftover)
+    val amount = format(magnitude)
+    val amountWithUnit = if (unit.isNullOrBlank()) amount else "$amount $unit"
+    return if (leftover >= 0.0) "$amountWithUnit left" else "$amountWithUnit over"
+}
+
+@Composable
+private fun FoodDayMacrosSummary(entries: List<FoodEntry>) {
+    val totals = remember(entries) { AnalysisStats.foodDayMacroTotals(entries) }
+    val gramFormat = remember { DecimalFormat("#.##") }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        FoodMacroMeter(
+            label = "Calories",
+            gotPlannedLabel = "${totals.gotKcal.roundToInt()} / ${totals.plannedKcal.roundToInt()} kcal",
+            leftoverText = leftoverLabel(totals.plannedKcal - totals.gotKcal, "kcal") {
+                it.roundToInt().toString()
+            },
+            ratio = foodMacroRatio(totals.gotKcal, totals.plannedKcal),
+            overflow = FoodMacroOverflow.Penalty,
+            gotStyle = MaterialTheme.typography.headlineSmall,
+            centered = true,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FoodMacroMeter(
+                modifier = Modifier.weight(1f),
+                label = "Protein",
+                gotPlannedLabel = "${gramFormat.format(totals.gotProtein)} / ${gramFormat.format(totals.plannedProtein)}g",
+                leftoverText = leftoverLabel(totals.plannedProtein - totals.gotProtein) {
+                    gramFormat.format(it)
+                },
+                ratio = foodMacroRatio(totals.gotProtein, totals.plannedProtein),
+                overflow = FoodMacroOverflow.Protein,
+                gotStyle = MaterialTheme.typography.bodyLarge,
+                centered = true,
+            )
+            FoodMacroMeter(
+                modifier = Modifier.weight(1f),
+                label = "Carbs",
+                gotPlannedLabel = "${gramFormat.format(totals.gotCarbs)} / ${gramFormat.format(totals.plannedCarbs)}g",
+                leftoverText = leftoverLabel(totals.plannedCarbs - totals.gotCarbs) {
+                    gramFormat.format(it)
+                },
+                ratio = foodMacroRatio(totals.gotCarbs, totals.plannedCarbs),
+                overflow = FoodMacroOverflow.Penalty,
+                gotStyle = MaterialTheme.typography.bodyLarge,
+                centered = true,
+            )
+            FoodMacroMeter(
+                modifier = Modifier.weight(1f),
+                label = "Fats",
+                gotPlannedLabel = "${gramFormat.format(totals.gotFats)} / ${gramFormat.format(totals.plannedFats)}g",
+                leftoverText = leftoverLabel(totals.plannedFats - totals.gotFats) {
+                    gramFormat.format(it)
+                },
+                ratio = foodMacroRatio(totals.gotFats, totals.plannedFats),
+                overflow = FoodMacroOverflow.Penalty,
+                gotStyle = MaterialTheme.typography.bodyLarge,
+                centered = true,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FoodMacroMeter(
+    label: String,
+    gotPlannedLabel: String,
+    leftoverText: String,
+    ratio: Float,
+    overflow: FoodMacroOverflow,
+    gotStyle: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier,
+    centered: Boolean = true,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = SlateGray,
+            textAlign = if (centered) TextAlign.Center else TextAlign.Start,
+        )
+        Text(
+            text = gotPlannedLabel,
+            style = gotStyle,
+            color = PureBlack,
+            textAlign = if (centered) TextAlign.Center else TextAlign.Start,
+            maxLines = 1,
+        )
+        Text(
+            text = leftoverText,
+            style = MaterialTheme.typography.labelSmall,
+            color = SlateGray,
+            textAlign = if (centered) TextAlign.Center else TextAlign.Start,
+            maxLines = 1,
+        )
+        FoodMacroProgressBar(
+            ratio = ratio,
+            color = foodMacroBarColor(ratio, overflow),
+        )
+    }
+}
+
+@Composable
+private fun FoodMacroProgressBar(ratio: Float, color: Color) {
+    val fill = ratio.coerceIn(0f, 1f)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .background(OffWhite),
+    ) {
+        if (fill > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fill)
+                    .fillMaxHeight()
+                    .background(color),
+            )
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+internal fun MealPlanTypeSwitch(
+    asPlanned: Boolean,
+    onAsPlannedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, PureBlack.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+            .padding(3.dp),
+    ) {
+        listOf(false to "New", true to "Planned").forEach { (planned, label) ->
+            val selected = asPlanned == planned
+            Surface(
+                onClick = { onAsPlannedChange(planned) },
+                shape = RoundedCornerShape(8.dp),
+                color = if (selected) NavyDeep else PureWhite,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = label,
+                    color = if (selected) PureWhite else PureBlack,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp),
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleFoodTimeSection(
     time: String,
-    entries: List<DietEntry>,
+    entries: List<FoodEntry>,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
     isEditingEnabled: Boolean,
-    viewModel: CalendarViewModel
+    viewModel: CalendarViewModel,
+    onEditEntryTime: (FoodEntry) -> Unit,
+    onOpenFoodTileActions: (FoodEntry) -> Unit,
 ) {
     TimeHeader(time = time, isExpanded = isExpanded, onToggle = onToggleExpanded)
     Spacer(modifier = Modifier.height(8.dp))
@@ -2922,19 +3201,24 @@ private fun CollapsibleDietTimeSection(
     ) {
         Column {
             entries.forEach { entry ->
-                DietEntryCard(
+                FoodEntryCard(
                     entry = entry,
                     isEditingEnabled = isEditingEnabled,
                     onMultiplierChange = { multiplier ->
                         viewModel.updateEntryMultiplier(entry.id, multiplier)
                     },
                     onEatenStateCycle = { viewModel.cycleEntryEatenState(entry.id) },
+                    onEditTimeClick = { onEditEntryTime(entry) },
+                    onLongPressForTileActions = { onOpenFoodTileActions(entry) },
                     onEditClick = if (entry.status == AuditStatus.UNPLANNED) {
                         { viewModel.editUnplannedEntry(entry) }
                     } else null,
                     onDeleteClick = if (entry.status == AuditStatus.UNPLANNED) {
                         { viewModel.deleteEntry(entry.id) }
-                    } else null
+                    } else null,
+                    onMarkAsPlanned = if (entry.status == AuditStatus.UNPLANNED) {
+                        { viewModel.markEntryAsPlanned(entry.id) }
+                    } else null,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -2946,15 +3230,18 @@ private val DoneGreen = androidx.compose.ui.graphics.Color(0xFFE8F5E9)
 private val NotEatenRedBg = androidx.compose.ui.graphics.Color(0xFFFFEBEE)
 
 @Composable
-private fun DietEntryCard(
-    entry: DietEntry,
+private fun FoodEntryCard(
+    entry: FoodEntry,
     isEditingEnabled: Boolean,
     onMultiplierChange: (Double) -> Unit,
     onEatenStateCycle: () -> Unit,
+    onEditTimeClick: () -> Unit,
+    onLongPressForTileActions: () -> Unit,
     onEditClick: (() -> Unit)? = null,
     onDeleteClick: (() -> Unit)? = null,
+    onMarkAsPlanned: (() -> Unit)? = null,
 ) {
-    val targetAmount = entry.plannedAmount * entry.quantityMultiplier
+    val targetAmount = entry.effectiveAmount() * entry.quantityMultiplier
     val formatter = DecimalFormat("#.##")
     val isNotEaten = entry.notEaten
     val isDone = entry.isChecked && !entry.notEaten
@@ -2965,7 +3252,12 @@ private fun DietEntryCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { if (isEditingEnabled) onEditTimeClick() },
+                onLongClick = { onLongPressForTileActions() },
+            ),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = tileBackground),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -3067,7 +3359,10 @@ private fun DietEntryCard(
                             )
                         }
                     }
-                    StatusBadge(status = entry.status)
+                    StatusBadge(
+                        status = entry.status,
+                        onClick = if (isEditingEnabled) onMarkAsPlanned else null,
+                    )
                 }
             }
 
@@ -3159,18 +3454,17 @@ private fun DietEntryCard(
 }
 
 @Composable
-private fun StatusBadge(status: AuditStatus) {
+@OptIn(ExperimentalMaterial3Api::class)
+private fun StatusBadge(
+    status: AuditStatus,
+    onClick: (() -> Unit)? = null,
+) {
     val (text, color) = when (status) {
         AuditStatus.PLANNED -> "PLANNED" to NavyDeep
         AuditStatus.ADJUSTED -> "ADJUSTED" to ElectricBlue
-        AuditStatus.UNPLANNED -> "UNPLANNED" to DeleteRed
+        AuditStatus.UNPLANNED -> "NEW" to DeleteRed
     }
-    
-    Surface(
-        shape = RoundedCornerShape(4.dp),
-        color = color.copy(alpha = 0.2f),
-        modifier = Modifier.padding(start = 8.dp)
-    ) {
+    val badgeText: @Composable () -> Unit = {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
@@ -3178,22 +3472,39 @@ private fun StatusBadge(status: AuditStatus) {
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(4.dp),
+            color = color.copy(alpha = 0.2f),
+            modifier = Modifier.padding(start = 8.dp)
+        ) {
+            badgeText()
+        }
+    } else {
+        Surface(
+            shape = RoundedCornerShape(4.dp),
+            color = color.copy(alpha = 0.2f),
+            modifier = Modifier.padding(start = 8.dp)
+        ) {
+            badgeText()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WeekScroller(
     selectedDate: String,
-    datesWithCheckedMeals: Set<String>,
+    /** Days the current category already has data for; drawn as a dot under the date. */
+    markedDates: Set<String>,
     isEditingEnabled: Boolean,
-    showRefreshButton: Boolean,
-    showAddButton: Boolean,
+    /** True when the current tab has unsaved changes for this day. */
+    hasUnsavedChanges: Boolean,
+    isSaving: Boolean,
     onDateSelected: (String) -> Unit,
-    onRefreshFromDriveClick: () -> Unit,
-    onAddMealClick: () -> Unit,
-    onEditClick: () -> Unit,
-    isPastDay: () -> Boolean,
-    isFutureDay: () -> Boolean
+    onToggleLock: () -> Unit,
+    onSave: () -> Unit,
 ) {
     val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     val dayFormatter = SimpleDateFormat("EEE", Locale.US) // Day initials (Mon, Tue, etc.)
@@ -3234,7 +3545,7 @@ private fun WeekScroller(
             weekDays.forEach { date ->
                 val dateStr = dateFormatter.format(date)
                 val isSelected = dateStr == selectedDate
-                val hasCheckedMeals = datesWithCheckedMeals.contains(dateStr)
+                val isMarked = markedDates.contains(dateStr)
                 val dayInitial = dayFormatter.format(date).take(1).uppercase()
                 val dateNumber = dateOnlyFormatter.format(date)
                 
@@ -3273,8 +3584,8 @@ private fun WeekScroller(
                                 textAlign = TextAlign.Center
                             )
                         }
-                        // Indicator dot for days with checked meals (centered below number)
-                        if (hasCheckedMeals && !isSelected) {
+                        // Indicator dot for days that already have data (centered below number)
+                        if (isMarked && !isSelected) {
                             Box(
                                 modifier = Modifier
                                     .size(8.dp)
@@ -3318,65 +3629,44 @@ private fun WeekScroller(
                 modifier = Modifier.weight(1f)
             )
             
-            if (showRefreshButton) {
-                IconButton(
-                    onClick = onRefreshFromDriveClick,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh from Drive",
-                        tint = NavyDeep,
-                        modifier = Modifier.size(24.dp)
+            IconButton(
+                onClick = onToggleLock,
+                modifier = Modifier
+                    .size(48.dp)
+                    .then(
+                        if (isEditingEnabled) Modifier.background(NavyDeep, CircleShape)
+                        else Modifier
                     )
-                }
-            }
-            if (showAddButton) {
-                IconButton(
-                    onClick = onAddMealClick,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .then(if (isEditingEnabled) Modifier else Modifier.alpha(0.5f))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add meal",
-                        tint = NavyDeep,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-            if (showRefreshButton || showAddButton) {
-                if (isPastDay()) {
-                    IconButton(
-                        onClick = onEditClick,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .then(
-                                if (isEditingEnabled) Modifier.background(NavyDeep, CircleShape)
-                                else Modifier
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = if (isEditingEnabled) "Freeze editing" else "Enable editing",
-                            tint = if (isEditingEnabled) PureWhite else PureBlack.copy(alpha = 0.6f),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            }
-            
-            // Lock icon for future days
-            if (isFutureDay()) {
+            ) {
                 Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Locked - future day",
-                    tint = PureBlack.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .size(24.dp)
-                        .padding(12.dp)
+                    imageVector = if (isEditingEnabled) Icons.Default.LockOpen else Icons.Default.Lock,
+                    contentDescription = if (isEditingEnabled) "Lock editing" else "Unlock editing",
+                    tint = if (isEditingEnabled) PureWhite else PureBlack.copy(alpha = 0.6f),
+                    modifier = Modifier.size(24.dp)
                 )
+            }
+            val canSave = hasUnsavedChanges && isEditingEnabled && !isSaving
+            IconButton(
+                onClick = onSave,
+                enabled = canSave,
+                modifier = Modifier
+                    .size(48.dp)
+                    .then(if (canSave) Modifier.background(NavyDeep, CircleShape) else Modifier)
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = NavyDeep,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Save,
+                        contentDescription = if (hasUnsavedChanges) "Save changes" else "No changes to save",
+                        tint = if (canSave) PureWhite else PureBlack.copy(alpha = 0.3f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
     }
@@ -3444,92 +3734,58 @@ private fun WeekScroller(
 }
 
 @Composable
-private fun AddMealDialog(
-    entry: DietEntry? = null,
+internal fun AddMealDialog(
+    entry: FoodEntry? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Double, String, Double, Double, Double, Double) -> Unit,
-    onDelete: (() -> Unit)? = null
+    onConfirm: (String, String, Double, String, Double, Double, Double, Double, Boolean) -> Unit,
+    onDelete: (() -> Unit)? = null,
+    /** New meals only: values from the clipboard, AI or the library. */
+    prefill: MealImportDraft? = null,
 ) {
-    var name by remember { mutableStateOf(entry?.name ?: "") }
-    var time by remember { mutableStateOf(entry?.plannedTime ?: "12:00") }
-    var amount by remember { mutableStateOf(entry?.plannedAmount?.toString() ?: "") }
-    var unit by remember { mutableStateOf(entry?.unit ?: "g") }
-    var kcal by remember { mutableStateOf(entry?.kcal?.toString() ?: "") }
-    var protein by remember { mutableStateOf(entry?.protein?.toString() ?: "0") }
-    var carbs by remember { mutableStateOf(entry?.carbs?.toString() ?: "0") }
-    var fats by remember { mutableStateOf(entry?.fats?.toString() ?: "0") }
-    var showJsonErrorDialog by remember { mutableStateOf(false) }
-    var jsonErrorMessage by remember { mutableStateOf("") }
+    val nowTime = remember {
+        SimpleDateFormat("HH:mm", Locale.US).format(Date())
+    }
+    val seed = prefill?.takeIf { entry == null }
+    fun Double.asField(): String = if (this == this.toLong().toDouble()) this.toLong().toString() else this.toString()
+    var name by remember { mutableStateOf(entry?.name ?: seed?.name.orEmpty()) }
+    var time by remember {
+        mutableStateOf(entry?.effectiveTime() ?: seed?.time?.ifBlank { null } ?: nowTime)
+    }
+    var amount by remember {
+        mutableStateOf(
+            (entry?.effectiveAmount() ?: seed?.amount)?.takeIf { it > 0 }?.asField() ?: ""
+        )
+    }
+    var unit by remember { mutableStateOf(entry?.unit ?: seed?.unit?.ifBlank { null } ?: "g") }
+    var kcal by remember { mutableStateOf((entry?.kcal ?: seed?.kcal)?.asField() ?: "") }
+    var protein by remember { mutableStateOf((entry?.protein ?: seed?.protein)?.asField() ?: "0") }
+    var carbs by remember { mutableStateOf((entry?.carbs ?: seed?.carbs)?.asField() ?: "0") }
+    var fats by remember { mutableStateOf((entry?.fats ?: seed?.fats)?.asField() ?: "0") }
+    var asPlanned by remember { mutableStateOf(entry?.hasPresetBaseline() ?: seed?.asPlanned ?: false) }
+    var jsonErrorMessage by remember { mutableStateOf<String?>(null) }
+    var showAiDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val json = Json { 
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
-    
-    // Simple data class for parsing JSON (only fields we need)
-    @kotlinx.serialization.Serializable
-    data class MealJsonInput(
-        val name: String = "",
-        val plannedTime: String = "",
-        val plannedAmount: Double = 0.0,
-        val unit: String = "g",
-        val kcal: Double = 0.0,
-        val protein: Double = 0.0,
-        val carbs: Double = 0.0,
-        val fats: Double = 0.0
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = NavyDeep,
+        unfocusedBorderColor = NavyDeep,
+        focusedTextColor = PureBlack,
+        unfocusedTextColor = PureBlack,
     )
-    
-    fun parseJsonFromClipboard() {
-        try {
-            val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-            val clipboardText = clipboardManager?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-            if (clipboardText.isBlank()) {
-                jsonErrorMessage = "Clipboard is empty"
-                showJsonErrorDialog = true
-                return
-            }
-            
-            // Parse JSON using a simple data class (ignores date, timestamp, id, isChecked, quantityMultiplier, status)
-            val parsed = json.decodeFromString<MealJsonInput>(clipboardText.trim())
-            
-            // Validate required fields
-            if (parsed.name.isBlank()) {
-                jsonErrorMessage = "JSON missing required field: name"
-                showJsonErrorDialog = true
-                return
-            }
-            if (parsed.plannedTime.isBlank()) {
-                jsonErrorMessage = "JSON missing required field: plannedTime"
-                showJsonErrorDialog = true
-                return
-            }
-            if (parsed.plannedAmount <= 0) {
-                jsonErrorMessage = "JSON invalid: plannedAmount must be greater than 0"
-                showJsonErrorDialog = true
-                return
-            }
-            
-            // Populate fields
-            name = parsed.name
-            time = parsed.plannedTime
-            amount = parsed.plannedAmount.toString()
-            unit = parsed.unit.ifBlank { "g" }
-            kcal = parsed.kcal.toString()
-            protein = parsed.protein.toString()
-            carbs = parsed.carbs.toString()
-            fats = parsed.fats.toString()
-            showJsonErrorDialog = false
-        } catch (e: kotlinx.serialization.SerializationException) {
-            jsonErrorMessage = "Invalid JSON format: ${e.message ?: "Unable to parse JSON"}"
-            showJsonErrorDialog = true
-        } catch (e: Exception) {
-            jsonErrorMessage = "Error parsing JSON: ${e.message ?: "Unknown error"}"
-            showJsonErrorDialog = true
-        }
+
+    fun applyDraft(draft: MealImportDraft, keepTime: Boolean) {
+        name = draft.name
+        if (!keepTime && draft.time.isNotBlank()) time = draft.time
+        amount = draft.amount.asField()
+        unit = draft.unit.ifBlank { "g" }
+        kcal = draft.kcal.asField()
+        protein = draft.protein.asField()
+        carbs = draft.carbs.asField()
+        fats = draft.fats.asField()
     }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.imePadding(),
         title = {
             Text(
                 text = if (entry == null) "Add Meal" else "Edit Meal",
@@ -3537,53 +3793,68 @@ private fun AddMealDialog(
             )
         },
         text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            KeyboardAwareDialogColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // JSON from clipboard option
-                Button(
-                    onClick = { parseJsonFromClipboard() },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = NavyDeep.copy(alpha = 0.1f),
-                        contentColor = NavyDeep
-                    )
-                ) {
-                    Text("Fill from Clipboard", color = NavyDeep)
+                if (entry != null) {
+                    Button(
+                        onClick = {
+                            parseMealClipboardText(readClipboardText(context), CalendarAiMode.SINGLE).fold(
+                                onSuccess = { drafts -> applyDraft(drafts.first(), keepTime = false) },
+                                onFailure = { jsonErrorMessage = it.message ?: "Couldn't read the clipboard" },
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NavyDeep.copy(alpha = 0.1f),
+                            contentColor = NavyDeep
+                        )
+                    ) {
+                        Text("Fill from Clipboard", color = NavyDeep)
+                    }
+                    Button(
+                        onClick = { showAiDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ElectricBlue.copy(alpha = 0.15f),
+                            contentColor = NavyDeep
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = NavyDeep
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Fill from AI", color = NavyDeep)
+                    }
                 }
-                
+
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Meal Name", color = PureBlack) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = NavyDeep,
-                        unfocusedBorderColor = NavyDeep,
-                        focusedTextColor = PureBlack,
-                        unfocusedTextColor = PureBlack,
-                    )
+                    colors = fieldColors,
                 )
-                
+
+                MealPlanTypeSwitch(
+                    asPlanned = asPlanned,
+                    onAsPlannedChange = { asPlanned = it },
+                )
+
                 OutlinedTextField(
                     value = time,
                     onValueChange = { time = it },
                     label = { Text("Time (HH:mm)", color = PureBlack) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    placeholder = { Text("12:00", color = PureBlack.copy(alpha = 0.6f)) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = NavyDeep,
-                        unfocusedBorderColor = NavyDeep,
-                        focusedTextColor = PureBlack,
-                        unfocusedTextColor = PureBlack,
-                    )
+                    placeholder = { Text(nowTime, color = PureBlack.copy(alpha = 0.6f)) },
+                    colors = fieldColors,
                 )
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -3594,14 +3865,8 @@ private fun AddMealDialog(
                         label = { Text("Amount", color = PureBlack) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NavyDeep,
-                            unfocusedBorderColor = NavyDeep,
-                            focusedTextColor = PureBlack,
-                            unfocusedTextColor = PureBlack,
-                        )
+                        colors = fieldColors,
                     )
-                    
                     OutlinedTextField(
                         value = unit,
                         onValueChange = { unit = it },
@@ -3609,30 +3874,19 @@ private fun AddMealDialog(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         placeholder = { Text("g", color = PureBlack.copy(alpha = 0.6f)) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NavyDeep,
-                            unfocusedBorderColor = NavyDeep,
-                            focusedTextColor = PureBlack,
-                            unfocusedTextColor = PureBlack,
-                        )
+                        colors = fieldColors,
                     )
                 }
-                
+
                 OutlinedTextField(
                     value = kcal,
                     onValueChange = { kcal = it },
                     label = { Text("Calories (kcal)", color = PureBlack) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = NavyDeep,
-                        unfocusedBorderColor = NavyDeep,
-                        focusedTextColor = PureBlack,
-                        unfocusedTextColor = PureBlack,
-                    )
+                    colors = fieldColors,
                 )
-                
-                // Macro fields
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -3643,40 +3897,23 @@ private fun AddMealDialog(
                         label = { Text("Protein (g)", color = PureBlack) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NavyDeep,
-                            unfocusedBorderColor = NavyDeep,
-                            focusedTextColor = PureBlack,
-                            unfocusedTextColor = PureBlack,
-                        )
+                        colors = fieldColors,
                     )
-                    
                     OutlinedTextField(
                         value = carbs,
                         onValueChange = { carbs = it },
                         label = { Text("Carbs (g)", color = PureBlack) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NavyDeep,
-                            unfocusedBorderColor = NavyDeep,
-                            focusedTextColor = PureBlack,
-                            unfocusedTextColor = PureBlack,
-                        )
+                        colors = fieldColors,
                     )
-                    
                     OutlinedTextField(
                         value = fats,
                         onValueChange = { fats = it },
                         label = { Text("Fats (g)", color = PureBlack) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NavyDeep,
-                            unfocusedBorderColor = NavyDeep,
-                            focusedTextColor = PureBlack,
-                            unfocusedTextColor = PureBlack,
-                        )
+                        colors = fieldColors,
                     )
                 }
             }
@@ -3690,15 +3927,15 @@ private fun AddMealDialog(
                     val carbsValue = carbs.toDoubleOrNull() ?: 0.0
                     val fatsValue = fats.toDoubleOrNull() ?: 0.0
                     if (name.isNotBlank() && time.isNotBlank() && amountValue > 0 && kcalValue >= 0) {
-                        onConfirm(name, time, amountValue, unit, kcalValue, proteinValue, carbsValue, fatsValue)
+                        onConfirm(name, time, amountValue, unit, kcalValue, proteinValue, carbsValue, fatsValue, asPlanned)
                     }
                 },
-                enabled = name.isNotBlank() && time.isNotBlank() && 
-                         amount.toDoubleOrNull() != null && amount.toDoubleOrNull()!! > 0 &&
-                         kcal.toDoubleOrNull() != null && kcal.toDoubleOrNull()!! >= 0 &&
-                         protein.toDoubleOrNull() != null && carbs.toDoubleOrNull() != null && fats.toDoubleOrNull() != null
+                enabled = name.isNotBlank() && time.isNotBlank() &&
+                    (amount.toDoubleOrNull() ?: 0.0) > 0 &&
+                    (kcal.toDoubleOrNull() ?: -1.0) >= 0 &&
+                    protein.toDoubleOrNull() != null && carbs.toDoubleOrNull() != null && fats.toDoubleOrNull() != null
             ) {
-                Text("Save", color = NavyDeep)
+                Text(if (entry == null) "Add" else "Save", color = NavyDeep)
             }
         },
         dismissButton = {
@@ -3723,26 +3960,35 @@ private fun AddMealDialog(
         },
         containerColor = PureWhite
     )
-    
-    // Error dialog for JSON parsing
-    if (showJsonErrorDialog) {
+
+    jsonErrorMessage?.let { message ->
         AlertDialog(
-            onDismissRequest = { showJsonErrorDialog = false },
-            title = {
-                Text("JSON Parse Error", color = PureBlack)
-            },
-            text = {
-                Text(jsonErrorMessage, color = PureBlack)
-            },
+            onDismissRequest = { jsonErrorMessage = null },
+            title = { Text("Clipboard error", color = PureBlack) },
+            text = { Text(message, color = PureBlack) },
             confirmButton = {
-                TextButton(onClick = { showJsonErrorDialog = false }) {
+                TextButton(onClick = { jsonErrorMessage = null }) {
                     Text("OK", color = NavyDeep)
                 }
             },
             containerColor = PureWhite
         )
     }
+
+    if (showAiDialog) {
+        FillMealFromAiDialog(
+            mode = CalendarAiMode.SINGLE,
+            date = entry?.date.orEmpty(),
+            keepsExistingTime = true,
+            onDismiss = { showAiDialog = false },
+            onEstimates = { estimates ->
+                applyDraft(estimates.first().toImportDraft(asPlanned), keepTime = true)
+                showAiDialog = false
+            },
+        )
+    }
 }
+
 
 @Composable
 private fun CategoryHeader(category: String) {
@@ -3769,609 +4015,6 @@ private fun CategoryHeader(category: String) {
                 .weight(1f)
                 .height(2.dp)
                 .background(NavyDeep)
-        )
-    }
-}
-
-@Composable
-private fun getRoutineStatusColor(status: RoutineStatus): androidx.compose.ui.graphics.Color {
-    return when (status) {
-        RoutineStatus.DONE -> androidx.compose.ui.graphics.Color(0xFF4CAF50) // Green
-        RoutineStatus.PARTIAL -> androidx.compose.ui.graphics.Color(0xFFFF9800) // Orange
-        RoutineStatus.NOT_DONE -> androidx.compose.ui.graphics.Color(0xFFD32F2F) // Red
-        RoutineStatus.NA -> androidx.compose.ui.graphics.Color(0xFF757575) // Gray
-        RoutineStatus.EXCEEDED -> ElectricBlue // Blue
-        RoutineStatus.NONE -> androidx.compose.ui.graphics.Color(0xFF757575) // Gray (Unreported)
-    }
-}
-
-@Composable
-private fun RoutineEntryCard(
-    entry: RoutineEntry,
-    isEditingEnabled: Boolean,
-    onValueChange: (Double?) -> Unit,
-    onStatusChange: (RoutineStatus) -> Unit,
-    onToggleNA: () -> Unit,
-) {
-    val formatter = DecimalFormat("#.#")
-    // Use NONE color if currentValue is null (unreported)
-    val effectiveStatus = if (entry.type == RoutineType.NUMERICAL && entry.currentValue == null) {
-        RoutineStatus.NONE
-    } else {
-        entry.status
-    }
-    val statusColor = getRoutineStatusColor(effectiveStatus)
-    
-    // For numerical: show slider at minValue if currentValue is null, but keep background Gray
-    val sliderValue = if (entry.type == RoutineType.NUMERICAL) {
-        (entry.currentValue ?: entry.minValue ?: 0.0).toFloat()
-    } else {
-        0f
-    }
-    
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = statusColor.copy(alpha = 0.1f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Title row with clickable status badge
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = entry.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = PureBlack,
-                    modifier = Modifier.weight(1f)
-                )
-                // Clickable status badge
-                when (entry.type) {
-                    RoutineType.CATEGORICAL -> {
-                        StatusChipDropdown(
-                            status = entry.status,
-                            onStatusChange = onStatusChange,
-                            isEditingEnabled = isEditingEnabled
-                        )
-                    }
-                    RoutineType.NUMERICAL -> {
-                        StatusChipClickable(
-                            status = entry.status,
-                            onClick = onToggleNA,
-                            isEditingEnabled = isEditingEnabled
-                        )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            when (entry.type) {
-                RoutineType.NUMERICAL -> {
-                    // Goal and Current in horizontal row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        // Goal
-                        Column {
-                            Text(
-                                text = "Goal",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PureBlack.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = "${formatter.format(entry.goalValue ?: 0.0)} ${entry.unit ?: ""}",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontFamily = FontFamily.Monospace
-                                ),
-                                color = PureBlack
-                            )
-                        }
-                        // Current
-                        Column {
-                            Text(
-                                text = "Current",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PureBlack.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = "${formatter.format(entry.currentValue ?: entry.minValue ?: 0.0)} ${entry.unit ?: ""}",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontFamily = FontFamily.Monospace
-                                ),
-                                color = PureBlack
-                            )
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    // Slider (one decimal place: step 0.1, display and value rounded to 1 decimal)
-                    @OptIn(ExperimentalMaterial3Api::class)
-                    Slider(
-                        value = sliderValue,
-                        onValueChange = {
-                            val rounded = (it * 10).toInt() / 10.0
-                            onValueChange(rounded)
-                        },
-                        enabled = isEditingEnabled && entry.status != RoutineStatus.NA,
-                        valueRange = (entry.minValue ?: 0.0).toFloat()..(entry.maxValue ?: 1.0).toFloat(),
-                        steps = if (entry.maxValue != null && entry.minValue != null) {
-                            (((entry.maxValue!! - entry.minValue!!) * 10).toInt() - 1).coerceAtLeast(0).coerceAtMost(999)
-                        } else 0,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = SliderDefaults.colors(
-                            thumbColor = NavyDeep,
-                            activeTrackColor = NavyDeep,
-                            inactiveTrackColor = OffWhite,
-                            disabledThumbColor = PureBlack.copy(alpha = 0.38f),
-                            disabledActiveTrackColor = PureBlack.copy(alpha = 0.38f),
-                            disabledInactiveTrackColor = PureBlack.copy(alpha = 0.12f),
-                        ),
-                        track = { sliderState ->
-                            SliderDefaults.Track(
-                                sliderState = sliderState,
-                                colors = SliderDefaults.colors(
-                                    activeTrackColor = NavyDeep,
-                                    inactiveTrackColor = OffWhite,
-                                ),
-                                modifier = Modifier.height(4.dp),
-                            )
-                        },
-                        thumb = {
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .background(NavyDeep, CircleShape)
-                                    .border(2.dp, PureBlack, CircleShape)
-                            )
-                        },
-                    )
-                }
-                RoutineType.CATEGORICAL -> {
-                    // No additional UI needed - status is handled by clickable badge
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatusChipDropdown(
-    status: RoutineStatus,
-    onStatusChange: (RoutineStatus) -> Unit,
-    isEditingEnabled: Boolean,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val statusColor = getRoutineStatusColor(status)
-    
-    Box {
-        Button(
-            onClick = { if (isEditingEnabled) expanded = true },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = statusColor.copy(alpha = 0.2f),
-                contentColor = statusColor,
-                disabledContainerColor = PureBlack.copy(alpha = 0.12f),
-                disabledContentColor = PureBlack.copy(alpha = 0.38f)
-            ),
-            shape = RoundedCornerShape(4.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-            enabled = isEditingEnabled,
-        ) {
-            Text(
-                text = status.name.replace("_", " "),
-                style = MaterialTheme.typography.labelSmall,
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            containerColor = PureWhite,
-        ) {
-            RoutineStatus.entries.forEach { s ->
-                DropdownMenuItem(
-                    text = { 
-                        Text(
-                            text = s.name.replace("_", " "),
-                            color = PureBlack
-                        ) 
-                    },
-                    onClick = {
-                        onStatusChange(s)
-                        expanded = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatusChipClickable(
-    status: RoutineStatus,
-    onClick: () -> Unit,
-    isEditingEnabled: Boolean,
-) {
-    val statusColor = getRoutineStatusColor(status)
-    
-    Button(
-        onClick = { if (isEditingEnabled) onClick() },
-        colors = ButtonDefaults.buttonColors(
-            containerColor = statusColor.copy(alpha = 0.2f),
-            contentColor = statusColor,
-            disabledContainerColor = PureBlack.copy(alpha = 0.12f),
-            disabledContentColor = PureBlack.copy(alpha = 0.38f)
-        ),
-        shape = RoundedCornerShape(4.dp),
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-        enabled = isEditingEnabled,
-    ) {
-        Text(
-            text = status.name.replace("_", " "),
-            style = MaterialTheme.typography.labelSmall,
-        )
-    }
-}
-
-@Composable
-private fun AddRoutineDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, RoutineType, Double?, Double?, Double?, Double?, String?, Int) -> Unit,
-) {
-    var title by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("") }
-    var selectedType by remember { mutableStateOf(RoutineType.NUMERICAL) }
-    var goalValue by remember { mutableStateOf("") }
-    var partialThreshold by remember { mutableStateOf("") }
-    var minValue by remember { mutableStateOf("") }
-    var maxValue by remember { mutableStateOf("") }
-    var unit by remember { mutableStateOf("") }
-    var directionBetter by remember { mutableStateOf(1) } // 1 = Up, -1 = Down
-    var showJsonErrorDialog by remember { mutableStateOf(false) }
-    var jsonErrorMessage by remember { mutableStateOf("") }
-    val context = LocalContext.current
-    val json = Json { 
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
-    
-    // Simple data class for parsing JSON
-    @kotlinx.serialization.Serializable
-    data class RoutineJsonInput(
-        val title: String = "",
-        val category: String = "",
-        val type: String = "NUMERICAL",
-        val goalValue: Double? = null,
-        val partialThreshold: Double? = null,
-        val minValue: Double? = null,
-        val maxValue: Double? = null,
-        val unit: String? = null,
-        val directionBetter: Int = 1
-    )
-    
-    fun parseJsonFromClipboard() {
-        try {
-            val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-            val clipboardText = clipboardManager?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-            if (clipboardText.isBlank()) {
-                jsonErrorMessage = "Clipboard is empty"
-                showJsonErrorDialog = true
-                return
-            }
-            
-            // Parse JSON
-            val parsed = json.decodeFromString<RoutineJsonInput>(clipboardText.trim())
-            
-            // Validate required fields
-            if (parsed.title.isBlank()) {
-                jsonErrorMessage = "JSON missing required field: title"
-                showJsonErrorDialog = true
-                return
-            }
-            if (parsed.category.isBlank()) {
-                jsonErrorMessage = "JSON missing required field: category"
-                showJsonErrorDialog = true
-                return
-            }
-            
-            // Populate fields
-            title = parsed.title
-            category = parsed.category
-            selectedType = try {
-                RoutineType.valueOf(parsed.type.uppercase())
-            } catch (e: Exception) {
-                RoutineType.NUMERICAL
-            }
-            goalValue = parsed.goalValue?.toString() ?: ""
-            partialThreshold = parsed.partialThreshold?.toString() ?: ""
-            minValue = parsed.minValue?.toString() ?: ""
-            maxValue = parsed.maxValue?.toString() ?: ""
-            unit = parsed.unit ?: ""
-            directionBetter = parsed.directionBetter
-            showJsonErrorDialog = false
-        } catch (e: kotlinx.serialization.SerializationException) {
-            jsonErrorMessage = "Invalid JSON format: ${e.message ?: "Unable to parse JSON"}"
-            showJsonErrorDialog = true
-        } catch (e: Exception) {
-            jsonErrorMessage = "Error parsing JSON: ${e.message ?: "Unknown error"}"
-            showJsonErrorDialog = true
-        }
-    }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Add Activity",
-                color = PureBlack
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 380.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // JSON from clipboard option
-                Button(
-                    onClick = { parseJsonFromClipboard() },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = NavyDeep.copy(alpha = 0.1f),
-                        contentColor = NavyDeep
-                    )
-                ) {
-                    Text("Fill from Clipboard", color = NavyDeep)
-                }
-                
-                // Activity Title
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Activity Title", color = PureBlack) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = NavyDeep,
-                        unfocusedBorderColor = NavyDeep,
-                        focusedTextColor = PureBlack,
-                        unfocusedTextColor = PureBlack,
-                    )
-                )
-                
-                // Category
-                OutlinedTextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text("Category", color = PureBlack) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = NavyDeep,
-                        unfocusedBorderColor = NavyDeep,
-                        focusedTextColor = PureBlack,
-                        unfocusedTextColor = PureBlack,
-                    )
-                )
-                
-                // Type selection (Numerical vs Categorical)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { selectedType = RoutineType.NUMERICAL },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedType == RoutineType.NUMERICAL) NavyDeep else PureWhite,
-                            contentColor = if (selectedType == RoutineType.NUMERICAL) PureWhite else NavyDeep
-                        ),
-                        border = if (selectedType == RoutineType.NUMERICAL) null else BorderStroke(1.dp, NavyDeep)
-                    ) {
-                        Text("Numerical")
-                    }
-                    Button(
-                        onClick = { selectedType = RoutineType.CATEGORICAL },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedType == RoutineType.CATEGORICAL) NavyDeep else PureWhite,
-                            contentColor = if (selectedType == RoutineType.CATEGORICAL) PureWhite else NavyDeep
-                        ),
-                        border = if (selectedType == RoutineType.CATEGORICAL) null else BorderStroke(1.dp, NavyDeep)
-                    ) {
-                        Text("Categorical")
-                    }
-                }
-                
-                // Numerical fields (only show if Numerical is selected)
-                if (selectedType == RoutineType.NUMERICAL) {
-                    OutlinedTextField(
-                        value = goalValue,
-                        onValueChange = { goalValue = it },
-                        label = { Text("Goal Value", color = PureBlack) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NavyDeep,
-                            unfocusedBorderColor = NavyDeep,
-                            focusedTextColor = PureBlack,
-                            unfocusedTextColor = PureBlack,
-                        )
-                    )
-                    
-                    OutlinedTextField(
-                        value = partialThreshold,
-                        onValueChange = { partialThreshold = it },
-                        label = { Text("Partial Threshold", color = PureBlack) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NavyDeep,
-                            unfocusedBorderColor = NavyDeep,
-                            focusedTextColor = PureBlack,
-                            unfocusedTextColor = PureBlack,
-                        )
-                    )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = minValue,
-                            onValueChange = { minValue = it },
-                            label = { Text("Min Value", color = PureBlack) },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = NavyDeep,
-                                unfocusedBorderColor = NavyDeep,
-                                focusedTextColor = PureBlack,
-                                unfocusedTextColor = PureBlack,
-                            )
-                        )
-                        
-                        OutlinedTextField(
-                            value = maxValue,
-                            onValueChange = { maxValue = it },
-                            label = { Text("Max Value", color = PureBlack) },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = NavyDeep,
-                                unfocusedBorderColor = NavyDeep,
-                                focusedTextColor = PureBlack,
-                                unfocusedTextColor = PureBlack,
-                            )
-                        )
-                    }
-                    
-                    OutlinedTextField(
-                        value = unit,
-                        onValueChange = { unit = it },
-                        label = { Text("Unit", color = PureBlack) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        placeholder = { Text("h, cups, steps, etc.", color = PureBlack.copy(alpha = 0.6f)) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NavyDeep,
-                            unfocusedBorderColor = NavyDeep,
-                            focusedTextColor = PureBlack,
-                            unfocusedTextColor = PureBlack,
-                        )
-                    )
-                    
-                    // Direction switch (Up = 1, Down = -1)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Direction:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = PureBlack,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Button(
-                            onClick = { directionBetter = 1 },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (directionBetter == 1) NavyDeep else PureWhite,
-                                contentColor = if (directionBetter == 1) PureWhite else NavyDeep
-                            ),
-                            border = if (directionBetter == 1) null else BorderStroke(1.dp, NavyDeep)
-                        ) {
-                            Text("Up")
-                        }
-                        Button(
-                            onClick = { directionBetter = -1 },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (directionBetter == -1) NavyDeep else PureWhite,
-                                contentColor = if (directionBetter == -1) PureWhite else NavyDeep
-                            ),
-                            border = if (directionBetter == -1) null else BorderStroke(1.dp, NavyDeep)
-                        ) {
-                            Text("Down")
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (title.isNotBlank() && category.isNotBlank()) {
-                        val goal = goalValue.toDoubleOrNull()
-                        val partial = partialThreshold.toDoubleOrNull()
-                        val min = minValue.toDoubleOrNull()
-                        val max = maxValue.toDoubleOrNull()
-                        val unitValue = unit.ifBlank { null }
-                        
-                        // Validate numerical fields if Numerical type
-                        if (selectedType == RoutineType.NUMERICAL) {
-                            if (goal == null || min == null || max == null) {
-                                return@TextButton
-                            }
-                        }
-                        
-                        onConfirm(
-                            title,
-                            category,
-                            selectedType,
-                            goal,
-                            partial,
-                            min,
-                            max,
-                            unitValue,
-                            directionBetter
-                        )
-                    }
-                },
-                enabled = title.isNotBlank() && category.isNotBlank() &&
-                         (selectedType == RoutineType.CATEGORICAL || 
-                          (goalValue.toDoubleOrNull() != null && 
-                           minValue.toDoubleOrNull() != null && 
-                           maxValue.toDoubleOrNull() != null))
-            ) {
-                Text("Save", color = NavyDeep)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = PureBlack)
-            }
-        },
-        containerColor = PureWhite
-    )
-    
-    // Error dialog for JSON parsing
-    if (showJsonErrorDialog) {
-        AlertDialog(
-            onDismissRequest = { showJsonErrorDialog = false },
-            title = {
-                Text("JSON Parse Error", color = PureBlack)
-            },
-            text = {
-                Text(jsonErrorMessage, color = PureBlack)
-            },
-            confirmButton = {
-                TextButton(onClick = { showJsonErrorDialog = false }) {
-                    Text("OK", color = NavyDeep)
-                }
-            },
-            containerColor = PureWhite
         )
     }
 }

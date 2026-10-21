@@ -3,19 +3,34 @@ package com.vm.vector.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vm.vector.alarm.SleepAlarmScheduler
+import com.vm.vector.data.ActivityRepository
+import com.vm.vector.data.BrainSyncWorker
+import com.vm.vector.data.DailySync
 import com.vm.vector.data.DatabaseBackupManager
-import com.vm.vector.data.DietRepository
 import com.vm.vector.data.DriveConsentHandler
 import com.vm.vector.data.DriveService
+import com.vm.vector.data.FoodRepository
+import com.vm.vector.data.GeminiApiKeySource
+import com.vm.vector.data.GeminiApiKeyStore
+import com.vm.core.models.ActivityLabel
+import com.vm.core.models.SleepMath
 import com.vm.vector.data.HomeRepository
+import com.vm.vector.data.LearningSettings
+import com.vm.vector.data.MotionSettings
 import com.vm.vector.data.PreferenceManager
 import com.vm.vector.data.PresetCategory
 import com.vm.vector.data.PresetStorage
-import com.vm.vector.data.RoutineRepository
+import com.vm.vector.data.SleepRepository
 import com.vm.vector.data.ValidateConnectionResult
 import com.vm.vector.data.WorkoutRepository
 import com.vm.vector.VectorApplication
+import com.vm.vector.AppRestarter
+import com.vm.vector.data.backup.BackupOutcome
+import com.vm.vector.data.backup.BackupSnapshotInfo
+import com.vm.vector.data.sync.BrainStateSync
+import com.vm.vector.data.sync.BrainSyncOutcome
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -23,6 +38,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -30,6 +46,9 @@ import java.util.Locale
 
 data class SettingsUiState(
     val folderId: String = "",
+    val geminiApiKey: String = "",
+    val geminiKeyStatus: String = "Not configured",
+    val geminiKeySource: GeminiApiKeySource = GeminiApiKeySource.None,
     val isLoading: Boolean = false,
     val isValidating: Boolean = false,
     val permissionRequired: Boolean = false,
@@ -40,13 +59,19 @@ data class SettingsUiState(
     val isResetting: Boolean = false,
     val isBackingUp: Boolean = false,
     val isRestoring: Boolean = false,
+    val isSyncingBrain: Boolean = false,
+    val showRestorePicker: Boolean = false,
+    val isLoadingSnapshots: Boolean = false,
+    val backupSnapshots: List<BackupSnapshotInfo> = emptyList(),
     val workoutPresetName: String? = null,
-    val routinePresetName: String? = null,
-    val dietPresetName: String? = null,
+    val foodPresetName: String? = null,
     val workoutPresetJsonName: String? = null,
+    val foodPresetJsonName: String? = null,
+    val routinePresetName: String? = null,
     val routinePresetJsonName: String? = null,
-    val dietPresetJsonName: String? = null,
     val showPresetOverwriteModal: Boolean = false,
+    /** Routine preset labels that will be created when the preset is applied. */
+    val presetModalNewLabels: List<String> = emptyList(),
     val presetModalCategory: PresetCategory? = null,
     val presetModalDisplayName: String = "",
     val presetModalContent: String = "",
@@ -58,6 +83,7 @@ data class SettingsUiState(
     val filloutReminderMinutes: Int? = null,
     val showSleepTimePicker: SleepPickerKind? = null,
     val showFilloutTimePicker: Boolean = false,
+    val activityLabels: List<ActivityLabel> = emptyList(),
 )
 
 enum class SleepPickerKind { Bedtime, Wakeup }
@@ -65,43 +91,69 @@ enum class SleepPickerKind { Bedtime, Wakeup }
 class SettingsViewModel(
     private val preferenceManager: PreferenceManager,
     private val driveService: DriveService,
-    private val dietRepository: DietRepository,
-    private val routineRepository: RoutineRepository,
+    private val foodRepository: FoodRepository,
     private val workoutRepository: WorkoutRepository,
     private val presetStorage: PresetStorage,
     private val backupManager: DatabaseBackupManager,
     private val homeRepository: HomeRepository,
+    private val sleepRepository: SleepRepository,
     private val sleepAlarmScheduler: SleepAlarmScheduler,
     private val vectorApplication: VectorApplication,
+    private val geminiApiKeyStore: GeminiApiKeyStore,
+    private val activityRepository: ActivityRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    val learningSettings: StateFlow<LearningSettings> = preferenceManager.learningSettings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LearningSettings())
+
+    fun saveLearningSettings(settings: LearningSettings) {
+        viewModelScope.launch {
+            preferenceManager.saveLearningSettings(settings)
+            DailySync.markConfig(vectorApplication)
+            _uiState.value = _uiState.value.copy(showSnackbar = true, snackbarMessage = "Learning settings saved")
+        }
+    }
+
+    val motionSettings: StateFlow<MotionSettings> = preferenceManager.motionSettings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MotionSettings())
+
+    fun saveMotionSettings(settings: MotionSettings) {
+        viewModelScope.launch {
+            preferenceManager.saveMotionSettings(settings)
+            BrainSyncWorker.requestDebounced(vectorApplication)
+            _uiState.value = _uiState.value.copy(showSnackbar = true, snackbarMessage = "Motion settings saved")
+        }
+    }
+
     init {
         loadFolderId()
+        loadGeminiApiKey()
         loadPresetNames()
         loadSleepAndAlarms()
         loadWakeAlarmPrefs()
+        loadActivityLabels()
     }
 
     private fun loadSleepAndAlarms() {
         viewModelScope.launch {
             val bedtimePref = preferenceManager.sleepTargetBedtimeMinutes.first()
             val wakeupPref = preferenceManager.sleepTargetWakeupMinutes.first()
-            val entry = homeRepository.getTodayEntrySync()
-            val start = bedtimePref ?: entry?.sleepStart?.let { parseTimeToMinutes(it) } ?: 22 * 60
-            val end = wakeupPref ?: entry?.sleepEnd?.let { parseTimeToMinutes(it) } ?: 6 * 60
+            val night = sleepRepository.getNight(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()))
+            val start = bedtimePref ?: SleepMath.parseHhMm(night?.plannedBedtime) ?: 22 * 60
+            val end = wakeupPref ?: SleepMath.parseHhMm(night?.plannedWakeUp) ?: 6 * 60
             _uiState.value = _uiState.value.copy(
                 sleepBedtimeMinutes = start,
                 sleepWakeupMinutes = end,
             )
-            if (bedtimePref == null && wakeupPref == null && entry != null &&
-                (entry.sleepStart != null || entry.sleepEnd != null)
+            if (bedtimePref == null && wakeupPref == null && night != null &&
+                (night.plannedBedtime != null || night.plannedWakeUp != null)
             ) {
                 preferenceManager.saveSleepTargetMinutes(
-                    entry.sleepStart?.let { parseTimeToMinutes(it) } ?: 22 * 60,
-                    entry.sleepEnd?.let { parseTimeToMinutes(it) } ?: 6 * 60,
+                    SleepMath.parseHhMm(night.plannedBedtime) ?: 22 * 60,
+                    SleepMath.parseHhMm(night.plannedWakeUp) ?: 6 * 60,
                 )
             }
         }
@@ -156,8 +208,9 @@ class SettingsViewModel(
             val wakeup = _uiState.value.sleepWakeupMinutes
             val bedtimeStr = minutesToTime(bedtime)
             val wakeupStr = minutesToTime(wakeup)
-            homeRepository.saveTodaySleepTarget(bedtimeStr, wakeupStr)
+            sleepRepository.saveTodaySleepTarget(bedtimeStr, wakeupStr)
             preferenceManager.saveSleepTargetMinutes(bedtime, wakeup)
+            DailySync.markConfig(vectorApplication)
             preferenceManager.saveWakeAlarmBaseMinutes(wakeup)
             preferenceManager.saveWakeAlarmOffsets(listOf(0, 5, 10, 15))
             sleepAlarmScheduler.cancelWakeAlarms()
@@ -203,6 +256,7 @@ class SettingsViewModel(
     fun setFilloutReminder(minutes: Int) {
         viewModelScope.launch {
             preferenceManager.saveFilloutReminderMinutes(minutes)
+            DailySync.markConfig(vectorApplication)
             sleepAlarmScheduler.scheduleFilloutReminder(minutes)
             _uiState.value = _uiState.value.copy(
                 filloutReminderMinutes = minutes,
@@ -216,6 +270,7 @@ class SettingsViewModel(
     fun removeFilloutReminder() {
         viewModelScope.launch {
             preferenceManager.saveFilloutReminderMinutes(null)
+            DailySync.markConfig(vectorApplication)
             sleepAlarmScheduler.cancelFilloutReminder()
             _uiState.value = _uiState.value.copy(
                 filloutReminderMinutes = null,
@@ -228,25 +283,20 @@ class SettingsViewModel(
     private fun loadPresetNames() {
         combine(
             presetStorage.getPresetDisplayNameFlow(PresetCategory.Workout),
-            presetStorage.getPresetDisplayNameFlow(PresetCategory.Routine),
-            presetStorage.getPresetDisplayNameFlow(PresetCategory.Diet),
+            presetStorage.getPresetDisplayNameFlow(PresetCategory.Food),
             preferenceManager.workoutPresetJsonName,
+            preferenceManager.foodPresetJsonName,
+            presetStorage.getPresetDisplayNameFlow(PresetCategory.Routine),
             preferenceManager.routinePresetJsonName,
-            preferenceManager.dietPresetJsonName,
-        ) { arr: Array<String?> ->
-                Pair(
-                    Triple(arr[0], arr[1], arr[2]),
-                    Triple(arr[3], arr[4], arr[5])
-                )
-            }
-            .onEach { (displayNames, jsonNames) ->
+        ) { values -> values }
+            .onEach { arr ->
                 _uiState.value = _uiState.value.copy(
-                    workoutPresetName = displayNames.first,
-                    routinePresetName = displayNames.second,
-                    dietPresetName = displayNames.third,
-                    workoutPresetJsonName = jsonNames.first,
-                    routinePresetJsonName = jsonNames.second,
-                    dietPresetJsonName = jsonNames.third,
+                    workoutPresetName = arr[0],
+                    foodPresetName = arr[1],
+                    workoutPresetJsonName = arr[2],
+                    foodPresetJsonName = arr[3],
+                    routinePresetName = arr[4],
+                    routinePresetJsonName = arr[5],
                 )
             }
             .catch { e -> e.printStackTrace() }
@@ -264,6 +314,51 @@ class SettingsViewModel(
                 e.printStackTrace()
             }
             .launchIn(viewModelScope)
+    }
+
+    private fun loadGeminiApiKey() {
+        val resolution = geminiApiKeyStore.resolve()
+        _uiState.value = _uiState.value.copy(
+            geminiApiKey = geminiApiKeyStore.getCustomKey(),
+            geminiKeyStatus = geminiApiKeyStore.statusLabel(),
+            geminiKeySource = resolution.source,
+        )
+    }
+
+    fun updateGeminiApiKey(key: String) {
+        _uiState.value = _uiState.value.copy(geminiApiKey = key)
+    }
+
+    fun saveGeminiApiKey() {
+        val key = _uiState.value.geminiApiKey.trim()
+        if (key.isBlank()) {
+            _uiState.value = _uiState.value.copy(
+                showSnackbar = true,
+                snackbarMessage = "Enter a Gemini API key, or use Clear",
+            )
+            return
+        }
+        geminiApiKeyStore.setCustomKey(key)
+        val resolution = geminiApiKeyStore.resolve()
+        _uiState.value = _uiState.value.copy(
+            geminiApiKey = geminiApiKeyStore.getCustomKey(),
+            geminiKeyStatus = geminiApiKeyStore.statusLabel(),
+            geminiKeySource = resolution.source,
+            showSnackbar = true,
+            snackbarMessage = "Gemini API key saved",
+        )
+    }
+
+    fun clearGeminiApiKey() {
+        geminiApiKeyStore.clearCustomKey()
+        val resolution = geminiApiKeyStore.resolve()
+        _uiState.value = _uiState.value.copy(
+            geminiApiKey = "",
+            geminiKeyStatus = geminiApiKeyStore.statusLabel(),
+            geminiKeySource = resolution.source,
+            showSnackbar = true,
+            snackbarMessage = "Custom Gemini API key cleared",
+        )
     }
 
     fun updateFolderId(folderId: String) {
@@ -312,7 +407,7 @@ class SettingsViewModel(
                         isValidating = false,
                         permissionRequired = false,
                         showSnackbar = true,
-                        snackbarMessage = "Connection OK. Check Logcat (VectorDriveDiscovery) for lists/presets IDs."
+                        snackbarMessage = "Connection OK. brain, database and backups folders are ready."
                     )
                 }
                 is ValidateConnectionResult.NeedsRemoteConsent -> {
@@ -336,20 +431,6 @@ class SettingsViewModel(
                         snackbarMessage = "Root ID not accessible. Check the Data folder ID."
                     )
                 }
-                is ValidateConnectionResult.ListsNotFound -> {
-                    _uiState.value = _uiState.value.copy(
-                        isValidating = false,
-                        showSnackbar = true,
-                        snackbarMessage = "Discovery failed: 'lists' folder not found under root."
-                    )
-                }
-                is ValidateConnectionResult.PresetsNotFound -> {
-                    _uiState.value = _uiState.value.copy(
-                        isValidating = false,
-                        showSnackbar = true,
-                        snackbarMessage = "Discovery failed: 'presets' folder not found under root."
-                    )
-                }
                 is ValidateConnectionResult.OtherError -> {
                     _uiState.value = _uiState.value.copy(
                         isValidating = false,
@@ -365,26 +446,72 @@ class SettingsViewModel(
         _uiState.value = _uiState.value.copy(showSnackbar = false)
     }
 
-    fun backupToDrive() {
+    val lastBrainSyncAt: StateFlow<Long> = preferenceManager.lastBrainSyncAt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
+
+    fun syncBrainNow() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isBackingUp = true)
-            val result = backupManager.backup()
-            _uiState.value = _uiState.value.copy(isBackingUp = false)
-            _uiState.value = _uiState.value.copy(
-                showSnackbar = true,
-                snackbarMessage = if (result.isSuccess) "Backup to Drive completed" else "Backup failed: ${result.exceptionOrNull()?.message ?: "Unknown error"}"
-            )
+            _uiState.value = _uiState.value.copy(isSyncingBrain = true)
+            val outcome = BrainStateSync(vectorApplication, vectorApplication.database).sync()
+            val message = when (outcome) {
+                BrainSyncOutcome.UpToDate -> "Brain is up to date"
+                is BrainSyncOutcome.Pushed -> "Brain synced to Drive"
+                is BrainSyncOutcome.Pulled -> "Brain updated from your other devices"
+                is BrainSyncOutcome.NeedsDecision -> "Brain changed on two devices — choose how to merge"
+                BrainSyncOutcome.NotConfigured -> "Set a Drive folder first"
+                is BrainSyncOutcome.Failed -> "Brain sync failed: ${outcome.message}"
+            }
+            (outcome as? BrainSyncOutcome.Failed)?.consentIntent?.let { DriveConsentHandler.requestConsent(it, ::syncBrainNow) }
+            _uiState.value = _uiState.value.copy(isSyncingBrain = false, showSnackbar = true, snackbarMessage = message)
         }
     }
 
-    fun restoreFromDrive() {
+    fun backupToDrive() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRestoring = true)
-            val result = backupManager.restore()
-            _uiState.value = _uiState.value.copy(isRestoring = false)
+            _uiState.value = _uiState.value.copy(isBackingUp = true)
+            val message = when (val outcome = backupManager.backupLatest()) {
+                is BackupOutcome.Success -> "Backup to Drive completed"
+                is BackupOutcome.Conflict -> "Backup paused: Drive has a backup this would overwrite. Choose what to keep."
+                is BackupOutcome.Failure -> "Backup failed: ${outcome.message}"
+            }
+            _uiState.value = _uiState.value.copy(isBackingUp = false, showSnackbar = true, snackbarMessage = message)
+        }
+    }
+
+    /** Loads the latest + dated Drive backups and opens the restore picker. */
+    fun openRestorePicker() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingSnapshots = true, showRestorePicker = true, backupSnapshots = emptyList())
+            backupManager.listSnapshots()
+                .onSuccess { _uiState.value = _uiState.value.copy(isLoadingSnapshots = false, backupSnapshots = it) }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingSnapshots = false,
+                        showRestorePicker = false,
+                        showSnackbar = true,
+                        snackbarMessage = "Could not list backups: ${it.message}",
+                    )
+                }
+        }
+    }
+
+    fun dismissRestorePicker() {
+        _uiState.value = _uiState.value.copy(showRestorePicker = false)
+    }
+
+    /** Restores [snapshot] and relaunches the app so Room reopens the swapped database file. */
+    fun restoreFromDrive(snapshot: BackupSnapshotInfo) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRestoring = true, showRestorePicker = false)
+            val result = backupManager.restore(snapshot)
+            if (result.isSuccess) {
+                AppRestarter.restart(vectorApplication)
+                return@launch
+            }
             _uiState.value = _uiState.value.copy(
+                isRestoring = false,
                 showSnackbar = true,
-                snackbarMessage = if (result.isSuccess) "Restored from Drive. You may need to restart the app." else "Restore failed: ${result.exceptionOrNull()?.message ?: "Unknown error"}"
+                snackbarMessage = "Restore failed: ${result.exceptionOrNull()?.message ?: "Unknown error"}"
             )
         }
     }
@@ -423,13 +550,13 @@ class SettingsViewModel(
     fun resetDatabase() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isResetting = true, showResetConfirmation = false)
-            val result = dietRepository.resetDatabase()
+            val result = foodRepository.resetDatabase()
             _uiState.value = _uiState.value.copy(isResetting = false)
             if (result.isSuccess) {
                 vectorApplication.notifyDatabaseReset()
                 _uiState.value = _uiState.value.copy(
                     showSnackbar = true,
-                    snackbarMessage = "Database reset successfully. Diet, routine, workout, and diary mood/journal have been cleared. Photo albums (Drive) are unchanged."
+                    snackbarMessage = "Database reset successfully. Food, habits, activities, workout, and self mood/journal have been cleared. Photo albums (Drive) are unchanged."
                 )
             } else {
                 _uiState.value = _uiState.value.copy(
@@ -442,6 +569,42 @@ class SettingsViewModel(
 
     // --- Presets ---
 
+    private fun loadActivityLabels() {
+        viewModelScope.launch {
+            val labels = activityRepository.getAllLabels()
+            _uiState.value = _uiState.value.copy(activityLabels = labels)
+        }
+    }
+
+    fun createActivityLabel(name: String, colorArgb: Int, onCreated: () -> Unit = {}) {
+        viewModelScope.launch {
+            activityRepository.createLabel(name, colorArgb)
+                .onSuccess {
+                    loadActivityLabels()
+                    onCreated()
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        showSnackbar = true,
+                        snackbarMessage = e.message ?: "Failed to create label",
+                    )
+                }
+        }
+    }
+
+    fun deleteActivityLabel(id: String) {
+        viewModelScope.launch {
+            activityRepository.deleteLabel(id)
+                .onSuccess { loadActivityLabels() }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        showSnackbar = true,
+                        snackbarMessage = e.message ?: "Failed to delete label",
+                    )
+                }
+        }
+    }
+
     private fun today(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
     /**
@@ -449,10 +612,15 @@ class SettingsViewModel(
      */
     fun onPresetFilePicked(category: PresetCategory, content: String, displayName: String) {
         viewModelScope.launch {
-            val result = when (category) {
+            val result: Result<List<Any>> = when (category) {
                 PresetCategory.Workout -> workoutRepository.getPresetSetsForDateFromContent(content, today())
-                PresetCategory.Routine -> routineRepository.parsePresetContentAndGetEntriesForDate(content, today())
-                PresetCategory.Diet -> dietRepository.parsePresetContentAndGetEntriesForDate(content, today())
+                PresetCategory.Food -> foodRepository.parsePresetContentAndGetEntriesForDate(content, today())
+                PresetCategory.Routine -> activityRepository.parseRoutinePresetForDate(content, today())
+            }
+            val newLabels = if (category == PresetCategory.Routine && result.isSuccess) {
+                runCatching { activityRepository.unknownPresetLabels(content) }.getOrDefault(emptyList())
+            } else {
+                emptyList()
             }
             result.fold(
                 onSuccess = {
@@ -461,6 +629,7 @@ class SettingsViewModel(
                         presetModalCategory = category,
                         presetModalDisplayName = displayName,
                         presetModalContent = content,
+                        presetModalNewLabels = newLabels,
                     )
                 },
                 onFailure = { e ->
@@ -479,6 +648,7 @@ class SettingsViewModel(
             presetModalCategory = null,
             presetModalDisplayName = "",
             presetModalContent = "",
+            presetModalNewLabels = emptyList(),
         )
     }
 
@@ -492,12 +662,23 @@ class SettingsViewModel(
             _uiState.value = _uiState.value.copy(isPresetApplying = true)
             try {
                 presetStorage.savePreset(category, displayName, content)
+                when (category) {
+                    PresetCategory.Workout -> workoutRepository.ingestSessionsFromWeeklyPlan(content)
+                    PresetCategory.Food -> foodRepository.ingestMealsFromWeeklyPlan(content)
+                    PresetCategory.Routine -> {
+                        activityRepository.ensurePresetLabels(content)
+                        activityRepository.ingestPresetActivities(content)
+                        loadActivityLabels()
+                    }
+                }
+                DailySync.markConfig(vectorApplication)
                 _uiState.value = _uiState.value.copy(
                     isPresetApplying = false,
                     showPresetOverwriteModal = false,
                     presetModalCategory = null,
                     presetModalDisplayName = "",
                     presetModalContent = "",
+                    presetModalNewLabels = emptyList(),
                     showSnackbar = true,
                     snackbarMessage = "Preset \"$displayName\" is now active for ${category.name}.",
                 )
@@ -514,6 +695,7 @@ class SettingsViewModel(
     fun removePreset(category: PresetCategory) {
         viewModelScope.launch {
             presetStorage.clearPreset(category)
+            DailySync.markConfig(vectorApplication)
             _uiState.value = _uiState.value.copy(
                 showSnackbar = true,
                 snackbarMessage = "${category.name} preset removed.",

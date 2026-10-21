@@ -1,6 +1,5 @@
 package com.vm.core.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.darkColorScheme
@@ -32,7 +31,7 @@ private val VectorDarkColorScheme = darkColorScheme(
 
 @Composable
 fun VectorTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) VectorDarkColorScheme else VectorLightColorScheme

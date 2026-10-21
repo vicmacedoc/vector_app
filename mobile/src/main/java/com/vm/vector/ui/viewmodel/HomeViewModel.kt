@@ -3,106 +3,177 @@ package com.vm.vector.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.vm.core.models.HabitDefinition
+import com.vm.core.models.HabitLog
+import com.vm.core.models.HabitStatus
+import com.vm.core.models.MotionTask
+import com.vm.vector.data.BrainRepository
 import com.vm.vector.VectorApplication
+import com.vm.vector.data.DailySync
 import com.vm.vector.data.DayCompletion
+import com.vm.vector.data.HabitRepository
 import com.vm.vector.data.HomeRepository
+import com.vm.vector.data.SelfRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 data class HomeUiState(
     val selectedDate: String = "",
-    val isPastSelectedDate: Boolean = false,
-    val isFutureSelectedDate: Boolean = false,
     val homeFieldsEditable: Boolean = true,
-    val pastDayEditingEnabled: Boolean = false,
     val weightKg: String = "",
     val bodyFatPercent: String = "",
-    val sleepStartMinutes: Int = 22 * 60,
-    val sleepEndMinutes: Int = 6 * 60,
-    val actualSleepStartMinutes: Int = 22 * 60,
-    val actualSleepEndMinutes: Int = 6 * 60,
-    val dailyPlanCompletionPercent: Int = 0,
+    val habitDefinitions: List<HabitDefinition> = emptyList(),
+    val selectedHabitIds: List<String> = emptyList(),
+    val habitLogs: List<HabitLog> = emptyList(),
+    val habitScoreSummaries: Map<String, com.vm.vector.data.HabitScoreSummary> = emptyMap(),
     val isSaving: Boolean = false,
+    /** True when body inputs or the day's habits differ from what is saved. */
+    val hasUnsavedChanges: Boolean = false,
     val saveMessage: String? = null,
     val routineLast7: List<DayCompletion> = emptyList(),
-    val dietLast7: List<DayCompletion> = emptyList(),
+    val foodLast7: List<DayCompletion> = emptyList(),
     val workoutLast7: List<DayCompletion> = emptyList(),
-    val diaryLast7: List<DayCompletion> = emptyList(),
+    val selfLast7: List<DayCompletion> = emptyList(),
+    val brainInboxCount: Int = 0,
+    val brainOverdue: Int = 0,
+    val brainDueToday: Int = 0,
+    val brainActiveTiles: Int = 0,
+    val brainUpNext: List<MotionTask> = emptyList(),
+    val wearUnseenEvents: List<com.vm.vector.data.WearActivityEvent> = emptyList(),
 )
+
+/** The saved state of Home's editable fields, normalized so cosmetic differences don't count. */
+private data class HomeSnapshot(
+    val weightKg: Double?,
+    val bodyFatPercent: Double?,
+    val selectedHabitIds: List<String>,
+    val habitStatuses: Map<String, HabitStatus>,
+) {
+    fun withoutHabit(habitId: String) = copy(
+        selectedHabitIds = selectedHabitIds - habitId,
+        habitStatuses = habitStatuses - habitId,
+    )
+
+    companion object {
+        fun of(
+            weightKg: String,
+            bodyFatPercent: String,
+            selectedHabitIds: List<String>,
+            habitLogs: List<HabitLog>,
+        ): HomeSnapshot {
+            val byHabit = habitLogs.associateBy { it.habitId }
+            return HomeSnapshot(
+                weightKg = weightKg.trim().toDoubleOrNull(),
+                bodyFatPercent = bodyFatPercent.trim().toDoubleOrNull(),
+                selectedHabitIds = selectedHabitIds,
+                habitStatuses = selectedHabitIds.associateWith { byHabit[it]?.status ?: HabitStatus.NONE },
+            )
+        }
+    }
+}
 
 class HomeViewModel(
     application: Application,
     private val homeRepository: HomeRepository,
+    private val selfRepository: SelfRepository,
+    private val habitRepository: HabitRepository,
+    private val brainRepository: BrainRepository,
 ) : AndroidViewModel(application) {
 
     private val _weightKg = MutableStateFlow("")
     private val _bodyFatPercent = MutableStateFlow("")
-    private val _sleepStartMinutes = MutableStateFlow(22 * 60)
-    private val _sleepEndMinutes = MutableStateFlow(6 * 60)
-    private val _actualSleepStartMinutes = MutableStateFlow(22 * 60)
-    private val _actualSleepEndMinutes = MutableStateFlow(6 * 60)
-    private val _dailyPlanCompletionPercent = MutableStateFlow(0)
+    private val _habitDefinitions = MutableStateFlow<List<HabitDefinition>>(emptyList())
+    private val _selectedHabitIds = MutableStateFlow<List<String>>(emptyList())
+    private val _habitLogs = MutableStateFlow<List<HabitLog>>(emptyList())
+    private val _habitScoreSummaries =
+        MutableStateFlow<Map<String, com.vm.vector.data.HabitScoreSummary>>(emptyMap())
     private val _selectedDate = MutableStateFlow(homeRepository.dateForOffset(0))
-    private val _pastDayEditingEnabled = MutableStateFlow(false)
     private val _isSaving = MutableStateFlow(false)
     private val _saveMessage = MutableStateFlow<String?>(null)
     private val _routineLast7 = MutableStateFlow<List<DayCompletion>>(emptyList())
-    private val _dietLast7 = MutableStateFlow<List<DayCompletion>>(emptyList())
+    private val _foodLast7 = MutableStateFlow<List<DayCompletion>>(emptyList())
     private val _workoutLast7 = MutableStateFlow<List<DayCompletion>>(emptyList())
-    private val _diaryLast7 = MutableStateFlow<List<DayCompletion>>(emptyList())
+    private val _selfLast7 = MutableStateFlow<List<DayCompletion>>(emptyList())
+    private val _brainInboxCount = MutableStateFlow(0)
+    private val _brainOverdue = MutableStateFlow(0)
+    private val _brainDueToday = MutableStateFlow(0)
+    private val _brainActiveTiles = MutableStateFlow(0)
+    private val _brainUpNext = MutableStateFlow<List<MotionTask>>(emptyList())
+    private val _wearUnseenEvents =
+        MutableStateFlow<List<com.vm.vector.data.WearActivityEvent>>(emptyList())
+    /** Null while the selected date is loading. */
+    private val _savedSnapshot = MutableStateFlow<HomeSnapshot?>(null)
+
+    private val hasUnsavedChanges = combine(
+        _weightKg,
+        _bodyFatPercent,
+        _selectedHabitIds,
+        _habitLogs,
+        _savedSnapshot,
+    ) { weight, bodyFat, selectedIds, logs, saved ->
+        saved != null && HomeSnapshot.of(weight, bodyFat, selectedIds, logs) != saved
+    }
 
     val uiState: StateFlow<HomeUiState> = combine(
         _weightKg,
         _bodyFatPercent,
-        _sleepStartMinutes,
-        _sleepEndMinutes,
-        _actualSleepStartMinutes,
-        _actualSleepEndMinutes,
-        _dailyPlanCompletionPercent,
         _selectedDate,
-        _pastDayEditingEnabled,
         _isSaving,
         _saveMessage,
+        _habitDefinitions,
+        _selectedHabitIds,
+        _habitLogs,
+        _habitScoreSummaries,
         _routineLast7,
-        _dietLast7,
+        _foodLast7,
         _workoutLast7,
-        _diaryLast7
-    ) { values ->
-        val selected = values[7] as String
-        val pastUnlock = values[8] as Boolean
-        val today = homeRepository.dateForOffset(0)
-        val cmp = selected.compareTo(today)
-        val editable = when {
-            cmp > 0 -> false
-            cmp == 0 -> true
-            else -> pastUnlock
-        }
+        _selfLast7,
+        _brainInboxCount,
+        _brainOverdue,
+        _brainDueToday,
+        _brainActiveTiles,
+        _brainUpNext,
+        _wearUnseenEvents,
+        hasUnsavedChanges,
+    ) { values: Array<Any?> ->
+        val selected = values[2] as String
+        val isFuture = selected > homeRepository.dateForOffset(0)
+        @Suppress("UNCHECKED_CAST")
         HomeUiState(
             selectedDate = selected,
-            isPastSelectedDate = cmp < 0,
-            isFutureSelectedDate = cmp > 0,
-            homeFieldsEditable = editable,
-            pastDayEditingEnabled = pastUnlock,
+            homeFieldsEditable = !isFuture,
             weightKg = values[0] as String,
             bodyFatPercent = values[1] as String,
-            sleepStartMinutes = values[2] as Int,
-            sleepEndMinutes = values[3] as Int,
-            actualSleepStartMinutes = values[4] as Int,
-            actualSleepEndMinutes = values[5] as Int,
-            dailyPlanCompletionPercent = values[6] as Int,
-            isSaving = values[9] as Boolean,
-            saveMessage = values[10] as String?,
-            routineLast7 = values[11] as List<DayCompletion>,
-            dietLast7 = values[12] as List<DayCompletion>,
-            workoutLast7 = values[13] as List<DayCompletion>,
-            diaryLast7 = values[14] as List<DayCompletion>
+            isSaving = values[3] as Boolean,
+            saveMessage = values[4] as String?,
+            habitDefinitions = (values[5] as? List<HabitDefinition>) ?: emptyList(),
+            selectedHabitIds = (values[6] as? List<String>) ?: emptyList(),
+            habitLogs = (values[7] as? List<HabitLog>) ?: emptyList(),
+            habitScoreSummaries = (values[8] as? Map<String, com.vm.vector.data.HabitScoreSummary>)
+                ?: emptyMap(),
+            routineLast7 = (values[9] as? List<DayCompletion>) ?: emptyList(),
+            foodLast7 = (values[10] as? List<DayCompletion>) ?: emptyList(),
+            workoutLast7 = (values[11] as? List<DayCompletion>) ?: emptyList(),
+            selfLast7 = (values[12] as? List<DayCompletion>) ?: emptyList(),
+            brainInboxCount = values[13] as Int,
+            brainOverdue = values[14] as Int,
+            brainDueToday = values[15] as Int,
+            brainActiveTiles = values[16] as Int,
+            brainUpNext = (values[17] as? List<MotionTask>) ?: emptyList(),
+            wearUnseenEvents = (values[18] as? List<com.vm.vector.data.WearActivityEvent>)
+                ?: emptyList(),
+            hasUnsavedChanges = values[19] as Boolean,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 
@@ -110,109 +181,174 @@ class HomeViewModel(
         viewModelScope.launch {
             loadEntryForSelectedDate()
             loadLast7Completions()
+            loadBrainSummary()
         }
+        habitRepository.observeScoreSummaries()
+            .onEach { _habitScoreSummaries.value = it }
+            .launchIn(viewModelScope)
+        homeRepository.observeDraftChanges()
+            .map { keys -> keys.toSet() }
+            .distinctUntilChanged()
+            .drop(1)
+            .onEach { loadLast7Completions() }
+            .launchIn(viewModelScope)
         (getApplication() as? VectorApplication)?.let { app ->
             app.databaseResetEvents.onEach {
                 viewModelScope.launch {
                     loadEntryForSelectedDate()
                     loadLast7Completions()
+                    loadBrainSummary()
                 }
             }.launchIn(viewModelScope)
+            DailySync.imported.onEach {
+                if (_savedSnapshot.value != null && currentSnapshot() != _savedSnapshot.value) return@onEach
+                loadEntryForSelectedDate()
+                loadLast7Completions()
+            }.launchIn(viewModelScope)
+            app.wearActivityStore.events
+                .onEach { events -> _wearUnseenEvents.value = events.filter { !it.seen } }
+                .launchIn(viewModelScope)
         }
     }
 
     fun setSelectedDate(isoDate: String) {
         viewModelScope.launch {
             _selectedDate.value = isoDate
-            _pastDayEditingEnabled.value = false
             loadEntryForSelectedDate()
-        }
-    }
-
-    fun togglePastDayEditing() {
-        val sel = _selectedDate.value
-        val today = homeRepository.dateForOffset(0)
-        if (sel.compareTo(today) < 0) {
-            _pastDayEditingEnabled.value = !_pastDayEditingEnabled.value
+            loadLast7Completions()
         }
     }
 
     private suspend fun loadEntryForSelectedDate() {
+        _savedSnapshot.value = null
         val date = _selectedDate.value
         val entry = homeRepository.getEntryForDate(date)
         entry?.let {
             _weightKg.value = it.weightKg?.toString()?.trim() ?: ""
             _bodyFatPercent.value = it.bodyFatPercent?.toString()?.trim() ?: ""
-            val start = parseTimeToMinutes(it.sleepStart) ?: 22 * 60
-            val end = parseTimeToMinutes(it.sleepEnd) ?: 6 * 60
-            val actualStart = parseTimeToMinutes(it.actualSleepStart) ?: start
-            val actualEnd = parseTimeToMinutes(it.actualSleepEnd) ?: end
-            _sleepStartMinutes.value = start
-            _sleepEndMinutes.value = end
-            _actualSleepStartMinutes.value = actualStart
-            _actualSleepEndMinutes.value = actualEnd
-            _dailyPlanCompletionPercent.value = it.dailyPlanCompletionPercent.coerceIn(0, 100)
         }
         if (entry == null) {
             _weightKg.value = ""
             _bodyFatPercent.value = ""
-            _sleepStartMinutes.value = 22 * 60
-            _sleepEndMinutes.value = 6 * 60
-            _actualSleepStartMinutes.value = 22 * 60
-            _actualSleepEndMinutes.value = 6 * 60
-            _dailyPlanCompletionPercent.value = 0
         }
+        loadHabitsForDate(date)
+        _savedSnapshot.value = currentSnapshot()
+    }
+
+    private fun currentSnapshot() = HomeSnapshot.of(
+        weightKg = _weightKg.value,
+        bodyFatPercent = _bodyFatPercent.value,
+        selectedHabitIds = _selectedHabitIds.value,
+        habitLogs = _habitLogs.value,
+    )
+
+    private suspend fun loadHabitsForDate(date: String) {
+        _habitDefinitions.value = habitRepository.getAllDefinitions()
+        val selected = habitRepository.getSelectedHabitIdsForDate(date)
+        _selectedHabitIds.value = selected
+        val logs = habitRepository.getLogsForDate(date)
+        val byHabitId = logs.associateBy { it.habitId }
+        _habitLogs.value = selected.mapNotNull { byHabitId[it] }
     }
 
     fun setWeight(value: String) { _weightKg.value = value }
     fun setBodyFat(value: String) { _bodyFatPercent.value = value }
-    fun setSleepStart(minutes: Int) {
-        _sleepStartMinutes.value = minutes
-        _actualSleepStartMinutes.value = minutes
+
+    fun updateHabitStatus(habitId: String, status: HabitStatus) {
+        if (!_homeEditable()) return
+        val date = _selectedDate.value
+        val existing = _habitLogs.value.find { it.habitId == habitId }
+        _habitLogs.value = if (existing != null) {
+            _habitLogs.value.map {
+                if (it.habitId == habitId) {
+                    it.copy(status = status, timestamp = System.currentTimeMillis())
+                } else {
+                    it
+                }
+            }
+        } else {
+            _habitLogs.value + HabitLog(
+                id = "hlog_${date}_$habitId",
+                date = date,
+                habitId = habitId,
+                status = status,
+            )
+        }
     }
-    fun setSleepEnd(minutes: Int) {
-        _sleepEndMinutes.value = minutes
-        _actualSleepEndMinutes.value = minutes
+
+    fun createHabit(name: String, onCreated: (HabitDefinition) -> Unit = {}) {
+        if (!_homeEditable()) return
+        viewModelScope.launch {
+            habitRepository.createHabit(name).fold(
+                onSuccess = { def ->
+                    DailySync.markConfig(getApplication())
+                    _habitDefinitions.value = _habitDefinitions.value + def
+                    onCreated(def)
+                },
+                onFailure = { _saveMessage.value = it.message },
+            )
+        }
     }
-    fun setActualSleepStart(minutes: Int) { _actualSleepStartMinutes.value = minutes }
-    fun setActualSleepEnd(minutes: Int) { _actualSleepEndMinutes.value = minutes }
-    fun setDailyPlanCompletionPercent(value: Int) { _dailyPlanCompletionPercent.value = value.coerceIn(0, 100) }
+
+    fun deleteHabit(id: String) {
+        if (!_homeEditable()) return
+        viewModelScope.launch {
+            habitRepository.deleteHabit(id)
+            DailySync.markConfig(getApplication())
+            _savedSnapshot.value = _savedSnapshot.value?.withoutHabit(id)
+            _habitDefinitions.value = _habitDefinitions.value.filter { it.id != id }
+            _selectedHabitIds.value = _selectedHabitIds.value.filter { it != id }
+            _habitLogs.value = _habitLogs.value.filter { it.habitId != id }
+        }
+    }
+
+    fun setSelectedHabits(ids: List<String>) {
+        if (!_homeEditable()) return
+        val date = _selectedDate.value
+        val known = _habitDefinitions.value.map { it.id }.toSet()
+        val cleaned = ids.filter { it in known }.distinct()
+        _selectedHabitIds.value = cleaned
+        val byId = _habitLogs.value.associateBy { it.habitId }
+        _habitLogs.value = cleaned.map { habitId ->
+            byId[habitId] ?: HabitLog(
+                id = "hlog_${date}_$habitId",
+                date = date,
+                habitId = habitId,
+                status = HabitStatus.NONE,
+            )
+        }
+    }
+
+    private fun _homeEditable(): Boolean =
+        _selectedDate.value <= homeRepository.dateForOffset(0)
 
     fun save() {
         viewModelScope.launch {
-            val today = homeRepository.dateForOffset(0)
-            val sel = _selectedDate.value
-            val cmp = sel.compareTo(today)
-            val editable = when {
-                cmp > 0 -> false
-                cmp == 0 -> true
-                else -> _pastDayEditingEnabled.value
-            }
-            if (!editable) return@launch
+            if (!_homeEditable()) return@launch
             _isSaving.value = true
             _saveMessage.value = null
             try {
                 val weight = _weightKg.value.toDoubleOrNull()
                 val bodyFat = _bodyFatPercent.value.toDoubleOrNull()
-                val startStr = minutesToTime(_sleepStartMinutes.value)
-                val endStr = minutesToTime(_sleepEndMinutes.value)
-                val actualStartStr = minutesToTime(_actualSleepStartMinutes.value)
-                val actualEndStr = minutesToTime(_actualSleepEndMinutes.value)
                 val date = _selectedDate.value
                 val existing = homeRepository.getEntryForDate(date)
                 homeRepository.saveForDate(
                     date = date,
                     weightKg = weight,
                     bodyFatPercent = bodyFat,
-                    sleepStart = startStr,
-                    sleepEnd = endStr,
-                    actualSleepStart = actualStartStr,
-                    actualSleepEnd = actualEndStr,
                     dailyPlanText = existing?.dailyPlanText,
                     dailyPlanAudioPath = existing?.dailyPlanAudioPath,
-                    dailyPlanCompletionPercent = _dailyPlanCompletionPercent.value
                 )
+                habitRepository.persistDaySnapshot(
+                    date = date,
+                    definitions = _habitDefinitions.value,
+                    selectedIds = _selectedHabitIds.value,
+                    logs = _habitLogs.value,
+                )
+                loadHabitsForDate(date)
+                _savedSnapshot.value = currentSnapshot()
                 _saveMessage.value = "Saved"
+                DailySync.markDay(getApplication(), date)
                 loadLast7Completions()
             } catch (e: Exception) {
                 _saveMessage.value = "Save failed"
@@ -224,6 +360,13 @@ class HomeViewModel(
 
     fun clearSaveMessage() { _saveMessage.value = null }
 
+    suspend fun uploadBodyScanPhoto(driveFolderName: String, jpegBytes: ByteArray): Result<Unit> =
+        selfRepository.uploadBodyScanPhotoToFixedCollectionFolder(
+            driveFolderName,
+            "image/jpeg",
+            jpegBytes
+        )
+
     private val _isRefreshingLast7 = MutableStateFlow(false)
     val isRefreshingLast7: StateFlow<Boolean> = _isRefreshingLast7.asStateFlow()
 
@@ -233,32 +376,56 @@ class HomeViewModel(
             try {
                 loadEntryForSelectedDate()
                 loadLast7Completions()
+                loadBrainSummary()
             } finally {
                 _isRefreshingLast7.value = false
             }
         }
     }
 
+    /** Deletes saved data and drafts for [category] on [date]; the Calendar falls back to the preset. */
+    fun clearDay(category: String, date: String) {
+        viewModelScope.launch {
+            try {
+                homeRepository.clearDay(category, date)
+                DailySync.markDay(getApplication(), date)
+                (getApplication() as? VectorApplication)?.notifyCalendarDayCleared(category, date)
+                _saveMessage.value = "$category cleared for $date"
+            } catch (e: Exception) {
+                _saveMessage.value = "Couldn't clear $category: ${e.message}"
+            }
+            loadLast7Completions()
+        }
+    }
+
+    fun completeBrainTask(taskId: String) {
+        viewModelScope.launch {
+            brainRepository.completeTask(taskId)
+            loadBrainSummary()
+        }
+    }
+
+    fun dismissWearEvents() {
+        (getApplication() as? VectorApplication)?.wearActivityStore?.markAllSeen()
+    }
+
+    fun markWearEventSeen(id: String) {
+        (getApplication() as? VectorApplication)?.wearActivityStore?.markSeen(id)
+    }
+
+    private suspend fun loadBrainSummary() {
+        _brainInboxCount.value = brainRepository.inboxCount().first()
+        _brainOverdue.value = brainRepository.countOverdue().first()
+        _brainDueToday.value = brainRepository.countDueToday().first()
+        _brainActiveTiles.value = brainRepository.countActiveTiles().first()
+        _brainUpNext.value = brainRepository.upcomingOpen(3)
+    }
+
     private suspend fun loadLast7Completions() {
-        _routineLast7.value = homeRepository.getRoutineCompletionLast7Days()
-        _dietLast7.value = homeRepository.getDietCompletionLast7Days()
-        _workoutLast7.value = homeRepository.getWorkoutCompletionLast7Days()
-        _diaryLast7.value = homeRepository.getDiaryCompletionLast7Days()
-    }
-
-    private fun parseTimeToMinutes(time: String?): Int? {
-        if (time.isNullOrBlank()) return null
-        val parts = time.split(":")
-        if (parts.size < 2) return null
-        val h = parts[0].toIntOrNull() ?: return null
-        val m = parts[1].toIntOrNull() ?: 0
-        return (h * 60 + m) % (24 * 60)
-    }
-
-    private fun minutesToTime(minutes: Int): String {
-        val m = (minutes % (24 * 60) + 24 * 60) % (24 * 60)
-        val h = m / 60
-        val min = m % 60
-        return "%02d:%02d".format(h, min)
+        val endDate = _selectedDate.value
+        _routineLast7.value = homeRepository.getRoutineCompletionLast7Days(endDate)
+        _foodLast7.value = homeRepository.getFoodCompletionLast7Days(endDate)
+        _workoutLast7.value = homeRepository.getWorkoutCompletionLast7Days(endDate)
+        _selfLast7.value = homeRepository.getSelfCompletionLast7Days(endDate)
     }
 }

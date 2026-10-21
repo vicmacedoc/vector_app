@@ -1,0 +1,43 @@
+{
+  "description": "Deleting on one side while editing on the other is a conflict in both directions",
+  "base": {
+    "tasks": {
+      "task_1": { "id": "task_1", "title": "Taxes", "status": "OPEN" },
+      "task_2": { "id": "task_2", "title": "Gym", "status": "OPEN" }
+    }
+  },
+  "local": {
+    "tasks": {
+      "task_2": { "id": "task_2", "title": "Gym (legs)", "status": "OPEN" }
+    }
+  },
+  "remote": {
+    "tasks": {
+      "task_1": { "id": "task_1", "title": "Taxes", "status": "DONE" }
+    }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [
+      { "id": "tasks/task_1", "kind": "DELETE_EDIT", "fields": [] },
+      { "id": "tasks/task_2", "kind": "EDIT_DELETE", "fields": [] }
+    ],
+    "resolvedLocal": {
+      "tasks": {
+        "task_2": { "id": "task_2", "title": "Gym (legs)", "status": "OPEN" }
+      }
+    },
+    "resolvedRemote": {
+      "tasks": {
+        "task_1": { "id": "task_1", "title": "Taxes", "status": "DONE" }
+      }
+    },
+    "resolvedBoth": {
+      "tasks": {
+        "task_1": { "id": "task_1", "title": "Taxes", "status": "DONE" },
+        "task_2": { "id": "task_2", "title": "Gym (legs)", "status": "OPEN" }
+      }
+    }
+  }
+}

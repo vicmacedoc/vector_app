@@ -1,0 +1,38 @@
+{
+  "description": "Library records never conflict: the higher createdAt wins and an edit beats a delete.",
+  "stamps": { "local": 1, "remote": 2 },
+  "base": {
+    "mealLibrary": {
+      "oats": { "id": "m1", "name": "Oats", "kcal": 380, "nameKey": "oats", "createdAt": 10 },
+      "rice": { "id": "m2", "name": "Rice", "kcal": 130, "nameKey": "rice", "createdAt": 10 }
+    }
+  },
+  "local": {
+    "mealLibrary": {
+      "oats": { "id": "m1", "name": "Oats", "kcal": 390, "nameKey": "oats", "createdAt": 30 }
+    }
+  },
+  "remote": {
+    "mealLibrary": {
+      "oats": { "id": "m9", "name": "oats", "kcal": 370, "nameKey": "oats", "createdAt": 20 },
+      "rice": { "id": "m2", "name": "Rice", "kcal": 140, "nameKey": "rice", "createdAt": 25 }
+    }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [],
+    "resolvedLocal": {
+      "mealLibrary": {
+        "oats": { "id": "m1", "name": "Oats", "kcal": 390, "nameKey": "oats", "createdAt": 30 },
+        "rice": { "id": "m2", "name": "Rice", "kcal": 140, "nameKey": "rice", "createdAt": 25 }
+      }
+    },
+    "resolvedRemote": {
+      "mealLibrary": {
+        "oats": { "id": "m1", "name": "Oats", "kcal": 390, "nameKey": "oats", "createdAt": 30 },
+        "rice": { "id": "m2", "name": "Rice", "kcal": 140, "nameKey": "rice", "createdAt": 25 }
+      }
+    }
+  }
+}

@@ -37,6 +37,10 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -44,10 +48,11 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    // These are essential for the core module to understand Compose UI
-    implementation("androidx.compose.ui:ui:1.6.0")
-    implementation("androidx.compose.material3:material3:1.2.0")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.6.0")
+    // Compose — versions come from the shared BOM (must match :mobile / :wear)
+    api(enforcedPlatform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation("androidx.compose.material3:material3")
+    implementation(libs.androidx.compose.ui.tooling.preview)
 
     // Add Kotlin serialization here too, since we'll use it for your JSON models
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")

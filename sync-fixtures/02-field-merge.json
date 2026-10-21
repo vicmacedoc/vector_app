@@ -1,0 +1,23 @@
+{
+  "description": "Both sides edit the same record but different fields: fields merge, no conflict",
+  "base": {
+    "notes": { "note_1": { "id": "note_1", "title": "Dune", "body": "Spice", "rating": null } }
+  },
+  "local": {
+    "notes": { "note_1": { "id": "note_1", "title": "Dune Messiah", "body": "Spice", "rating": null } }
+  },
+  "remote": {
+    "notes": { "note_1": { "id": "note_1", "title": "Dune", "body": "Spice must flow", "rating": 5 } }
+  },
+  "expect": {
+    "localChanged": true,
+    "remoteChanged": true,
+    "conflicts": [],
+    "resolvedLocal": {
+      "notes": { "note_1": { "id": "note_1", "title": "Dune Messiah", "body": "Spice must flow", "rating": 5 } }
+    },
+    "resolvedRemote": {
+      "notes": { "note_1": { "id": "note_1", "title": "Dune Messiah", "body": "Spice must flow", "rating": 5 } }
+    }
+  }
+}

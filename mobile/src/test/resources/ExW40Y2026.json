@@ -1,0 +1,1713 @@
+{
+  "name": "ExW40Y2026",
+  "weekly_plan": {
+    "monday": [
+      {
+        "title": "PULL - MSU",
+        "description": "Calibration week: stop each set at the target RIR and log what you actually did.",
+        "type": "RESISTANCE",
+        "exercises": [
+          {
+            "name": "Weighted Pull-Ups",
+            "description": "Warm-up: 5 min easy row, then BW x5, +10 lbs x3. Rep range 6-8; full hang, chest to bar.",
+            "totalDuration": 17.0,
+            "unitDuration": "min",
+            "target": {
+              "back": 1.0,
+              "biceps": 0.5
+            },
+            "timing": "3-1-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 20,
+                "unitLoad": "lbs",
+                "targetReps": 7,
+                "targetRir": 3,
+                "rest": 150,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 20,
+                "unitLoad": "lbs",
+                "targetReps": 7,
+                "targetRir": 3,
+                "rest": 150,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 20,
+                "unitLoad": "lbs",
+                "targetReps": 7,
+                "targetRir": 2,
+                "rest": 150,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Wide-Grip Chest-Supported Row",
+            "description": "Rep range 8-12. Elbows 45-60 deg, 1s squeeze, chest stays on the pad.",
+            "totalDuration": 9.0,
+            "unitDuration": "min",
+            "target": {
+              "back": 1.0,
+              "traps": 0.5,
+              "shoulder": 0.5
+            },
+            "timing": "3-1-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 100,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 3,
+                "rest": 105,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 100,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 3,
+                "rest": 105,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 100,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 2,
+                "rest": 120,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Incline Dumbbell Curls",
+            "description": "Rep range 10-12. Bench 45 deg, arms behind torso. Last set: drop straight to the lighter pair.",
+            "totalDuration": 8.5,
+            "unitDuration": "min",
+            "target": {
+              "biceps": 1.0
+            },
+            "timing": "3-1-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 25,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 3,
+                "rest": 75,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 25,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 2,
+                "rest": 75,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "setType": "DROP",
+                "targetLoad": 25,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 1,
+                "drops": [
+                  {
+                    "dropNumber": 1,
+                    "targetLoad": 15,
+                    "unitLoad": "lbs",
+                    "targetReps": 8,
+                    "targetRir": 0
+                  }
+                ],
+                "rest": 90,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Single-Arm Cable Lateral Raise",
+            "description": "Superset A at one cable crossover (low pulleys). Rep range 12-15 per arm; cable behind the body.",
+            "totalDuration": 6.0,
+            "unitDuration": "min",
+            "target": {
+              "shoulder": 1.0
+            },
+            "timing": "2-0-1-1",
+            "supersetGroup": "A",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 15,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 3,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 15,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 15,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 20,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Cable Reverse Fly",
+            "description": "Superset A, same station (high pulleys, cables crossed). Rep range 12-15; sweep wide, no shrug.",
+            "totalDuration": 6.0,
+            "unitDuration": "min",
+            "target": {
+              "shoulder": 1.0,
+              "traps": 0.5
+            },
+            "timing": "2-0-1-1",
+            "supersetGroup": "A",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 15,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 3,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 15,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 15,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 60,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Cable Rope Pushdown",
+            "description": "Same station, high pulley. Rep range 10-15; elbows pinned. Last set: drop the pin once.",
+            "totalDuration": 5.5,
+            "unitDuration": "min",
+            "target": {
+              "triceps": 1.0
+            },
+            "timing": "2-0-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 50,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 3,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 50,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "setType": "DROP",
+                "targetLoad": 50,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 1,
+                "drops": [
+                  {
+                    "dropNumber": 1,
+                    "targetLoad": 35,
+                    "unitLoad": "lbs",
+                    "targetReps": 10,
+                    "targetRir": 0
+                  }
+                ],
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "tuesday": [
+      {
+        "title": "LEGS - MSU",
+        "description": "Calibration week; never skip the warm-up this early. Squat and RDL both in the same rack.",
+        "type": "RESISTANCE",
+        "exercises": [
+          {
+            "name": "Back Squat",
+            "description": "Warm-up: 5 min bike + hip mobility, then bar x8, 95 x5, 135 x3, 165 x2. Rep range 6-8; brace every rep, at or below parallel.",
+            "totalDuration": 17.0,
+            "unitDuration": "min",
+            "target": {
+              "quads": 1.0,
+              "glutes": 0.5
+            },
+            "timing": "3-1-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 185,
+                "unitLoad": "lbs",
+                "targetReps": 7,
+                "targetRir": 3,
+                "rest": 135,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 185,
+                "unitLoad": "lbs",
+                "targetReps": 7,
+                "targetRir": 3,
+                "rest": 135,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 185,
+                "unitLoad": "lbs",
+                "targetReps": 7,
+                "targetRir": 2,
+                "rest": 105,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Romanian Deadlift (RDL)",
+            "description": "Rep range 8-10. Neutral spine, bar close; hinge until the hamstrings stop you.",
+            "totalDuration": 7.0,
+            "unitDuration": "min",
+            "target": {
+              "hamstrings": 1.0,
+              "glutes": 0.5
+            },
+            "timing": "3-1-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 185,
+                "unitLoad": "lbs",
+                "targetReps": 8,
+                "targetRir": 3,
+                "rest": 90,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 185,
+                "unitLoad": "lbs",
+                "targetReps": 8,
+                "targetRir": 3,
+                "rest": 90,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 185,
+                "unitLoad": "lbs",
+                "targetReps": 8,
+                "targetRir": 2,
+                "rest": 75,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Leg Extensions",
+            "description": "Rep range 12-15; 1s squeeze at the top. Last set: drop the pin once.",
+            "totalDuration": 7.0,
+            "unitDuration": "min",
+            "target": {
+              "quads": 1.0
+            },
+            "timing": "2-0-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 100,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 3,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 100,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "setType": "DROP",
+                "targetLoad": 100,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 1,
+                "drops": [
+                  {
+                    "dropNumber": 1,
+                    "targetLoad": 75,
+                    "unitLoad": "lbs",
+                    "targetReps": 10,
+                    "targetRir": 0
+                  }
+                ],
+                "rest": 75,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Lying Leg Curls",
+            "description": "Rep range 10-12; hips pinned to the pad. Last set: drop the pin once.",
+            "totalDuration": 7.5,
+            "unitDuration": "min",
+            "target": {
+              "hamstrings": 1.0
+            },
+            "timing": "3-1-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 90,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 3,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 90,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 2,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "setType": "DROP",
+                "targetLoad": 90,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 1,
+                "drops": [
+                  {
+                    "dropNumber": 1,
+                    "targetLoad": 70,
+                    "unitLoad": "lbs",
+                    "targetReps": 8,
+                    "targetRir": 0
+                  }
+                ],
+                "rest": 60,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Dumbbell Lateral Raises",
+            "description": "Tri-set B in the dumbbell area. Rep range 12-15; strict, no swing.",
+            "totalDuration": 6.0,
+            "unitDuration": "min",
+            "target": {
+              "shoulder": 1.0
+            },
+            "timing": "2-0-1-1",
+            "supersetGroup": "B",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 20,
+                "unitLoad": "lbs",
+                "targetReps": 14,
+                "targetRir": 3,
+                "rest": 15,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 20,
+                "unitLoad": "lbs",
+                "targetReps": 14,
+                "targetRir": 2,
+                "rest": 15,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 20,
+                "unitLoad": "lbs",
+                "targetReps": 14,
+                "targetRir": 2,
+                "rest": 15,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Single-Leg Dumbbell Calf Raise",
+            "description": "Tri-set B. Ball of foot on a plate or step, 2s pause at the bottom. Reps per leg.",
+            "totalDuration": 6.0,
+            "unitDuration": "min",
+            "target": {
+              "calves": 1.0
+            },
+            "timing": "2-2-1-1",
+            "supersetGroup": "B",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 40,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 3,
+                "rest": 15,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 40,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 15,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 40,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 15,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Lying Leg Raises",
+            "description": "Tri-set B, on the floor. Rep range 12-20; lower back stays flat.",
+            "totalDuration": 6.0,
+            "unitDuration": "min",
+            "target": {
+              "core": 1.0
+            },
+            "timing": "2-0-1-1",
+            "supersetGroup": "B",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetReps": 15,
+                "targetRir": 3,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetReps": 15,
+                "targetRir": 2,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetReps": 15,
+                "targetRir": 2,
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "wednesday": [
+      {
+        "title": "Swim - IM Circle",
+        "description": "Technique + aerobic, 1800 yd. If short on time, cut the main set to 6x100.",
+        "type": "ENDURANCE",
+        "sport": "SWIM",
+        "exercises": [
+          {
+            "name": "Warm-up",
+            "description": "Easy, any stroke.",
+            "totalDuration": 6.5,
+            "unitDuration": "min",
+            "stroke": "CHOICE",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDistance": 300,
+                "unitDistance": "yd",
+                "targetZone": 1,
+                "targetRpe": 2,
+                "rest": 30,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Drill set",
+            "description": "Each 50 = 25 drill + 25 swim.",
+            "totalDuration": 8.5,
+            "unitDuration": "min",
+            "stroke": "DRILL",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 3,
+                "rest": 15,
+                "unitRest": "s",
+                "description": "Catch-up"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 3,
+                "rest": 15,
+                "unitRest": "s",
+                "description": "Catch-up"
+              },
+              {
+                "intervalNumber": 3,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 3,
+                "rest": 15,
+                "unitRest": "s",
+                "description": "Fingertip drag"
+              },
+              {
+                "intervalNumber": 4,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 3,
+                "rest": 15,
+                "unitRest": "s",
+                "description": "Fingertip drag"
+              },
+              {
+                "intervalNumber": 5,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 3,
+                "rest": 15,
+                "unitRest": "s",
+                "description": "6-kick switch"
+              },
+              {
+                "intervalNumber": 6,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 3,
+                "rest": 30,
+                "unitRest": "s",
+                "description": "6-kick switch"
+              }
+            ]
+          },
+          {
+            "name": "Main set",
+            "description": "Same pace every rep, breathe every 3.",
+            "totalDuration": 17.0,
+            "unitDuration": "min",
+            "stroke": "FREE",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDistance": 100,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDistance": 100,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 3,
+                "targetDistance": 100,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 4,
+                "targetDistance": 100,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 5,
+                "targetDistance": 100,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 6,
+                "targetDistance": 100,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 7,
+                "targetDistance": 100,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 8,
+                "targetDistance": 100,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 30,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Kick set",
+            "description": "With board, kick from the hips.",
+            "totalDuration": 6.5,
+            "unitDuration": "min",
+            "stroke": "KICK",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 3,
+                "targetRpe": 5,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 3,
+                "targetRpe": 5,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 3,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 3,
+                "targetRpe": 5,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 4,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 3,
+                "targetRpe": 5,
+                "rest": 30,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Cool-down",
+            "description": "Very easy.",
+            "totalDuration": 4.0,
+            "unitDuration": "min",
+            "stroke": "CHOICE",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDistance": 200,
+                "unitDistance": "yd",
+                "targetZone": 1,
+                "targetRpe": 2,
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Bike - Z2 Cadence",
+        "description": "Set resistance so 88-92 rpm feels Z2, and log the knob setting.",
+        "type": "ENDURANCE",
+        "sport": "BIKE",
+        "exercises": [
+          {
+            "name": "Warm-up",
+            "description": "Light resistance.",
+            "totalDuration": 7.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 7,
+                "unitDuration": "min",
+                "targetZone": 1,
+                "targetRpe": 2,
+                "targetCadence": 85,
+                "unitCadence": "rpm",
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Cadence spin-ups",
+            "description": "Spin-up 1 min at 105-110 rpm without bouncing; recover 5 min Z2 at 88-92 rpm.",
+            "totalDuration": 30.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 1,
+                "unitDuration": "min",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "targetCadence": 108,
+                "unitCadence": "rpm",
+                "rest": 300,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDuration": 1,
+                "unitDuration": "min",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "targetCadence": 108,
+                "unitCadence": "rpm",
+                "rest": 300,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 3,
+                "targetDuration": 1,
+                "unitDuration": "min",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "targetCadence": 108,
+                "unitCadence": "rpm",
+                "rest": 300,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 4,
+                "targetDuration": 1,
+                "unitDuration": "min",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "targetCadence": 108,
+                "unitCadence": "rpm",
+                "rest": 300,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 5,
+                "targetDuration": 1,
+                "unitDuration": "min",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "targetCadence": 108,
+                "unitCadence": "rpm",
+                "rest": 300,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Cool-down",
+            "description": "Easy spin.",
+            "totalDuration": 6.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 6,
+                "unitDuration": "min",
+                "targetZone": 1,
+                "targetRpe": 2,
+                "targetCadence": 85,
+                "unitCadence": "rpm",
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "thursday": [
+      {
+        "title": "PUSH - MSU",
+        "description": "Calibration week. Done by 08:30 for class.",
+        "type": "RESISTANCE",
+        "exercises": [
+          {
+            "name": "Barbell Bench Press",
+            "description": "Warm-up: band dislocates + external rotations, push-ups x15, then bar x10, 95 x5, 125 x3. Rep range 6-8; shoulder blades pinned.",
+            "totalDuration": 16.5,
+            "unitDuration": "min",
+            "target": {
+              "chest": 1.0,
+              "triceps": 0.5,
+              "shoulder": 0.5
+            },
+            "timing": "3-1-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 145,
+                "unitLoad": "lbs",
+                "targetReps": 7,
+                "targetRir": 3,
+                "rest": 150,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 145,
+                "unitLoad": "lbs",
+                "targetReps": 7,
+                "targetRir": 3,
+                "rest": 150,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 145,
+                "unitLoad": "lbs",
+                "targetReps": 7,
+                "targetRir": 2,
+                "rest": 120,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Weighted Dips",
+            "description": "Rep range 6-10. Slight forward lean; stop the set if the front of the shoulder pinches.",
+            "totalDuration": 7.5,
+            "unitDuration": "min",
+            "target": {
+              "chest": 1.0,
+              "triceps": 0.5,
+              "shoulder": 0.5
+            },
+            "timing": "2-1-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 25,
+                "unitLoad": "lbs",
+                "targetReps": 8,
+                "targetRir": 3,
+                "rest": 105,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 25,
+                "unitLoad": "lbs",
+                "targetReps": 8,
+                "targetRir": 3,
+                "rest": 105,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 25,
+                "unitLoad": "lbs",
+                "targetReps": 8,
+                "targetRir": 2,
+                "rest": 90,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Incline Dumbbell Press",
+            "description": "Rep range 8-12, 30 deg bench. Last set: drop straight to the lighter pair.",
+            "totalDuration": 8.0,
+            "unitDuration": "min",
+            "target": {
+              "chest": 1.0,
+              "shoulder": 0.5,
+              "triceps": 0.5
+            },
+            "timing": "3-1-1-1",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 50,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 3,
+                "rest": 75,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 50,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 2,
+                "rest": 75,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "setType": "DROP",
+                "targetLoad": 50,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 1,
+                "drops": [
+                  {
+                    "dropNumber": 1,
+                    "targetLoad": 35,
+                    "unitLoad": "lbs",
+                    "targetReps": 8,
+                    "targetRir": 0
+                  }
+                ],
+                "rest": 75,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Cable Y-Raise",
+            "description": "Tri-set A at one cable crossover (low pulleys, cables crossed). Rep range 12-15; finish just above shoulder height.",
+            "totalDuration": 6.0,
+            "unitDuration": "min",
+            "target": {
+              "shoulder": 1.0
+            },
+            "timing": "2-0-1-1",
+            "supersetGroup": "A",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 10,
+                "unitLoad": "lbs",
+                "targetReps": 15,
+                "targetRir": 3,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 10,
+                "unitLoad": "lbs",
+                "targetReps": 15,
+                "targetRir": 2,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 10,
+                "unitLoad": "lbs",
+                "targetReps": 15,
+                "targetRir": 2,
+                "rest": 20,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Overhead Cable Triceps Extension",
+            "description": "Tri-set A, same station (rope, one pulley). Rep range 10-15; full stretch behind the head.",
+            "totalDuration": 6.0,
+            "unitDuration": "min",
+            "target": {
+              "triceps": 1.0
+            },
+            "timing": "3-1-1-1",
+            "supersetGroup": "A",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 40,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 3,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 40,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 20,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 40,
+                "unitLoad": "lbs",
+                "targetReps": 12,
+                "targetRir": 2,
+                "rest": 20,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Bayesian Cable Curl",
+            "description": "Tri-set A, same station (handle, low pulley). Rep range 10-12 per arm; arm behind the torso.",
+            "totalDuration": 6.0,
+            "unitDuration": "min",
+            "target": {
+              "biceps": 1.0
+            },
+            "timing": "3-1-1-1",
+            "supersetGroup": "A",
+            "sets": [
+              {
+                "setNumber": 1,
+                "targetLoad": 25,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 3,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 2,
+                "targetLoad": 25,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 2,
+                "rest": 60,
+                "unitRest": "s"
+              },
+              {
+                "setNumber": 3,
+                "targetLoad": 25,
+                "unitLoad": "lbs",
+                "targetReps": 10,
+                "targetRir": 2,
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "friday": [
+      {
+        "title": "Run - Threshold",
+        "description": "Z4 = comfortably hard. Finish with 2 more reps left in you.",
+        "type": "ENDURANCE",
+        "sport": "RUN",
+        "exercises": [
+          {
+            "name": "Warm-up",
+            "description": "Start very easy.",
+            "totalDuration": 15.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 5,
+                "unitDuration": "min",
+                "targetZone": 1,
+                "targetRpe": 2,
+                "rest": 0,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDuration": 10,
+                "unitDuration": "min",
+                "targetZone": 2,
+                "targetRpe": 3,
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Strides",
+            "description": "Fast and relaxed, not a sprint; go by feel, not HR. Recover with an easy jog.",
+            "totalDuration": 4.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 20,
+                "unitDuration": "s",
+                "targetZone": 5,
+                "targetRpe": 7,
+                "rest": 40,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDuration": 20,
+                "unitDuration": "s",
+                "targetZone": 5,
+                "targetRpe": 7,
+                "rest": 40,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 3,
+                "targetDuration": 20,
+                "unitDuration": "s",
+                "targetZone": 5,
+                "targetRpe": 7,
+                "rest": 40,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 4,
+                "targetDuration": 20,
+                "unitDuration": "s",
+                "targetZone": 5,
+                "targetRpe": 7,
+                "rest": 40,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Main set",
+            "description": "Even effort on all reps; recover with a Z1 jog.",
+            "totalDuration": 23.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 3,
+                "unitDuration": "min",
+                "targetZone": 4,
+                "targetRpe": 7,
+                "rest": 120,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDuration": 3,
+                "unitDuration": "min",
+                "targetZone": 4,
+                "targetRpe": 7,
+                "rest": 120,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 3,
+                "targetDuration": 3,
+                "unitDuration": "min",
+                "targetZone": 4,
+                "targetRpe": 7,
+                "rest": 120,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 4,
+                "targetDuration": 3,
+                "unitDuration": "min",
+                "targetZone": 4,
+                "targetRpe": 7,
+                "rest": 120,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 5,
+                "targetDuration": 3,
+                "unitDuration": "min",
+                "targetZone": 4,
+                "targetRpe": 7,
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Cool-down",
+            "description": "Easy jog.",
+            "totalDuration": 8.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 8,
+                "unitDuration": "min",
+                "targetZone": 1,
+                "targetRpe": 2,
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Climbing - MSU",
+        "description": "Moderate volume; stay 1-2 grades below your max.",
+        "type": "OTHER",
+        "exercises": [
+          {
+            "name": "Climbing session",
+            "description": "Self-paced, no limit projecting.",
+            "totalDuration": 60,
+            "unitDuration": "min"
+          }
+        ]
+      }
+    ],
+    "saturday": [
+      {
+        "title": "Bike - Tempo",
+        "description": "Z3 = short sentences only. Log the knob setting for the tempo reps.",
+        "type": "ENDURANCE",
+        "sport": "BIKE",
+        "exercises": [
+          {
+            "name": "Warm-up",
+            "description": "Progressive.",
+            "totalDuration": 10.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 5,
+                "unitDuration": "min",
+                "targetZone": 1,
+                "targetRpe": 2,
+                "targetCadence": 85,
+                "unitCadence": "rpm",
+                "rest": 0,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDuration": 5,
+                "unitDuration": "min",
+                "targetZone": 2,
+                "targetRpe": 3,
+                "targetCadence": 90,
+                "unitCadence": "rpm",
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Tempo set",
+            "description": "Seated, same resistance every rep; 4 min Z2 spin between reps.",
+            "totalDuration": 32.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 8,
+                "unitDuration": "min",
+                "targetZone": 3,
+                "targetRpe": 5.5,
+                "targetCadence": 88,
+                "unitCadence": "rpm",
+                "rest": 240,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDuration": 8,
+                "unitDuration": "min",
+                "targetZone": 3,
+                "targetRpe": 5.5,
+                "targetCadence": 88,
+                "unitCadence": "rpm",
+                "rest": 240,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 3,
+                "targetDuration": 8,
+                "unitDuration": "min",
+                "targetZone": 3,
+                "targetRpe": 5.5,
+                "targetCadence": 88,
+                "unitCadence": "rpm",
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Steady aerobic",
+            "description": "Back to Z2.",
+            "totalDuration": 8.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 8,
+                "unitDuration": "min",
+                "targetZone": 2,
+                "targetRpe": 3.5,
+                "targetCadence": 90,
+                "unitCadence": "rpm",
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Cool-down",
+            "description": "Easy spin.",
+            "totalDuration": 5.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 5,
+                "unitDuration": "min",
+                "targetZone": 1,
+                "targetRpe": 2,
+                "targetCadence": 85,
+                "unitCadence": "rpm",
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Tennis - MSU",
+        "description": "Weekly session, no serve training.",
+        "type": "OTHER",
+        "exercises": [
+          {
+            "name": "Tennis practice",
+            "description": "Self-directed.",
+            "totalDuration": 90,
+            "unitDuration": "min"
+          }
+        ]
+      }
+    ],
+    "sunday": [
+      {
+        "title": "Run - Long Z2",
+        "description": "Conversational pace the whole way. Route of ~9.5-10.5 km ending at Meijer.",
+        "type": "ENDURANCE",
+        "sport": "RUN",
+        "exercises": [
+          {
+            "name": "Warm-up",
+            "description": "Ease from Z1 into Z2.",
+            "totalDuration": 10.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 10,
+                "unitDuration": "min",
+                "targetZone": 2,
+                "targetRpe": 3,
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Main aerobic",
+            "description": "Steady Z2; slow down on hills.",
+            "totalDuration": 40.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 40,
+                "unitDuration": "min",
+                "targetZone": 2,
+                "targetRpe": 3.5,
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Cool-down",
+            "description": "Easy jog into Meijer.",
+            "totalDuration": 5.0,
+            "unitDuration": "min",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDuration": 5,
+                "unitDuration": "min",
+                "targetZone": 1,
+                "targetRpe": 2,
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Swim - Home",
+        "description": "Aerobic, 1800 yd. Keep it smooth and finish very easy.",
+        "type": "ENDURANCE",
+        "sport": "SWIM",
+        "exercises": [
+          {
+            "name": "Warm-up",
+            "description": "Easy freestyle.",
+            "totalDuration": 6.5,
+            "unitDuration": "min",
+            "stroke": "FREE",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDistance": 300,
+                "unitDistance": "yd",
+                "targetZone": 1,
+                "targetRpe": 2,
+                "rest": 30,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Build set",
+            "description": "Each 50 builds from easy to Z3.",
+            "totalDuration": 4.5,
+            "unitDuration": "min",
+            "stroke": "FREE",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 3,
+                "targetRpe": 5,
+                "rest": 15,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 3,
+                "targetRpe": 5,
+                "rest": 15,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 3,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 3,
+                "targetRpe": 5,
+                "rest": 15,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 4,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 3,
+                "targetRpe": 5,
+                "rest": 30,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Main set",
+            "description": "Same pace on all three, breathe every 3.",
+            "totalDuration": 17.0,
+            "unitDuration": "min",
+            "stroke": "FREE",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDistance": 300,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 30,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDistance": 300,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 30,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 3,
+                "targetDistance": 300,
+                "unitDistance": "yd",
+                "targetZone": 2,
+                "targetRpe": 4,
+                "rest": 30,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Backstroke set",
+            "description": "Easy.",
+            "totalDuration": 5.5,
+            "unitDuration": "min",
+            "stroke": "BACK",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 1,
+                "targetRpe": 2.5,
+                "rest": 15,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 2,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 1,
+                "targetRpe": 2.5,
+                "rest": 15,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 3,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 1,
+                "targetRpe": 2.5,
+                "rest": 15,
+                "unitRest": "s"
+              },
+              {
+                "intervalNumber": 4,
+                "targetDistance": 50,
+                "unitDistance": "yd",
+                "targetZone": 1,
+                "targetRpe": 2.5,
+                "rest": 15,
+                "unitRest": "s"
+              }
+            ]
+          },
+          {
+            "name": "Cool-down",
+            "description": "Very easy.",
+            "totalDuration": 4.0,
+            "unitDuration": "min",
+            "stroke": "CHOICE",
+            "intervals": [
+              {
+                "intervalNumber": 1,
+                "targetDistance": 200,
+                "unitDistance": "yd",
+                "targetZone": 1,
+                "targetRpe": 1.5,
+                "rest": 0,
+                "unitRest": "s"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
